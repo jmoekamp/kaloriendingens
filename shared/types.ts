@@ -1,0 +1,183 @@
+/**
+ * Gemeinsame API-Vertragstypen (DTOs) fuer Frontend und Backend.
+ *
+ * Einheiten-Konvention (analog zum Cent-Prinzip: alles als Ganzzahl halten,
+ * erst zur Anzeige formatieren):
+ * - kcal immer als ganze Kilokalorien (INTEGER).
+ * - Eiweiss immer in DEZIGRAMM (1 dg = 0,1 g), damit ein Nachkommastellen-Wert
+ *   wie 12,5 g ohne Rundungsfehler als 125 gespeichert wird.
+ * - Mengen (gegessene Menge) in ganzen Gramm.
+ */
+
+/** Zieltyp: Der Zielwert ist eine Obergrenze (max) oder eine Untergrenze (min). */
+export type ZielTyp = 'min' | 'max';
+
+/** Ein Lebensmittel (Stammdatum). Naehrwerte beziehen sich immer auf 100 g. */
+export interface Lebensmittel {
+  id: number;
+  name: string;
+  /** kcal je 100 g (ganze kcal). */
+  kcal_pro_100g: number;
+  /** Eiweiss je 100 g in Dezigramm (0,1 g). */
+  eiweiss_dg_pro_100g: number;
+  erstellt_am: string;
+  geaendert_am: string;
+  /** Nur lesend: Anzahl Eintraege, die dieses Lebensmittel verwenden (Loeschschutz). */
+  eintrag_anzahl?: number;
+}
+
+/** Eingabe zum Anlegen/Bearbeiten eines Lebensmittels. */
+export interface LebensmittelInput {
+  name: string;
+  kcal_pro_100g: number;
+  eiweiss_dg_pro_100g: number;
+}
+
+/**
+ * Ein Tages-Eintrag: was und wieviel zu einer Uhrzeit gegessen wurde. kcal und
+ * Eiweiss werden LIVE aus dem verknuepften Lebensmittel und der Menge berechnet
+ * (nicht gespeichert) – aendert man die Naehrwerte des Lebensmittels, aendern
+ * sich vergangene Auswertungen entsprechend mit.
+ */
+export interface Eintrag {
+  id: number;
+  datum: string; // YYYY-MM-DD
+  uhrzeit: string; // HH:MM
+  lebensmittel_id: number;
+  menge_gramm: number;
+  /** Nur lesend (Join). */
+  lebensmittel_name?: string;
+  /** Nur lesend (berechnet): kcal dieser Portion. */
+  kcal?: number;
+  /** Nur lesend (berechnet): Eiweiss dieser Portion in Dezigramm. */
+  eiweiss_dg?: number;
+  erstellt_am: string;
+  geaendert_am: string;
+}
+
+/** Eingabe zum Anlegen/Bearbeiten eines Eintrags. */
+export interface EintragInput {
+  datum: string;
+  uhrzeit: string;
+  lebensmittel_id: number;
+  menge_gramm: number;
+}
+
+/**
+ * Anwendungseinstellungen (je Mandant). Intern Key-Value, nach aussen typisiert.
+ * Ein Zielwert von 0 bedeutet „kein Ziel gesetzt" und wird in Auswertungen nicht
+ * bewertet. gesamtumsatz = taeglicher Gesamtumsatz (kcal/Tag) fuer das Defizit.
+ */
+export interface Einstellungen {
+  kcal_ziel: number; // kcal, 0 = kein Ziel
+  kcal_ziel_typ: ZielTyp;
+  eiweiss_ziel_dg: number; // Dezigramm, 0 = kein Ziel
+  eiweiss_ziel_typ: ZielTyp;
+  gesamtumsatz: number; // kcal/Tag, 0 = nicht gesetzt
+}
+
+/** Teilweise Aktualisierung – nur gesetzte Felder werden uebernommen. */
+export type EinstellungenInput = Partial<Einstellungen>;
+
+/**
+ * Bewertung eines Wertes gegen ein Ziel. abweichung = summe - ziel (vorzeichen-
+ * behaftet): positiv = ueber dem Ziel, negativ = darunter. erfuellt richtet sich
+ * nach dem Zieltyp. Bei ziel = 0 (kein Ziel) gilt erfuellt = true.
+ */
+export interface Zielbewertung {
+  summe: number;
+  ziel: number;
+  typ: ZielTyp;
+  abweichung: number;
+  erfuellt: boolean;
+  /** true, wenn ueberhaupt ein Ziel gesetzt ist (ziel > 0). */
+  hat_ziel: boolean;
+}
+
+/** Auswertung eines einzelnen Tages. */
+export interface TagesAuswertung {
+  datum: string;
+  eintraege: Eintrag[];
+  summe_kcal: number;
+  summe_eiweiss_dg: number;
+  kcal: Zielbewertung;
+  eiweiss: Zielbewertung;
+}
+
+/** Ein Punkt der Langzeit-Reihe (ein Tag mit Daten). */
+export interface VerlaufPunkt {
+  datum: string;
+  kcal: number;
+  eiweiss_dg: number;
+}
+
+/** Langzeit-Verlauf ueber einen Zeitraum (nur Tage mit Eintraegen). */
+export interface Verlauf {
+  von: string;
+  bis: string;
+  punkte: VerlaufPunkt[];
+}
+
+/** Eine Zeile der „letzte Tage"-Liste. */
+export interface TagesZusammenfassung {
+  datum: string;
+  kcal: number;
+  eiweiss_dg: number;
+  hat_daten: boolean;
+}
+
+/** Defizit fuer ein Zeitfenster (nur Tage mit Eintraegen zaehlen). */
+export interface DefizitFenster {
+  /** Anzahl Tage mit Eintraegen im Fenster. */
+  tage: number;
+  /** Aufgenommene kcal-Summe ueber diese Tage. */
+  kcal_aufnahme: number;
+  /** Defizit = gesamtumsatz * tage - kcal_aufnahme. */
+  defizit: number;
+}
+
+/**
+ * Defizit-Report ueber vier Fenster. Basis ist der taegliche Gesamtumsatz; das
+ * Defizit summiert (gesamtumsatz - Aufnahme) je Tag mit Eintraegen. Ist kein
+ * Gesamtumsatz gesetzt (0), ist das Ergebnis nicht aussagekraeftig (das Frontend
+ * weist dann darauf hin); rechnerisch bleibt es gesamtumsatz x Tage - Aufnahme.
+ */
+export interface DefizitReport {
+  gesamtumsatz: number;
+  tag: DefizitFenster; // heute
+  woche: DefizitFenster; // letzte 7 Tage
+  monat: DefizitFenster; // letzte 30 Tage
+  gesamt: DefizitFenster; // gesamter Erfassungszeitraum
+}
+
+/** Standard-Fehlerantwort des Backends. */
+export interface ApiErrorBody {
+  error: string;
+}
+
+/**
+ * Nutzer der App. mandant_id = 0 ist der Admin-Realm (nur Nutzerverwaltung,
+ * kein Zugriff auf Fachdaten); mandant_id >= 1 sind Daten-Mandanten. Das
+ * Passwort wird nie an das Frontend ausgeliefert.
+ */
+export interface User {
+  id: number;
+  mandant_id: number;
+  username: string;
+  erstellt_am: string;
+}
+
+/** Eingabe zum Anlegen eines Nutzers (Admin). */
+export interface UserInput {
+  username: string;
+  mandant_id: number;
+  passwort: string;
+}
+
+/** Der aktuell angemeldete Nutzer (Antwort von /auth/login und /auth/me). */
+export interface AuthUser {
+  id: number;
+  username: string;
+  mandant_id: number;
+  ist_admin: boolean;
+}

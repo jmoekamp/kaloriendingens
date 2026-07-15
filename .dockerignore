@@ -1,0 +1,5 @@
+# Der Build holt die App per `git clone` im Dockerfile – der lokale Kontext
+# wird nicht ins Image kopiert. Daher wird hier alles ausgeschlossen außer dem
+# Dockerfile, damit der Build-Kontext minimal und der Build schnell bleibt.
+*
+!Dockerfile

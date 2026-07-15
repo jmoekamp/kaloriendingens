@@ -1,0 +1,26 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Quelle und Stand, der aus Git geholt wird. Für reproduzierbare
+        # Updates kann GIT_REF auf einen Tag oder Commit gesetzt werden.
+        GIT_REPO: https://github.com/jmoekamp/kaloriendingens.git
+        GIT_REF: main
+    image: cal-o-matic:latest
+    container_name: cal-o-matic
+    restart: unless-stopped
+    ports:
+      # Host-Port : Container-Port. Links den Host-Port nach Wunsch ändern.
+      - '3010:3010'
+    environment:
+      PORT: '3010'
+      DB_FILE: /app/data/kalorien.sqlite
+    volumes:
+      - cal-data:/app/data
+
+volumes:
+  cal-data:
+    # Fester Name, damit Backup-/Restore-Befehle vorhersehbar sind.
+    name: cal-data

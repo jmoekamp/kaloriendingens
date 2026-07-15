@@ -1,0 +1,31 @@
+# Abhaengigkeiten
+node_modules/
+
+# Build-Ausgaben
+dist/
+dist-server/
+
+# Lokale Datenbank (siehe CLAUDE.md – /data wird NICHT versioniert)
+data/
+*.sqlite
+*.sqlite3
+*.db
+
+# Geheimnisse / Tokens – NIE committen
+token.env
+.env
+.env.*
+*.local
+
+# Logs / Caches
+*.log
+.vite/
+coverage/
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/
+
+# Maschinen-lokale Claude-Code-Einstellungen (Berechtigungen etc.)
+.claude/settings.local.json

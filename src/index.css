@@ -1,0 +1,89 @@
+/*
+ * Atkinson Hyperlegible wird LOKAL eingebunden (keine externen Fonts/CDNs, siehe
+ * CLAUDE.md). Die Font-Dateien gehoeren nach /public/fonts. Solange sie fehlen,
+ * greift der system-ui Fallback aus tailwind.config.js automatisch.
+ */
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/AtkinsonHyperlegible-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/AtkinsonHyperlegible-Italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/AtkinsonHyperlegible-Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/AtkinsonHyperlegible-BoldItalic.woff2') format('woff2');
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Zentrale Farbpalette (c0t0d0s0-Stil, Dark Mode als einziger Modus).
+ * Hier anpassen, dann wirkt es ueberall (Tailwind nutzt diese Variablen).
+ */
+:root {
+  /*
+   * Farben als RGB-Kanaltripel (nicht als Hex), damit Tailwinds
+   * Transparenz-Schreibweise (z. B. bg-accent/90, border-border/50) korrekt
+   * funktioniert. Die Zuordnung zu rgb(... / <alpha-value>) passiert in
+   * tailwind.config.js. Hex-Referenz steht jeweils im Kommentar.
+   */
+  --color-bg: 22 29 38; /* #161d26 */
+  --color-surface: 30 39 51; /* #1e2733 */
+  --color-surface-2: 36 48 64; /* #243040 */
+  /* Hellere, „angehobene" Flaeche fuer interaktive Steuerelemente (Buttons),
+     damit sie sich klar vom Karten-/Tabellenhintergrund abheben. */
+  --color-surface-3: 56 73 93; /* #38495d */
+  --color-border: 44 58 74; /* #2c3a4a */
+  --color-text: 223 230 238; /* #dfe6ee */
+  --color-text-muted: 154 167 180; /* #9aa7b4 */
+  --color-accent: 90 160 216; /* #5aa0d8 */
+  --color-success: 111 174 125; /* #6fae7d */
+  --color-warning: 216 178 90; /* #d8b25a */
+  --color-danger: 216 122 122; /* #d87a7a */
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    /*
+     * Zentrale Schrift-Stellschraube: skaliert alle rem-basierten Groessen
+     * (Tailwind text-*, Abstaende) gemeinsam. 75 % = drei Viertel der
+     * Standardgroesse. Hier anpassen, um die App insgesamt groesser/kleiner
+     * zu machen.
+     */
+    font-size: 75%;
+  }
+  body {
+    @apply bg-bg text-text font-sans;
+    line-height: 1.6;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    @apply text-accent;
+  }
+  /* Betraege/Zahlen tabellarisch ausrichten, wo gewuenscht: class="tabular" */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}

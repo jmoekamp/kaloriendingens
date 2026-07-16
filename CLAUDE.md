@@ -69,8 +69,11 @@ Port **3010**.
   dieselbe datumsbasierte x-Achse (von–bis); jeder Punkt liegt an seinem echten
   Datum. An Tagen ohne Daten wird nichts gezeichnet. Bei kcal/Eiweiß bricht die
   Linie an Lücken ab (nur aufeinanderfolgende Kalendertage werden verbunden); das
-  Gewicht wird als durchgehende Trendlinie über die Messpunkte gezeichnet
-  (`verbinden`). Zusätzlich: Liste der letzten 7 Tage mit Sprung
+  Gewicht wird als durchgehende Linie über die Messpunkte gezeichnet
+  (`verbinden`) und zusätzlich mit einer gestrichelten **linearen
+  Ausgleichsgeraden** (Regression, `regression`) versehen; die Trendrate wird als
+  kg/Woche angezeigt (`lineareRegression` in shared/naehrwerte). Zusätzlich:
+  Liste der letzten 7 Tage mit Sprung
   zur jeweiligen Tagesseite sowie das Kaloriendefizit für Tag, letzte 7 Tage,
   letzte 30 Tage und den gesamten Erfassungszeitraum (kumuliert). Das Defizit zählt
   nur Tage mit Einträgen.

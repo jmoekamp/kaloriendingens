@@ -6,6 +6,7 @@ import {
   formatKcal,
   formatKg,
   formatProzent,
+  lineareRegression,
   parseGanzzahl,
   parseGrammToDg,
   parseKgToGramm,
@@ -102,6 +103,27 @@ describe('Gewicht / Abnehmziel', () => {
   it('rechnet das noetige Defizit als Gewicht × 7000 kcal/kg', () => {
     expect(benoetigtesDefizitKcal(5000)).toBe(35000); // 5 kg
     expect(benoetigtesDefizitKcal(500)).toBe(3500); // 0,5 kg
+  });
+});
+
+describe('Lineare Regression', () => {
+  it('findet Steigung und Achsenabschnitt einer Geraden', () => {
+    // y = 2x + 3
+    const r = lineareRegression([0, 1, 2, 3], [3, 5, 7, 9]);
+    expect(r).not.toBeNull();
+    expect(r!.steigung).toBeCloseTo(2, 9);
+    expect(r!.achsenabschnitt).toBeCloseTo(3, 9);
+  });
+
+  it('erkennt einen fallenden Trend (Gewicht)', () => {
+    // Tag 0..3, Gewicht faellt um 100 g/Tag ab 82.000 g
+    const r = lineareRegression([0, 1, 2, 3], [82000, 81900, 81800, 81700]);
+    expect(r!.steigung).toBeCloseTo(-100, 6);
+  });
+
+  it('liefert null bei zu wenigen Punkten oder konstantem x', () => {
+    expect(lineareRegression([1], [2])).toBeNull();
+    expect(lineareRegression([5, 5, 5], [1, 2, 3])).toBeNull();
   });
 
   it('formatiert Prozent mit zwei Nachkommastellen (Komma)', () => {

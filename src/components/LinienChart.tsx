@@ -8,19 +8,12 @@
  * werden verbunden). So zeigen mehrere Diagramme mit denselben von/bis exakt
  * dieselbe x-Achse.
  */
+import { lineareRegression } from '../../shared/naehrwerte.ts';
+import { fromTag, tagNummer } from '../lib/format.ts';
+
 export interface ChartPunkt {
   datum: string; // YYYY-MM-DD
   wert: number;
-}
-
-/** Tagesnummer (Tage seit Epoche, UTC) fuer Position und Nachbarschaft. */
-function tagNummer(iso: string): number {
-  const [y, m, d] = iso.split('-').map(Number);
-  return Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
-}
-
-function fromTag(n: number): string {
-  return new Date(n * 86_400_000).toISOString().slice(0, 10);
 }
 
 function kurz(iso: string): string {
@@ -36,6 +29,7 @@ export function LinienChart({
   hoehe = 220,
   nullbasis = true,
   verbinden = false,
+  regression = false,
 }: {
   von: string;
   bis: string;
@@ -49,6 +43,8 @@ export function LinienChart({
   /** true: alle Messpunkte durchgehend verbinden (Trendlinie, z. B. Gewicht),
    * auch ueber Tage ohne Messung hinweg. false: Linie an Luecken unterbrechen. */
   verbinden?: boolean;
+  /** true: zusaetzlich eine lineare Ausgleichsgerade (Regression) einzeichnen. */
+  regression?: boolean;
 }) {
   if (punkte.length === 0) {
     return (
@@ -115,6 +111,22 @@ export function LinienChart({
     new Set([von, fromTag(d0 + Math.floor(spanTage / 2)), bis]),
   );
 
+  // Optionale Ausgleichsgerade (lineare Regression) ueber die Messpunkte.
+  const reg = regression
+    ? lineareRegression(
+        sortiert.map((p) => tagNummer(p.datum)),
+        sortiert.map((p) => p.wert),
+      )
+    : null;
+  let regLinie: string | null = null;
+  if (reg && sortiert.length >= 2) {
+    const t0 = tagNummer(sortiert[0].datum);
+    const t1 = tagNummer(sortiert[sortiert.length - 1].datum);
+    const px = (t: number) => x(fromTag(t));
+    const py = (t: number) => y(reg.steigung * t + reg.achsenabschnitt);
+    regLinie = `${px(t0)},${py(t0)} ${px(t1)},${py(t1)}`;
+  }
+
   return (
     <svg
       viewBox={`0 0 ${breite} ${hoehe}`}
@@ -167,6 +179,18 @@ export function LinienChart({
             />
           </g>
         ) : null,
+      )}
+
+      {/* Lineare Ausgleichsgerade (gestrichelt). */}
+      {regLinie && (
+        <polyline
+          points={regLinie}
+          fill="none"
+          stroke="var(--text, #dfe6ee)"
+          strokeWidth={2}
+          strokeDasharray="7 5"
+          opacity={0.85}
+        />
       )}
 
       {sortiert.map((p) => (

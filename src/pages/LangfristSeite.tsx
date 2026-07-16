@@ -14,8 +14,14 @@ import {
   formatKcal,
   formatKg,
   formatProzent,
+  lineareRegression,
 } from '../../shared/naehrwerte.ts';
-import { formatDatum, heuteIso, verschiebeDatum } from '../lib/format.ts';
+import {
+  formatDatum,
+  heuteIso,
+  tagNummer,
+  verschiebeDatum,
+} from '../lib/format.ts';
 import { auswertungApi } from '../lib/auswertung.ts';
 import { gewichtApi } from '../lib/gewicht.ts';
 
@@ -137,6 +143,12 @@ export default function LangfristSeite({
     datum: p.datum,
     wert: p.gramm,
   }));
+  // Trend aus linearer Regression: Steigung in Gramm/Tag -> Gramm/Woche.
+  const gewichtReg = lineareRegression(
+    gewicht.map((g) => tagNummer(g.datum)),
+    gewicht.map((g) => g.gramm),
+  );
+  const trendProWoche = gewichtReg ? gewichtReg.steigung * 7 : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -285,8 +297,18 @@ export default function LangfristSeite({
           formatWert={(dg) => formatGramm(dg)}
         />
 
-        <div className="mb-2 mt-6 text-sm font-bold text-text-muted">
-          Gewicht (kg)
+        <div className="mb-2 mt-6 flex flex-wrap items-baseline justify-between gap-2">
+          <span className="text-sm font-bold text-text-muted">
+            Gewicht (kg)
+          </span>
+          {trendProWoche !== null && (
+            <span className="text-xs text-text-muted">
+              gestrichelt: linearer Trend ={' '}
+              <span className="font-bold text-text">
+                {formatKg(trendProWoche)} kg/Woche
+              </span>
+            </span>
+          )}
         </div>
         <LinienChart
           von={von}
@@ -296,6 +318,7 @@ export default function LangfristSeite({
           formatWert={(g) => formatKg(g)}
           nullbasis={false}
           verbinden
+          regression
         />
       </Card>
 

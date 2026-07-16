@@ -31,6 +31,17 @@ export function verschiebeDatum(iso: string, tage: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Tagesnummer (Tage seit Epoche, UTC) – fuer Positionen und Regression. */
+export function tagNummer(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number);
+  return Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
+}
+
+/** Umkehrung von tagNummer: Tagesnummer -> YYYY-MM-DD. */
+export function fromTag(n: number): string {
+  return new Date(n * 86_400_000).toISOString().slice(0, 10);
+}
+
 /** Datum vor n Monaten (lokal), als YYYY-MM-DD. */
 export function vorMonaten(n: number): string {
   const d = new Date();

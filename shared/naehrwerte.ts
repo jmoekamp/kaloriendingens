@@ -75,6 +75,34 @@ export function formatProzent(wert: number, stellen = 2): string {
   return norm.toFixed(stellen).replace('.', ',');
 }
 
+/**
+ * Lineare Regression (kleinste Quadrate) ueber Wertepaare (xs, ys). Liefert
+ * Steigung und Achsenabschnitt der Ausgleichsgeraden y = steigung·x + abschnitt,
+ * oder null, wenn zu wenige Punkte oder die x-Werte alle gleich sind.
+ */
+export function lineareRegression(
+  xs: number[],
+  ys: number[],
+): { steigung: number; achsenabschnitt: number } | null {
+  const n = xs.length;
+  if (n < 2 || ys.length !== n) return null;
+  let sx = 0;
+  let sy = 0;
+  let sxy = 0;
+  let sxx = 0;
+  for (let i = 0; i < n; i++) {
+    sx += xs[i];
+    sy += ys[i];
+    sxy += xs[i] * ys[i];
+    sxx += xs[i] * xs[i];
+  }
+  const nenner = n * sxx - sx * sx;
+  if (nenner === 0) return null;
+  const steigung = (n * sxy - sx * sy) / nenner;
+  const achsenabschnitt = (sy - steigung * sx) / n;
+  return { steigung, achsenabschnitt };
+}
+
 /** Energiegehalt von Koerperfett: ca. 7000 kcal je Kilogramm. */
 export const KCAL_PRO_KG_FETT = 7000;
 

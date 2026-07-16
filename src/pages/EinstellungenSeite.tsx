@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { AuthUser, Einstellungen, ZielTyp } from '../../shared/types.ts';
+import type { AuthUser, Vorgabe, ZielTyp } from '../../shared/types.ts';
 import {
   Banner,
   Button,
@@ -10,10 +10,12 @@ import {
 } from '../components/ui.tsx';
 import {
   formatGramm,
+  formatKcal,
   parseGanzzahl,
   parseGrammToDg,
 } from '../../shared/naehrwerte.ts';
-import { einstellungenApi } from '../lib/einstellungen.ts';
+import { formatDatum, heuteIso } from '../lib/format.ts';
+import { vorgabenApi } from '../lib/vorgaben.ts';
 import { authApi } from '../lib/auth.ts';
 
 function meldung(e: unknown): string {
@@ -21,6 +23,7 @@ function meldung(e: unknown): string {
 }
 
 interface FormState {
+  gueltig_ab: string;
   kcal_ziel: string;
   kcal_ziel_typ: ZielTyp;
   eiweiss_ziel: string; // Gramm-Eingabe als Text
@@ -28,29 +31,47 @@ interface FormState {
   gesamtumsatz: string;
 }
 
-function toForm(e: Einstellungen): FormState {
+/** Startwerte fuer eine neue Vorgabe: Werte der aktuellsten Version uebernehmen. */
+function neuerForm(versionen: Vorgabe[]): FormState {
+  const v = versionen[0];
   return {
-    kcal_ziel: e.kcal_ziel === 0 ? '' : String(e.kcal_ziel),
-    kcal_ziel_typ: e.kcal_ziel_typ,
-    eiweiss_ziel: e.eiweiss_ziel_dg === 0 ? '' : formatGramm(e.eiweiss_ziel_dg),
-    eiweiss_ziel_typ: e.eiweiss_ziel_typ,
-    gesamtumsatz: e.gesamtumsatz === 0 ? '' : String(e.gesamtumsatz),
+    gueltig_ab: heuteIso(),
+    kcal_ziel: v && v.kcal_ziel !== 0 ? String(v.kcal_ziel) : '',
+    kcal_ziel_typ: v?.kcal_ziel_typ ?? 'max',
+    eiweiss_ziel:
+      v && v.eiweiss_ziel_dg !== 0 ? formatGramm(v.eiweiss_ziel_dg) : '',
+    eiweiss_ziel_typ: v?.eiweiss_ziel_typ ?? 'min',
+    gesamtumsatz: v && v.gesamtumsatz !== 0 ? String(v.gesamtumsatz) : '',
   };
+}
+
+function zielText(ziel: number, typ: ZielTyp, format: (n: number) => string) {
+  if (ziel === 0) return '—';
+  return `${typ === 'max' ? '≤' : '≥'} ${format(ziel)}`;
 }
 
 export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
   const istAdmin = aktiver.ist_admin;
+  const [versionen, setVersionen] = useState<Vorgabe[]>([]);
   const [form, setForm] = useState<FormState | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [gespeichert, setGespeichert] = useState(false);
   const [speichert, setSpeichert] = useState(false);
 
+  function laden() {
+    vorgabenApi
+      .list()
+      .then((vs) => {
+        setVersionen(vs);
+        setForm((f) => f ?? neuerForm(vs));
+      })
+      .catch((e) => setFehler(meldung(e)));
+  }
+
   useEffect(() => {
     if (istAdmin) return; // Admin hat keine Fachdaten-Einstellungen.
-    einstellungenApi
-      .get()
-      .then((e) => setForm(toForm(e)))
-      .catch((e) => setFehler(meldung(e)));
+    laden();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [istAdmin]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -58,12 +79,42 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
     setGespeichert(false);
   }
 
+  /** Bestehende Version zum Ersetzen in das Formular laden. */
+  function bearbeiten(v: Vorgabe) {
+    setForm({
+      gueltig_ab: v.gueltig_ab,
+      kcal_ziel: v.kcal_ziel === 0 ? '' : String(v.kcal_ziel),
+      kcal_ziel_typ: v.kcal_ziel_typ,
+      eiweiss_ziel:
+        v.eiweiss_ziel_dg === 0 ? '' : formatGramm(v.eiweiss_ziel_dg),
+      eiweiss_ziel_typ: v.eiweiss_ziel_typ,
+      gesamtumsatz: v.gesamtumsatz === 0 ? '' : String(v.gesamtumsatz),
+    });
+    setGespeichert(false);
+    setFehler(null);
+  }
+
+  async function loeschen(v: Vorgabe) {
+    if (!confirm(`Vorgabe ab ${formatDatum(v.gueltig_ab)} wirklich löschen?`))
+      return;
+    setFehler(null);
+    try {
+      await vorgabenApi.remove(v.id);
+      laden();
+    } catch (e) {
+      setFehler(meldung(e));
+    }
+  }
+
   async function speichern(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
     setFehler(null);
 
-    // Leere Felder bedeuten „kein Ziel/Umsatz" = 0.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.gueltig_ab)) {
+      setFehler('Bitte ein gültiges „gültig ab"-Datum wählen.');
+      return;
+    }
     const kcalZiel =
       form.kcal_ziel.trim() === '' ? 0 : parseGanzzahl(form.kcal_ziel);
     const eiweissZiel =
@@ -86,14 +137,18 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
 
     setSpeichert(true);
     try {
-      const gespeicherteWerte = await einstellungenApi.update({
-        kcal_ziel: kcalZiel,
-        kcal_ziel_typ: form.kcal_ziel_typ,
-        eiweiss_ziel_dg: eiweissZiel,
-        eiweiss_ziel_typ: form.eiweiss_ziel_typ,
-        gesamtumsatz: umsatz,
-      });
-      setForm(toForm(gespeicherteWerte));
+      const vs = await vorgabenApi
+        .save({
+          gueltig_ab: form.gueltig_ab,
+          kcal_ziel: kcalZiel,
+          kcal_ziel_typ: form.kcal_ziel_typ,
+          eiweiss_ziel_dg: eiweissZiel,
+          eiweiss_ziel_typ: form.eiweiss_ziel_typ,
+          gesamtumsatz: umsatz,
+        })
+        .then(() => vorgabenApi.list());
+      setVersionen(vs);
+      setForm(neuerForm(vs));
       setGespeichert(true);
     } catch (err) {
       setFehler(meldung(err));
@@ -111,18 +166,31 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
       )}
       {gespeichert && (
         <Banner kind="success" onClose={() => setGespeichert(false)}>
-          Einstellungen gespeichert.
+          Vorgabe gespeichert.
         </Banner>
       )}
 
-      {!istAdmin &&
-        (form ? (
-          <form onSubmit={speichern} className="flex flex-col gap-4">
-            <Card title="Ziele">
-              <p className="mb-3 text-sm text-text-muted">
-                Ein Ziel kann als Obergrenze (Maximum) oder Untergrenze
-                (Minimum) gelten. Feld leer lassen = kein Ziel.
-              </p>
+      {!istAdmin && form && (
+        <>
+          <Card title="Ziele & Gesamtumsatz (ab Stichtag)">
+            <p className="mb-3 text-sm text-text-muted">
+              Eine Vorgabe gilt ab dem gewählten Stichtag. Frühere Tage behalten
+              die davor gültige Vorgabe – so bleibt z. B. ein früher höherer
+              Gesamtumsatz für vergangene Tage erhalten. Feld leer = kein
+              Ziel/Umsatz. Ein vorhandener Stichtag wird überschrieben.
+            </p>
+            <form onSubmit={speichern} className="flex flex-col gap-4">
+              <Field label="gültig ab">
+                <TextInput
+                  type="date"
+                  value={form.gueltig_ab}
+                  onChange={(e) =>
+                    e.target.value && set('gueltig_ab', e.target.value)
+                  }
+                  className="w-48 tabular"
+                />
+              </Field>
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex items-end gap-2">
                   <Field label="Kalorienziel (kcal/Tag)">
@@ -169,13 +237,7 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
                   </Field>
                 </div>
               </div>
-            </Card>
 
-            <Card title="Gesamtumsatz">
-              <p className="mb-3 text-sm text-text-muted">
-                Dein täglicher Gesamtumsatz (kcal/Tag). Grundlage für das
-                Kaloriendefizit (Gesamtumsatz − Aufnahme je Tag).
-              </p>
               <Field label="Gesamtumsatz (kcal/Tag)">
                 <TextInput
                   className="w-48 tabular"
@@ -185,17 +247,78 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
                   placeholder="z. B. 2400"
                 />
               </Field>
-            </Card>
 
-            <div>
-              <Button type="submit" variant="primary" disabled={speichert}>
-                {speichert ? 'Speichert …' : 'Speichern'}
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <p className="text-text-muted">Lade Einstellungen …</p>
-        ))}
+              <div>
+                <Button type="submit" variant="primary" disabled={speichert}>
+                  {speichert ? 'Speichert …' : 'Vorgabe speichern'}
+                </Button>
+              </div>
+            </form>
+          </Card>
+
+          <Card title="Verlauf der Vorgaben">
+            {versionen.length === 0 ? (
+              <p className="text-text-muted">Noch keine Vorgabe gesetzt.</p>
+            ) : (
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-text-muted">
+                    <th className="py-2 pr-3 font-normal">gültig ab</th>
+                    <th className="py-2 pr-3 text-right font-normal">
+                      Kalorienziel
+                    </th>
+                    <th className="py-2 pr-3 text-right font-normal">
+                      Eiweißziel
+                    </th>
+                    <th className="py-2 pr-3 text-right font-normal">
+                      Gesamtumsatz
+                    </th>
+                    <th className="py-2 font-normal"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {versionen.map((v) => (
+                    <tr key={v.id} className="border-b border-border/50">
+                      <td className="py-2 pr-3 tabular">
+                        {formatDatum(v.gueltig_ab)}
+                      </td>
+                      <td className="py-2 pr-3 text-right tabular">
+                        {zielText(
+                          v.kcal_ziel,
+                          v.kcal_ziel_typ,
+                          (n) => `${formatKcal(n)} kcal`,
+                        )}
+                      </td>
+                      <td className="py-2 pr-3 text-right tabular">
+                        {zielText(
+                          v.eiweiss_ziel_dg,
+                          v.eiweiss_ziel_typ,
+                          (n) => `${formatGramm(n)} g`,
+                        )}
+                      </td>
+                      <td className="py-2 pr-3 text-right tabular">
+                        {v.gesamtumsatz === 0
+                          ? '—'
+                          : `${formatKcal(v.gesamtumsatz)} kcal`}
+                      </td>
+                      <td className="py-2">
+                        <div className="flex justify-end gap-2">
+                          <Button onClick={() => bearbeiten(v)}>
+                            Bearbeiten
+                          </Button>
+                          <Button variant="danger" onClick={() => loeschen(v)}>
+                            Löschen
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
+        </>
+      )}
 
       <PasswortKarte />
 

@@ -3,7 +3,8 @@ import type { Database } from 'better-sqlite3';
 import { openDb } from '../server/db/index.ts';
 import { createLebensmittel } from '../server/repos/lebensmittel.ts';
 import { createEintrag } from '../server/repos/eintraege.ts';
-import { updateEinstellungen } from '../server/repos/einstellungen.ts';
+import { upsertVorgabe } from '../server/repos/vorgaben.ts';
+import type { VorgabeInput } from '../shared/types.ts';
 import {
   getDefizitReport,
   getLetzteTage,
@@ -33,6 +34,18 @@ function iss(datum: string, menge: number, uhrzeit = '08:00') {
   });
 }
 
+/** Legt eine Vorgabe ab einem Stichtag an (Standard: sehr frueh). */
+function vorgabe(werte: Partial<VorgabeInput> & { gueltig_ab?: string } = {}) {
+  upsertVorgabe(db, {
+    gueltig_ab: werte.gueltig_ab ?? '2000-01-01',
+    kcal_ziel: werte.kcal_ziel ?? 0,
+    kcal_ziel_typ: werte.kcal_ziel_typ ?? 'max',
+    eiweiss_ziel_dg: werte.eiweiss_ziel_dg ?? 0,
+    eiweiss_ziel_typ: werte.eiweiss_ziel_typ ?? 'min',
+    gesamtumsatz: werte.gesamtumsatz ?? 0,
+  });
+}
+
 describe('verschiebeDatum', () => {
   it('rechnet ueber Monatsgrenzen korrekt', () => {
     expect(verschiebeDatum('2026-07-01', -1)).toBe('2026-06-30');
@@ -42,12 +55,7 @@ describe('verschiebeDatum', () => {
 
 describe('Tagesauswertung', () => {
   it('summiert und bewertet gegen die Ziele', () => {
-    updateEinstellungen(db, {
-      kcal_ziel: 200,
-      kcal_ziel_typ: 'max',
-      eiweiss_ziel_dg: 500,
-      eiweiss_ziel_typ: 'min',
-    });
+    vorgabe({ kcal_ziel: 200, eiweiss_ziel_dg: 500 });
     iss('2026-07-15', 250); // 168 kcal, 300 dg
     iss('2026-07-15', 100, '12:00'); // 67 kcal, 120 dg
     const a = getTagesAuswertung(db, '2026-07-15');
@@ -83,7 +91,7 @@ describe('Letzte Tage', () => {
 
 describe('Defizit', () => {
   it('zaehlt nur Tage mit Eintraegen (Gesamtumsatz x Tage - Aufnahme)', () => {
-    updateEinstellungen(db, { gesamtumsatz: 2400 });
+    vorgabe({ gesamtumsatz: 2400 });
     iss('2026-07-15', 250); // 168 kcal
     iss('2026-07-14', 100); // 67 kcal
     const r = getDefizitReport(db, '2026-07-15');

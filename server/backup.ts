@@ -45,6 +45,7 @@ export function mandantBackupDateiname(
 const MANDANT_TABELLEN = [
   'lebensmittel',
   'eintraege',
+  'vorgaben',
   'einstellungen',
 ] as const;
 

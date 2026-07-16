@@ -19,7 +19,7 @@ import { backupRouter } from './routes/backup.ts';
 import { healthRouter } from './routes/health.ts';
 import { lebensmittelRouter } from './routes/lebensmittel.ts';
 import { eintraegeRouter } from './routes/eintraege.ts';
-import { einstellungenRouter } from './routes/einstellungen.ts';
+import { vorgabenRouter } from './routes/vorgaben.ts';
 import { auswertungRouter } from './routes/auswertung.ts';
 
 const PORT = Number(process.env.PORT ?? 3010);
@@ -48,7 +48,7 @@ app.use('/api/users', requireAdmin, usersRouter);
 // Fachdaten – nur fuer Daten-Nutzer (Mandant >= 1); der Admin ist hier gesperrt.
 app.use('/api/lebensmittel', requireDatenNutzer, lebensmittelRouter);
 app.use('/api/eintraege', requireDatenNutzer, eintraegeRouter);
-app.use('/api/einstellungen', requireDatenNutzer, einstellungenRouter);
+app.use('/api/vorgaben', requireDatenNutzer, vorgabenRouter);
 app.use('/api/auswertung', requireDatenNutzer, auswertungRouter);
 
 // Backup: fuer beide Rollen erlaubt, Inhalt richtet sich nach der Rolle.

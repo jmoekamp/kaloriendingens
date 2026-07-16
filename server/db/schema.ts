@@ -47,6 +47,28 @@ CREATE INDEX IF NOT EXISTS ix_eintraege_mandant_datum
 CREATE INDEX IF NOT EXISTS ix_eintraege_lebensmittel
   ON eintraege (lebensmittel_id);
 
+-- Zeitversionierte Vorgaben (Ziele + Gesamtumsatz). Jede Aenderung gilt ab
+-- einem Stichtag (gueltig_ab); fuer einen Tag gilt die juengste Vorgabe mit
+-- gueltig_ab <= Tag, fuer Tage vor der ersten Vorgabe die aelteste. So bleiben
+-- vergangene Tage mit der damals gueltigen Vorgabe bewertet (z. B. sinkender
+-- Gesamtumsatz bei sinkendem Gewicht).
+CREATE TABLE IF NOT EXISTS vorgaben (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  mandant_id       INTEGER NOT NULL DEFAULT 1,
+  gueltig_ab       TEXT    NOT NULL,
+  kcal_ziel        INTEGER NOT NULL DEFAULT 0,
+  kcal_ziel_typ    TEXT    NOT NULL DEFAULT 'max',
+  eiweiss_ziel_dg  INTEGER NOT NULL DEFAULT 0,
+  eiweiss_ziel_typ TEXT    NOT NULL DEFAULT 'min',
+  gesamtumsatz     INTEGER NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_vorgaben_mandant_datum
+  ON vorgaben (mandant_id, gueltig_ab);
+CREATE INDEX IF NOT EXISTS ix_vorgaben_mandant
+  ON vorgaben (mandant_id);
+
+-- Legacy: fruehere (nicht versionierte) Einstellungen als Key-Value. Bleibt als
+-- Migrationsquelle erhalten; neue Werte laufen ueber die Tabelle vorgaben.
 CREATE TABLE IF NOT EXISTS einstellungen (
   mandant_id INTEGER NOT NULL DEFAULT 1,
   schluessel TEXT    NOT NULL,
@@ -74,6 +96,59 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS ix_sessions_user ON sessions (user_id);
 `;
 
+/**
+ * Uebernimmt fruehere (nicht versionierte) Einstellungen aus der Legacy-Tabelle
+ * `einstellungen` als erste Vorgabe (gueltig_ab = 2000-01-01, deckt damit alle
+ * bereits erfassten Tage ab). Laeuft nur, solange ein Mandant noch keine
+ * Vorgaben hat – ist also idempotent und ein No-Op fuer frische Datenbanken.
+ */
+function migriereEinstellungenZuVorgaben(db: Database): void {
+  const mandanten = db
+    .prepare('SELECT DISTINCT mandant_id FROM einstellungen')
+    .all() as { mandant_id: number }[];
+  const zielKeys = [
+    'kcal_ziel',
+    'kcal_ziel_typ',
+    'eiweiss_ziel_dg',
+    'eiweiss_ziel_typ',
+    'gesamtumsatz',
+  ];
+  const insert = db.prepare(
+    `INSERT INTO vorgaben
+       (mandant_id, gueltig_ab, kcal_ziel, kcal_ziel_typ,
+        eiweiss_ziel_dg, eiweiss_ziel_typ, gesamtumsatz)
+     VALUES (@mandant, '2000-01-01', @kz, @kzt, @ez, @ezt, @gu)`,
+  );
+  for (const { mandant_id } of mandanten) {
+    const hatVorgabe = db
+      .prepare('SELECT 1 FROM vorgaben WHERE mandant_id = ? LIMIT 1')
+      .get(mandant_id);
+    if (hatVorgabe) continue;
+    const rows = db
+      .prepare(
+        'SELECT schluessel, wert FROM einstellungen WHERE mandant_id = ?',
+      )
+      .all(mandant_id) as { schluessel: string; wert: string | null }[];
+    const map = new Map(rows.map((r) => [r.schluessel, r.wert]));
+    if (!zielKeys.some((k) => map.has(k))) continue;
+    const zahl = (k: string) => {
+      const n = Number(map.get(k));
+      return Number.isFinite(n) ? Math.trunc(n) : 0;
+    };
+    const typ = (k: string, def: string) =>
+      map.get(k) === 'min' || map.get(k) === 'max' ? map.get(k) : def;
+    insert.run({
+      mandant: mandant_id,
+      kz: zahl('kcal_ziel'),
+      kzt: typ('kcal_ziel_typ', 'max'),
+      ez: zahl('eiweiss_ziel_dg'),
+      ezt: typ('eiweiss_ziel_typ', 'min'),
+      gu: zahl('gesamtumsatz'),
+    });
+  }
+}
+
 export function applySchema(db: Database): void {
   db.exec(SCHEMA_SQL);
+  migriereEinstellungenZuVorgaben(db);
 }

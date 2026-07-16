@@ -76,8 +76,20 @@ export interface Einstellungen {
   gesamtumsatz: number; // kcal/Tag, 0 = nicht gesetzt
 }
 
-/** Teilweise Aktualisierung – nur gesetzte Felder werden uebernommen. */
-export type EinstellungenInput = Partial<Einstellungen>;
+/**
+ * Eine zeitversionierte Vorgabe: derselbe Wertesatz wie Einstellungen, aber mit
+ * einem Stichtag (gueltig_ab). Fuer einen Tag gilt die juengste Vorgabe mit
+ * gueltig_ab <= Tag; fuer Tage vor der ersten Vorgabe die aelteste.
+ */
+export interface Vorgabe extends Einstellungen {
+  id: number;
+  gueltig_ab: string; // YYYY-MM-DD
+}
+
+/** Eingabe zum Anlegen/Ersetzen einer Vorgabe (voller Wertesatz + Stichtag). */
+export interface VorgabeInput extends Einstellungen {
+  gueltig_ab: string;
+}
 
 /**
  * Bewertung eines Wertes gegen ein Ziel. abweichung = summe - ziel (vorzeichen-

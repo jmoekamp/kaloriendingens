@@ -176,13 +176,13 @@ Ein Update sollte man am besten erst **nach** einem frischen Backup machen.
 
 Alles über Umgebungsvariablen bzw. Build-Args steuerbar:
 
-| Stelle                         | Variable   | Standard                           | Zweck                                                                |
-| ------------------------------ | ---------- | ---------------------------------- | -------------------------------------------------------------------- |
-| `compose.yaml` → `ports`       | –          | `3010:3010`                        | Host-Port (links) frei wählbar, z. B. `8080:3010`.                   |
-| `compose.yaml` → `environment` | `PORT`     | `3010`                             | Port **im** Container. Bei Änderung auch rechte Port-Seite anpassen. |
+| Stelle                         | Variable   | Standard                    | Zweck                                                                |
+| ------------------------------ | ---------- | --------------------------- | -------------------------------------------------------------------- |
+| `compose.yaml` → `ports`       | –          | `3010:3010`                 | Host-Port (links) frei wählbar, z. B. `8080:3010`.                   |
+| `compose.yaml` → `environment` | `PORT`     | `3010`                      | Port **im** Container. Bei Änderung auch rechte Port-Seite anpassen. |
 | `compose.yaml` → `environment` | `DB_FILE`  | `/app/data/kalorien.sqlite` | Pfad der DB-Datei (im Volume belassen).                              |
-| `compose.yaml` → `build.args`  | `GIT_REPO` | LAN-Gitea-URL                      | Quelle des Codes.                                                    |
-| `compose.yaml` → `build.args`  | `GIT_REF`  | `main`                             | Branch, Tag oder Commit.                                             |
+| `compose.yaml` → `build.args`  | `GIT_REPO` | LAN-Gitea-URL               | Quelle des Codes.                                                    |
+| `compose.yaml` → `build.args`  | `GIT_REF`  | `main`                      | Branch, Tag oder Commit.                                             |
 
 ### Privates Git-Repository
 

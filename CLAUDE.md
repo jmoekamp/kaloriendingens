@@ -35,6 +35,10 @@ Port **3010**.
 - **Ziele:** Kalorien- und Eiweißziel, je als Minimum ODER Maximum definierbar.
 - **Gesamtumsatz:** Täglicher Gesamtumsatz (kcal/Tag) als Grundlage für das
   Kaloriendefizit.
+- **Zeitversionierte Vorgaben:** Ziele und Gesamtumsatz werden je Stichtag
+  (`gueltig_ab`) gespeichert. Eine neue Vorgabe ändert nur Tage ab ihrem Stichtag;
+  frühere Tage behalten die davor gültige Vorgabe. So lässt sich der mit
+  sinkendem Gewicht sinkende Gesamtumsatz korrekt über die Zeit abbilden.
 - **Tagesauswertung:** Lebensmittel eines Tages mit kcal/Eiweiß, Summen und
   Abweichung vom Ziel. Default ist heute; jeder Tag ist anwählbar (Datumsnavigation).
 - **Langfrist-Auswertung:** Zwei Liniengraphen (kcal/Tag, Eiweiß/Tag) für einen
@@ -92,8 +96,13 @@ kein Zugriff auf Fachdaten). Erst-Accounts beim ersten Start: `admin/admin`
   eiweiss_dg_pro_100g, Zeitstempel.
 - `eintraege`: id, mandant_id, datum, uhrzeit, lebensmittel_id (FK), menge_gramm,
   Zeitstempel. kcal/Eiweiß werden live berechnet.
-- `einstellungen`: (mandant_id, schluessel) → wert. Schlüssel: kcal_ziel,
-  kcal_ziel_typ, eiweiss_ziel_dg, eiweiss_ziel_typ, gesamtumsatz.
+- `vorgaben`: zeitversionierte Ziele + Gesamtumsatz. Spalten: id, mandant_id,
+  gueltig_ab, kcal_ziel, kcal_ziel_typ, eiweiss_ziel_dg, eiweiss_ziel_typ,
+  gesamtumsatz. Für einen Tag gilt die jüngste Vorgabe mit `gueltig_ab ≤ Tag`;
+  für Tage vor der ersten Vorgabe die älteste. So bleiben vergangene Tage mit der
+  damals gültigen Vorgabe bewertet (sinkender Gesamtumsatz bei sinkendem Gewicht).
+  Das Defizit rechnet je Tag mit dem damals gültigen Gesamtumsatz.
+- `einstellungen`: Legacy-Key-Value, nur noch Migrationsquelle für `vorgaben`.
 - `users`, `sessions`: mandant-übergreifend (Auth-Verwaltung).
 
 ## Befehle

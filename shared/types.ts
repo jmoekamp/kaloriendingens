@@ -194,6 +194,18 @@ export interface AbnehmFortschritt {
   benoetigt_kcal: number;
   erreicht_kcal: number;
   prozent: number;
+  /** Noch offenes Defizit bis zum Ziel (benoetigt − erreicht, min. 0). */
+  rest_kcal: number;
+  /** Ziel bereits erreicht (erreicht >= benoetigt). */
+  ziel_erreicht: boolean;
+  /** Median des Tagesdefizits ueber Tage mit Eintraegen seit Festlegung (null = keine Tage). */
+  median_defizit: number | null;
+  /** Prognose-Datum (YYYY-MM-DD), an dem das Restdefizit beim Median-Tempo erreicht ist; null wenn nicht absehbar. */
+  prognose_median: string | null;
+  /** Defizit des Vortags (null = am Vortag keine Eintraege). */
+  vortag_defizit: number | null;
+  /** Prognose-Datum, wenn das Defizit weiter wie am Vortag ausfaellt; null wenn nicht absehbar. */
+  prognose_vortag: string | null;
 }
 
 /** Standard-Fehlerantwort des Backends. */

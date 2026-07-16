@@ -44,7 +44,9 @@ Port **3010**.
   Fortschritt in Prozent gezeigt: erreichtes Defizit seit dem Stichtag (nur Tage
   mit Einträgen, je Tag mit dem damals gültigen Gesamtumsatz) / nötiges Defizit.
   Das erste angelegte Abnehmziel bekommt als Startdatum standardmäßig „heute − 1
-  Monat" (damit der bereits erfasste Vormonat einzahlt).
+  Monat" (damit der bereits erfasste Vormonat einzahlt). Zusätzlich werden zwei
+  Prognosen für das Erreichen des Restdefizits gezeigt: beim Median-Tagesdefizit
+  seit Festlegung und beim Defizit wie am Vortag (jeweils als Zieldatum).
 - **Tagesauswertung:** Lebensmittel eines Tages mit kcal/Eiweiß, Summen und
   Abweichung vom Ziel. Default ist heute; jeder Tag ist anwählbar (Datumsnavigation).
 - **Langfrist-Auswertung:** Zwei Liniengraphen (kcal/Tag, Eiweiß/Tag) für einen

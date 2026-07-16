@@ -188,10 +188,53 @@ export function getDefizitReport(db: Database, heute: string): DefizitReport {
   };
 }
 
+/** Tagesdefizite (je Tag mit Eintraegen) im Zeitraum, mit historischem Umsatz. */
+function tagesDefizite(
+  db: Database,
+  versionenAsc: Vorgabe[],
+  von: string,
+  bis: string,
+): number[] {
+  const rows = db
+    .prepare(
+      `SELECT e.datum AS datum, SUM(${TAG_KCAL}) AS kcal
+         FROM eintraege e
+         JOIN lebensmittel l ON l.id = e.lebensmittel_id
+        WHERE e.mandant_id = @mandant AND e.datum BETWEEN @von AND @bis
+        GROUP BY e.datum`,
+    )
+    .all({ mandant: aktuellerMandant(), von, bis }) as TagKcalRow[];
+  return rows.map(
+    (r) => vorgabeFuerTag(versionenAsc, r.datum).gesamtumsatz - r.kcal,
+  );
+}
+
+/** Median einer nicht-leeren Zahlenliste. */
+function median(werte: number[]): number {
+  const s = [...werte].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+/**
+ * Prognose-Datum, an dem das Restdefizit bei einem konstanten Tagesdefizit
+ * `rate` erreicht ist. null, wenn nicht absehbar (kein Rest, keine positive Rate).
+ */
+function prognoseDatum(
+  heute: string,
+  rest: number,
+  rate: number | null,
+): string | null {
+  if (rate === null || rate <= 0 || rest <= 0) return null;
+  return verschiebeDatum(heute, Math.ceil(rest / rate));
+}
+
 /**
  * Fortschritt des aktiven Abnehmziels: erreichtes Defizit seit dem Stichtag des
  * Ziels (nur Tage mit Eintraegen, je Tag mit dem damals gueltigen Gesamtumsatz)
- * im Verhaeltnis zum noetigen Defizit (Gewicht × 7000 kcal/kg).
+ * im Verhaeltnis zum noetigen Defizit (Gewicht × 7000 kcal/kg). Zusaetzlich zwei
+ * Prognosen fuer das Erreichen des Restdefizits: beim Median-Tagesdefizit seit
+ * Festlegung und beim Defizit des Vortags.
  */
 export function getAbnehmFortschritt(
   db: Database,
@@ -206,19 +249,31 @@ export function getAbnehmFortschritt(
       benoetigt_kcal: 0,
       erreicht_kcal: 0,
       prozent: 0,
+      rest_kcal: 0,
+      ziel_erreicht: false,
+      median_defizit: null,
+      prognose_median: null,
+      vortag_defizit: null,
+      prognose_vortag: null,
     };
   }
   const versionenAsc = ladeVersionenAsc(db);
-  const erreicht_kcal = fenster(
-    db,
-    versionenAsc,
-    ziel.gueltig_ab,
-    heute,
-  ).defizit;
+  const defizite = tagesDefizite(db, versionenAsc, ziel.gueltig_ab, heute);
+  const erreicht_kcal = defizite.reduce((a, b) => a + b, 0);
   const benoetigt_kcal = benoetigtesDefizitKcal(ziel.ziel_gramm);
   // Ungerundet zurueckgeben; die Anzeige formatiert auf zwei Nachkommastellen.
   const prozent =
     benoetigt_kcal > 0 ? (erreicht_kcal / benoetigt_kcal) * 100 : 0;
+  const rest_kcal = Math.max(0, benoetigt_kcal - erreicht_kcal);
+  const ziel_erreicht = benoetigt_kcal > 0 && erreicht_kcal >= benoetigt_kcal;
+
+  const median_defizit = defizite.length > 0 ? median(defizite) : null;
+
+  // Defizit des Vortags (heute − 1); null, wenn dort keine Eintraege liegen.
+  const vortag = verschiebeDatum(heute, -1);
+  const vortagWin = fenster(db, versionenAsc, vortag, vortag);
+  const vortag_defizit = vortagWin.tage > 0 ? vortagWin.defizit : null;
+
   return {
     hat_ziel: true,
     gueltig_ab: ziel.gueltig_ab,
@@ -226,5 +281,11 @@ export function getAbnehmFortschritt(
     benoetigt_kcal,
     erreicht_kcal,
     prozent,
+    rest_kcal,
+    ziel_erreicht,
+    median_defizit,
+    prognose_median: prognoseDatum(heute, rest_kcal, median_defizit),
+    vortag_defizit,
+    prognose_vortag: prognoseDatum(heute, rest_kcal, vortag_defizit),
   };
 }

@@ -11,7 +11,10 @@ import {
 import { upsertVorgabe } from '../server/repos/vorgaben.ts';
 import { createLebensmittel } from '../server/repos/lebensmittel.ts';
 import { createEintrag } from '../server/repos/eintraege.ts';
-import { getAbnehmFortschritt } from '../server/repos/auswertung.ts';
+import {
+  getAbnehmFortschritt,
+  verschiebeDatum,
+} from '../server/repos/auswertung.ts';
 
 let db: Database;
 beforeEach(() => {
@@ -113,5 +116,98 @@ describe('Abnehmfortschritt', () => {
 
   it('meldet hat_ziel=false ohne Ziel', () => {
     expect(getAbnehmFortschritt(db, '2026-06-30').hat_ziel).toBe(false);
+  });
+
+  it('prognostiziert Zieltermine (Median seit Festlegung und wie Vortag)', () => {
+    upsertVorgabe(db, {
+      gueltig_ab: '2000-01-01',
+      kcal_ziel: 0,
+      kcal_ziel_typ: 'max',
+      eiweiss_ziel_dg: 0,
+      eiweiss_ziel_typ: 'min',
+      gesamtumsatz: 2400,
+    });
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-16', ziel_gramm: 5000 });
+    createEintrag(db, {
+      datum: '2026-06-20',
+      uhrzeit: '08:00',
+      lebensmittel_id: 1,
+      menge_gramm: 100, // 67 kcal -> Defizit 2333
+    });
+    createEintrag(db, {
+      datum: '2026-06-21',
+      uhrzeit: '08:00',
+      lebensmittel_id: 1,
+      menge_gramm: 250, // 168 kcal -> Defizit 2232
+    });
+    const f = getAbnehmFortschritt(db, '2026-06-22');
+    const rest = 35000 - (2333 + 2232);
+    expect(f.rest_kcal).toBe(rest);
+    expect(f.ziel_erreicht).toBe(false);
+    expect(f.median_defizit).toBe((2333 + 2232) / 2); // 2282,5
+    expect(f.vortag_defizit).toBe(2232); // Vortag = 2026-06-21
+    expect(f.prognose_median).toBe(
+      verschiebeDatum('2026-06-22', Math.ceil(rest / 2282.5)),
+    );
+    expect(f.prognose_vortag).toBe(
+      verschiebeDatum('2026-06-22', Math.ceil(rest / 2232)),
+    );
+  });
+
+  it('meldet Ziel erreicht und ohne Vortagsdaten keine Vortagsprognose', () => {
+    upsertVorgabe(db, {
+      gueltig_ab: '2000-01-01',
+      kcal_ziel: 0,
+      kcal_ziel_typ: 'max',
+      eiweiss_ziel_dg: 0,
+      eiweiss_ziel_typ: 'min',
+      gesamtumsatz: 2400,
+    });
+    // Kleines Ziel (0,5 kg -> 3500 kcal), an einem Tag uebererfuellt.
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-16', ziel_gramm: 500 });
+    createEintrag(db, {
+      datum: '2026-06-20',
+      uhrzeit: '08:00',
+      lebensmittel_id: 1,
+      menge_gramm: 100, // Defizit 2333
+    });
+    createEintrag(db, {
+      datum: '2026-06-21',
+      uhrzeit: '08:00',
+      lebensmittel_id: 1,
+      menge_gramm: 100, // Defizit 2333 -> Summe 4666 >= 3500
+    });
+    const erreicht = getAbnehmFortschritt(db, '2026-06-22');
+    expect(erreicht.ziel_erreicht).toBe(true);
+    expect(erreicht.rest_kcal).toBe(0);
+    expect(erreicht.prognose_median).toBeNull();
+
+    // Zweites Szenario: Ziel offen, aber am Vortag nichts erfasst.
+    const db2 = openDb({ file: ':memory:' });
+    createLebensmittel(db2, {
+      name: 'Magerquark',
+      kcal_pro_100g: 67,
+      eiweiss_dg_pro_100g: 120,
+    });
+    upsertVorgabe(db2, {
+      gueltig_ab: '2000-01-01',
+      kcal_ziel: 0,
+      kcal_ziel_typ: 'max',
+      eiweiss_ziel_dg: 0,
+      eiweiss_ziel_typ: 'min',
+      gesamtumsatz: 2400,
+    });
+    upsertAbnehmziel(db2, { gueltig_ab: '2026-06-16', ziel_gramm: 5000 });
+    createEintrag(db2, {
+      datum: '2026-06-20',
+      uhrzeit: '08:00',
+      lebensmittel_id: 1,
+      menge_gramm: 100,
+    });
+    const f2 = getAbnehmFortschritt(db2, '2026-06-22'); // Vortag 06-21 leer
+    expect(f2.vortag_defizit).toBeNull();
+    expect(f2.prognose_vortag).toBeNull();
+    expect(f2.median_defizit).toBe(2333);
+    expect(f2.prognose_median).not.toBeNull();
   });
 });

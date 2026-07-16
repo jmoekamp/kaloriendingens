@@ -52,6 +52,43 @@ function DefizitKarte({
   );
 }
 
+/** Eine Prognose-Kachel: Zieltermin bei einem angenommenen Tagesdefizit. */
+function Prognose({
+  titel,
+  zielErreicht,
+  datum,
+  rate,
+  rateText,
+  keinWert,
+}: {
+  titel: string;
+  zielErreicht: boolean;
+  datum: string | null;
+  rate: number | null;
+  rateText: string;
+  keinWert?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-surface-2 p-3">
+      <div className="text-sm text-text-muted">{titel}</div>
+      {zielErreicht ? (
+        <div className="text-lg font-bold text-success">Ziel erreicht 🎉</div>
+      ) : datum ? (
+        <div className="text-lg font-bold tabular">{formatDatum(datum)}</div>
+      ) : (
+        <div className="text-text-muted">
+          {rate === null ? (keinWert ?? 'nicht absehbar') : 'nicht absehbar'}
+        </div>
+      )}
+      {rate !== null && (
+        <div className="mt-1 text-xs text-text-muted">
+          {rateText} {formatKcal(rate)} kcal/Tag
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function LangfristSeite({
   oeffneTag,
 }: {
@@ -126,8 +163,8 @@ export default function LangfristSeite({
                 erreicht{' '}
                 <span className="font-bold text-text">
                   {formatKcal(abnehmen.erreicht_kcal)} kcal
-                </span>
-                .
+                </span>{' '}
+                · Rest {formatKcal(abnehmen.rest_kcal)} kcal.
               </p>
               <div className="flex items-center gap-3">
                 <div className="h-4 flex-1 overflow-hidden rounded-full bg-surface-2">
@@ -141,6 +178,25 @@ export default function LangfristSeite({
                 <span className="tabular text-lg font-bold">
                   {formatProzent(abnehmen.prozent)} %
                 </span>
+              </div>
+
+              {/* Prognosen: Median-Defizit seit Festlegung und Defizit wie am Vortag */}
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Prognose
+                  titel="Ziel erreicht bei Median-Defizit seit Festlegung"
+                  zielErreicht={abnehmen.ziel_erreicht}
+                  datum={abnehmen.prognose_median}
+                  rate={abnehmen.median_defizit}
+                  rateText="Median"
+                />
+                <Prognose
+                  titel="Ziel erreicht, wenn wie am Vortag"
+                  zielErreicht={abnehmen.ziel_erreicht}
+                  datum={abnehmen.prognose_vortag}
+                  rate={abnehmen.vortag_defizit}
+                  rateText="Vortag"
+                  keinWert="Am Vortag wurde nichts erfasst."
+                />
               </div>
             </>
           )}

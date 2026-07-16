@@ -64,6 +64,28 @@ export interface EintragInput {
 }
 
 /**
+ * Eine erfasste Bewegung/Aktivitaet. Die Aktivitaetskalorien (kcal) werden fuer
+ * den Tag zum Gesamtverbrauch hinzugezaehlt und erhoehen so das Tagesdefizit.
+ */
+export interface Bewegung {
+  id: number;
+  datum: string; // YYYY-MM-DD
+  uhrzeit: string; // HH:MM
+  beschreibung: string;
+  kcal: number; // Aktivitaetskalorien
+  erstellt_am: string;
+  geaendert_am: string;
+}
+
+/** Eingabe zum Anlegen/Bearbeiten einer Bewegung. */
+export interface BewegungInput {
+  datum: string;
+  uhrzeit: string;
+  beschreibung: string;
+  kcal: number;
+}
+
+/**
  * Anwendungseinstellungen (je Mandant). Intern Key-Value, nach aussen typisiert.
  * Ein Zielwert von 0 bedeutet „kein Ziel gesetzt" und wird in Auswertungen nicht
  * bewertet. gesamtumsatz = taeglicher Gesamtumsatz (kcal/Tag) fuer das Defizit.

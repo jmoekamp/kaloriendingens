@@ -15,6 +15,7 @@ import {
   bewerteZiel,
 } from '../../shared/naehrwerte.ts';
 import { listEintraegeFuerTag } from './eintraege.ts';
+import { bewegungKcalProTag } from './bewegung.ts';
 import { aktivesAbnehmziel } from './abnehmziele.ts';
 import {
   getVorgabeFuerTag,
@@ -162,12 +163,16 @@ function fenster(
         GROUP BY e.datum`,
     )
     .all({ mandant: aktuellerMandant(), von, bis }) as TagKcalRow[];
+  const bewegung = bewegungKcalProTag(db, von, bis);
 
   let tage = 0;
   let kcal_aufnahme = 0;
   let defizit = 0;
   for (const r of rows) {
-    const umsatz = vorgabeFuerTag(versionenAsc, r.datum).gesamtumsatz;
+    // Gesamtverbrauch des Tages = Gesamtumsatz + Aktivitaetskalorien.
+    const umsatz =
+      vorgabeFuerTag(versionenAsc, r.datum).gesamtumsatz +
+      (bewegung.get(r.datum) ?? 0);
     tage += 1;
     kcal_aufnahme += r.kcal;
     defizit += umsatz - r.kcal;
@@ -204,8 +209,12 @@ function tagesDefizite(
         GROUP BY e.datum`,
     )
     .all({ mandant: aktuellerMandant(), von, bis }) as TagKcalRow[];
+  const bewegung = bewegungKcalProTag(db, von, bis);
   return rows.map(
-    (r) => vorgabeFuerTag(versionenAsc, r.datum).gesamtumsatz - r.kcal,
+    (r) =>
+      vorgabeFuerTag(versionenAsc, r.datum).gesamtumsatz +
+      (bewegung.get(r.datum) ?? 0) -
+      r.kcal,
   );
 }
 

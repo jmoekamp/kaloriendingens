@@ -32,6 +32,12 @@ Port **3010**.
   kcal und Eiweiß eines Eintrags werden LIVE aus dem Lebensmittel und der Menge
   berechnet, nicht gespeichert (ändert man die Nährwerte, ändern sich vergangene
   Auswertungen entsprechend mit).
+- **Bewegung erfassen:** Zweiter Abschnitt auf der Tagesseite. Je Eintrag Datum,
+  Uhrzeit, Beschreibung und Aktivitätskalorien. Die Aktivitätskalorien eines Tages
+  werden zum Gesamtverbrauch dieses Tages hinzugezählt (Gesamtverbrauch =
+  Gesamtumsatz + Aktivitätskalorien) und erhöhen so das Tagesdefizit. Ein Tag
+  zählt fürs Defizit weiterhin nur, wenn er Lebensmittel-Einträge hat; die
+  Aktivität erhöht dann den Verbrauch dieses Tages.
 - **Ziele:** Kalorien- und Eiweißziel, je als Minimum ODER Maximum definierbar.
 - **Gesamtumsatz:** Täglicher Gesamtumsatz (kcal/Tag) als Grundlage für das
   Kaloriendefizit.
@@ -113,6 +119,8 @@ kein Zugriff auf Fachdaten). Erst-Accounts beim ersten Start: `admin/admin`
 - `abnehmziele`: id, mandant_id, gueltig_ab, ziel_gramm (abzunehmendes Gewicht in
   Gramm). Aktiv ist das jüngste Ziel mit `gueltig_ab ≤ heute`; nötiges Defizit =
   ziel_gramm/1000 × 7000 kcal.
+- `bewegung`: id, mandant_id, datum, uhrzeit, beschreibung, kcal
+  (Aktivitätskalorien). Je Tag zum Gesamtverbrauch addiert (Defizit/Prognose).
 - `einstellungen`: Legacy-Key-Value, nur noch Migrationsquelle für `vorgaben`.
 - `users`, `sessions`: mandant-übergreifend (Auth-Verwaltung).
 

@@ -19,6 +19,7 @@ import { backupRouter } from './routes/backup.ts';
 import { healthRouter } from './routes/health.ts';
 import { lebensmittelRouter } from './routes/lebensmittel.ts';
 import { eintraegeRouter } from './routes/eintraege.ts';
+import { bewegungRouter } from './routes/bewegung.ts';
 import { vorgabenRouter } from './routes/vorgaben.ts';
 import { abnehmzieleRouter } from './routes/abnehmziele.ts';
 import { auswertungRouter } from './routes/auswertung.ts';
@@ -49,6 +50,7 @@ app.use('/api/users', requireAdmin, usersRouter);
 // Fachdaten – nur fuer Daten-Nutzer (Mandant >= 1); der Admin ist hier gesperrt.
 app.use('/api/lebensmittel', requireDatenNutzer, lebensmittelRouter);
 app.use('/api/eintraege', requireDatenNutzer, eintraegeRouter);
+app.use('/api/bewegung', requireDatenNutzer, bewegungRouter);
 app.use('/api/vorgaben', requireDatenNutzer, vorgabenRouter);
 app.use('/api/abnehmziele', requireDatenNutzer, abnehmzieleRouter);
 app.use('/api/auswertung', requireDatenNutzer, auswertungRouter);

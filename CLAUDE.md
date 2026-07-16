@@ -59,8 +59,11 @@ Port **3010**.
   Eingabe je Tag, Upsert). Wird auf der Auswertungsseite als Liniendiagramm über
   den gewählten Zeitraum gezeigt (y-Achse skaliert auf den Datenbereich, nicht ab 0).
 - **Langfrist-Auswertung:** Drei Liniengraphen (kcal/Tag, Eiweiß/Tag, Gewicht/kg)
-  für einen wählbaren Zeitraum (Default: letzte 30 Tage), Liste der letzten 7 Tage
-  mit Sprung
+  für einen wählbaren Zeitraum (Default: letzte 30 Tage). Alle Diagramme teilen
+  dieselbe datumsbasierte x-Achse (von–bis); jeder Punkt liegt an seinem echten
+  Datum. An Tagen ohne Daten wird nichts gezeichnet – die Linie bricht an Lücken
+  ab (nur aufeinanderfolgende Kalendertage werden verbunden). Zusätzlich: Liste
+  der letzten 7 Tage mit Sprung
   zur jeweiligen Tagesseite sowie das Kaloriendefizit für Tag, letzte 7 Tage,
   letzte 30 Tage und den gesamten Erfassungszeitraum (kumuliert). Das Defizit zählt
   nur Tage mit Einträgen.

@@ -1,21 +1,43 @@
 /**
  * Schlanker SVG-Liniengraph ohne externe Abhaengigkeit (Datenschutz: alles
- * lokal). Punkte werden gleichmaessig entlang der x-Achse verteilt (ein Punkt =
- * ein Tag mit Daten); die y-Achse skaliert auf das Maximum der Werte.
+ * lokal).
+ *
+ * Die x-Achse ist ein fester DATUMS-Zeitraum [von, bis]; jeder Punkt liegt an
+ * seinem echten Datum. Fuer Tage ohne Daten wird nichts gezeichnet – die Linie
+ * wird an solchen Luecken unterbrochen (nur aufeinanderfolgende Kalendertage
+ * werden verbunden). So zeigen mehrere Diagramme mit denselben von/bis exakt
+ * dieselbe x-Achse.
  */
 export interface ChartPunkt {
-  /** Beschriftung fuer die x-Achse (z. B. Datum). */
-  label: string;
+  datum: string; // YYYY-MM-DD
   wert: number;
 }
 
+/** Tagesnummer (Tage seit Epoche, UTC) fuer Position und Nachbarschaft. */
+function tagNummer(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number);
+  return Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
+}
+
+function fromTag(n: number): string {
+  return new Date(n * 86_400_000).toISOString().slice(0, 10);
+}
+
+function kurz(iso: string): string {
+  return `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+}
+
 export function LinienChart({
+  von,
+  bis,
   punkte,
   farbe = 'var(--accent, #5aa0d8)',
   formatWert = (n: number) => String(n),
   hoehe = 220,
   nullbasis = true,
 }: {
+  von: string;
+  bis: string;
   punkte: ChartPunkt[];
   farbe?: string;
   formatWert?: (n: number) => string;
@@ -40,35 +62,48 @@ export function LinienChart({
   const innerB = breite - padL - padR;
   const innerH = hoehe - padT - padB;
 
+  // x-Achse: fester Datumsbereich.
+  const d0 = tagNummer(von);
+  const d1 = tagNummer(bis);
+  const spanTage = Math.max(1, d1 - d0);
+  const x = (iso: string) =>
+    d1 === d0
+      ? padL + innerB / 2
+      : padL + (innerB * (tagNummer(iso) - d0)) / spanTage;
+
+  // y-Achse: Skalierung an der Spanne der Werte.
   const werte = punkte.map((p) => p.wert);
   const rohMax = Math.max(...werte, 1);
   const rohMin = nullbasis ? 0 : Math.min(...werte);
-  // Schrittweite an der SPANNE ausrichten, damit auch enge Baender (Gewicht)
-  // sinnvoll aufgeloest werden.
   const spanne = Math.max(1, rohMax - rohMin);
   const schritt =
     spanne > 500 ? 500 : spanne > 100 ? 100 : spanne > 10 ? 10 : 1;
   const yMin = nullbasis ? 0 : Math.floor(rohMin / schritt) * schritt;
   let yMax = Math.ceil(rohMax / schritt) * schritt;
   if (yMax === yMin) yMax = yMin + schritt;
-
-  const x = (i: number) =>
-    padL +
-    (punkte.length === 1 ? innerB / 2 : (innerB * i) / (punkte.length - 1));
   const y = (w: number) =>
     padT + innerH - (innerH * (w - yMin)) / (yMax - yMin);
 
-  const linie = punkte.map((p, i) => `${x(i)},${y(p.wert)}`).join(' ');
-  const flaeche =
-    `${padL},${padT + innerH} ` +
-    punkte.map((p, i) => `${x(i)},${y(p.wert)}`).join(' ') +
-    ` ${x(punkte.length - 1)},${padT + innerH}`;
+  // Punkte nach Datum sortieren und in Segmente aus aufeinanderfolgenden
+  // Kalendertagen zerlegen (Luecken unterbrechen die Linie).
+  const sortiert = [...punkte].sort(
+    (a, b) => tagNummer(a.datum) - tagNummer(b.datum),
+  );
+  const segmente: ChartPunkt[][] = [];
+  for (const p of sortiert) {
+    const letztes = segmente[segmente.length - 1];
+    const anschluss =
+      letztes &&
+      tagNummer(p.datum) === tagNummer(letztes[letztes.length - 1].datum) + 1;
+    if (anschluss) letztes.push(p);
+    else segmente.push([p]);
+  }
 
-  // y-Gitterlinien (unten, Mitte, oben).
+  const baseY = padT + innerH;
   const yTicks = [yMin, (yMin + yMax) / 2, yMax];
-  // x-Beschriftung: erste, mittlere, letzte (vermeidet Ueberlappung).
-  const xTickIdx = Array.from(
-    new Set([0, Math.floor((punkte.length - 1) / 2), punkte.length - 1]),
+  // x-Beschriftung: Anfang, Mitte, Ende des Zeitraums.
+  const xTicks = Array.from(
+    new Set([von, fromTag(d0 + Math.floor(spanTage / 2)), bis]),
   );
 
   return (
@@ -100,31 +135,53 @@ export function LinienChart({
         </g>
       ))}
 
-      <polygon points={flaeche} fill={farbe} opacity={0.12} />
-      <polyline
-        points={linie}
-        fill="none"
-        stroke={farbe}
-        strokeWidth={2}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      {punkte.map((p, i) => (
-        <circle key={i} cx={x(i)} cy={y(p.wert)} r={2.5} fill={farbe}>
-          <title>{`${p.label}: ${formatWert(p.wert)}`}</title>
+      {/* Ein Linien-/Flaechensegment je zusammenhaengendem Tagesblock. */}
+      {segmente.map((seg, i) =>
+        seg.length >= 2 ? (
+          <g key={i}>
+            <polygon
+              points={
+                `${x(seg[0].datum)},${baseY} ` +
+                seg.map((p) => `${x(p.datum)},${y(p.wert)}`).join(' ') +
+                ` ${x(seg[seg.length - 1].datum)},${baseY}`
+              }
+              fill={farbe}
+              opacity={0.12}
+            />
+            <polyline
+              points={seg.map((p) => `${x(p.datum)},${y(p.wert)}`).join(' ')}
+              fill="none"
+              stroke={farbe}
+              strokeWidth={2}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          </g>
+        ) : null,
+      )}
+
+      {sortiert.map((p) => (
+        <circle
+          key={p.datum}
+          cx={x(p.datum)}
+          cy={y(p.wert)}
+          r={2.5}
+          fill={farbe}
+        >
+          <title>{`${kurz(p.datum)}: ${formatWert(p.wert)}`}</title>
         </circle>
       ))}
 
-      {xTickIdx.map((i) => (
+      {xTicks.map((iso) => (
         <text
-          key={i}
-          x={x(i)}
+          key={iso}
+          x={x(iso)}
           y={hoehe - 12}
           textAnchor="middle"
           className="fill-text-muted"
           fontSize={11}
         >
-          {punkte[i].label}
+          {kurz(iso)}
         </text>
       ))}
     </svg>

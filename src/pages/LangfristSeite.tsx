@@ -23,11 +23,6 @@ function meldung(e: unknown): string {
   return e instanceof Error ? e.message : 'Unbekannter Fehler';
 }
 
-/** Kurzes Achsenlabel: 2026-07-15 -> 15.07. */
-function kurzDatum(iso: string): string {
-  return `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
-}
-
 function DefizitKarte({
   titel,
   fenster,
@@ -135,15 +130,11 @@ export default function LangfristSeite({
   }, []);
 
   const kcalPunkte: ChartPunkt[] =
-    verlauf?.punkte.map((p) => ({ label: kurzDatum(p.datum), wert: p.kcal })) ??
-    [];
+    verlauf?.punkte.map((p) => ({ datum: p.datum, wert: p.kcal })) ?? [];
   const eiweissPunkte: ChartPunkt[] =
-    verlauf?.punkte.map((p) => ({
-      label: kurzDatum(p.datum),
-      wert: p.eiweiss_dg,
-    })) ?? [];
+    verlauf?.punkte.map((p) => ({ datum: p.datum, wert: p.eiweiss_dg })) ?? [];
   const gewichtPunkte: ChartPunkt[] = gewicht.map((p) => ({
-    label: kurzDatum(p.datum),
+    datum: p.datum,
     wert: p.gramm,
   }));
 
@@ -276,6 +267,8 @@ export default function LangfristSeite({
           Kalorien pro Tag (kcal)
         </div>
         <LinienChart
+          von={von}
+          bis={bis}
           punkte={kcalPunkte}
           farbe="#5aa0d8"
           formatWert={formatKcal}
@@ -285,6 +278,8 @@ export default function LangfristSeite({
           Eiweiß pro Tag (g)
         </div>
         <LinienChart
+          von={von}
+          bis={bis}
           punkte={eiweissPunkte}
           farbe="#63b784"
           formatWert={(dg) => formatGramm(dg)}
@@ -294,6 +289,8 @@ export default function LangfristSeite({
           Gewicht (kg)
         </div>
         <LinienChart
+          von={von}
+          bis={bis}
           punkte={gewichtPunkte}
           farbe="#d0a35a"
           formatWert={(g) => formatKg(g)}

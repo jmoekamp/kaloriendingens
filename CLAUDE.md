@@ -72,8 +72,12 @@ Port **3010**.
   Gewicht wird als durchgehende Linie über die Messpunkte gezeichnet
   (`verbinden`) und zusätzlich mit einer gestrichelten **linearen
   Ausgleichsgeraden** (Regression, `regression`) versehen; die Trendrate wird als
-  kg/Woche angezeigt (`lineareRegression` in shared/naehrwerte). Zusätzlich:
-  Liste der letzten 7 Tage mit Sprung
+  kg/Woche angezeigt (`lineareRegression` in shared/naehrwerte). Eine zweite Linie
+  (`prognose`, blau) zeigt den **auf Defizitbasis prognostizierten Gewichtsverlust**:
+  ab dem ersten Gewichtspunkt wird je Tag das Tagesdefizit als Gewicht abgezogen
+  (7000 kcal/kg, also Gramm = Defizit_kcal / 7). Grundlage ist das Tagesdefizit je
+  Tag (`/api/auswertung/defizit-verlauf`). Zusätzlich: Liste der letzten 7 Tage mit
+  Sprung
   zur jeweiligen Tagesseite sowie das Kaloriendefizit für Tag, letzte 7 Tage,
   letzte 30 Tage und den gesamten Erfassungszeitraum (kumuliert). Das Defizit zählt
   nur Tage mit Einträgen.

@@ -4,6 +4,7 @@ import { badRequest } from '../errors.ts';
 import {
   getAbnehmFortschritt,
   getDefizitReport,
+  getDefizitVerlauf,
   getLetzteTage,
   getTagesAuswertung,
   getVerlauf,
@@ -48,6 +49,21 @@ auswertungRouter.get('/verlauf', (req, res) => {
       : leseDatum(req.query.von, 'von');
   if (von > bis) throw badRequest('"von" darf nicht nach "bis" liegen.');
   res.json(getVerlauf(getDb(), von, bis, heute));
+});
+
+/** GET /api/auswertung/defizit-verlauf?von=&bis= – Tagesdefizit je Tag. */
+auswertungRouter.get('/defizit-verlauf', (req, res) => {
+  const heute = heuteIso();
+  const bis =
+    req.query.bis === undefined ? heute : leseDatum(req.query.bis, 'bis');
+  const von =
+    req.query.von === undefined
+      ? new Date(new Date(`${bis}T00:00:00Z`).getTime() - 29 * 86400000)
+          .toISOString()
+          .slice(0, 10)
+      : leseDatum(req.query.von, 'von');
+  if (von > bis) throw badRequest('"von" darf nicht nach "bis" liegen.');
+  res.json(getDefizitVerlauf(getDb(), von, bis, heute));
 });
 
 /** GET /api/auswertung/letzte-tage?n=7 – die letzten n Kalendertage. */

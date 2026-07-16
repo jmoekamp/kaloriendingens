@@ -3,6 +3,7 @@ import type {
   AbnehmFortschritt,
   DefizitFenster,
   DefizitReport,
+  DefizitTag,
   TagesAuswertung,
   TagesZusammenfassung,
   Verlauf,
@@ -206,14 +207,17 @@ export function getDefizitReport(db: Database, heute: string): DefizitReport {
   };
 }
 
-/** Tagesdefizite (je Tag mit Eintraegen) im Zeitraum, mit historischem Umsatz. */
-function tagesDefizite(
+/**
+ * Tagesdefizit je Tag mit Eintraegen im Zeitraum (mit historischem Umsatz +
+ * Aktivitaetskalorien), aufsteigend nach Datum. Zukunftstage sind ausgeschlossen.
+ */
+function tagesDefiziteMitDatum(
   db: Database,
   versionenAsc: Vorgabe[],
   von: string,
   bis: string,
   heute: string,
-): number[] {
+): DefizitTag[] {
   const rows = db
     .prepare(
       `SELECT e.datum AS datum, SUM(${TAG_KCAL}) AS kcal
@@ -222,16 +226,41 @@ function tagesDefizite(
         WHERE e.mandant_id = @mandant
           AND e.datum BETWEEN @von AND @bis
           AND e.datum <= @heute
-        GROUP BY e.datum`,
+        GROUP BY e.datum
+        ORDER BY e.datum`,
     )
     .all({ mandant: aktuellerMandant(), von, bis, heute }) as TagKcalRow[];
   const bewegung = bewegungKcalProTag(db, von, bis);
-  return rows.map(
-    (r) =>
+  return rows.map((r) => ({
+    datum: r.datum,
+    defizit:
       vorgabeFuerTag(versionenAsc, r.datum).gesamtumsatz +
       (bewegung.get(r.datum) ?? 0) -
       r.kcal,
+  }));
+}
+
+/** Nur die Defizitwerte (fuer Median/Summe der Fortschrittsrechnung). */
+function tagesDefizite(
+  db: Database,
+  versionenAsc: Vorgabe[],
+  von: string,
+  bis: string,
+  heute: string,
+): number[] {
+  return tagesDefiziteMitDatum(db, versionenAsc, von, bis, heute).map(
+    (t) => t.defizit,
   );
+}
+
+/** Tagesdefizit je Tag im Zeitraum (fuer die Gewichtsprognose auf Defizitbasis). */
+export function getDefizitVerlauf(
+  db: Database,
+  von: string,
+  bis: string,
+  heute: string,
+): DefizitTag[] {
+  return tagesDefiziteMitDatum(db, ladeVersionenAsc(db), von, bis, heute);
 }
 
 /** Median einer nicht-leeren Zahlenliste. */

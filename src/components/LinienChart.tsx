@@ -30,6 +30,8 @@ export function LinienChart({
   nullbasis = true,
   verbinden = false,
   regression = false,
+  prognose,
+  prognoseFarbe = '#5aa0d8',
 }: {
   von: string;
   bis: string;
@@ -45,6 +47,9 @@ export function LinienChart({
   verbinden?: boolean;
   /** true: zusaetzlich eine lineare Ausgleichsgerade (Regression) einzeichnen. */
   regression?: boolean;
+  /** Optionale zweite Linie (z. B. Gewichtsprognose auf Defizitbasis). */
+  prognose?: ChartPunkt[];
+  prognoseFarbe?: string;
 }) {
   if (punkte.length === 0) {
     return (
@@ -71,8 +76,8 @@ export function LinienChart({
       ? padL + innerB / 2
       : padL + (innerB * (tagNummer(iso) - d0)) / spanTage;
 
-  // y-Achse: Skalierung an der Spanne der Werte.
-  const werte = punkte.map((p) => p.wert);
+  // y-Achse: Skalierung an der Spanne der Werte (inkl. Prognose-Linie).
+  const werte = [...punkte, ...(prognose ?? [])].map((p) => p.wert);
   const rohMax = Math.max(...werte, 1);
   const rohMin = nullbasis ? 0 : Math.min(...werte);
   const spanne = Math.max(1, rohMax - rohMin);
@@ -127,6 +132,15 @@ export function LinienChart({
     regLinie = `${px(t0)},${py(t0)} ${px(t1)},${py(t1)}`;
   }
 
+  // Optionale Prognose-Linie (zweite Kurve), nach Datum verbunden.
+  const prognoseSortiert = (prognose ?? [])
+    .slice()
+    .sort((a, b) => tagNummer(a.datum) - tagNummer(b.datum));
+  const prognoseLinie =
+    prognoseSortiert.length >= 2
+      ? prognoseSortiert.map((p) => `${x(p.datum)},${y(p.wert)}`).join(' ')
+      : null;
+
   return (
     <svg
       viewBox={`0 0 ${breite} ${hoehe}`}
@@ -155,6 +169,19 @@ export function LinienChart({
           </text>
         </g>
       ))}
+
+      {/* Optionale Prognose-Linie (liegt hinter den Messwerten). */}
+      {prognoseLinie && (
+        <polyline
+          points={prognoseLinie}
+          fill="none"
+          stroke={prognoseFarbe}
+          strokeWidth={2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          opacity={0.9}
+        />
+      )}
 
       {/* Ein Linien-/Flaechensegment je zusammenhaengendem Tagesblock. */}
       {segmente.map((seg, i) =>

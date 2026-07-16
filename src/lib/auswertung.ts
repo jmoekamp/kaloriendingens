@@ -2,6 +2,7 @@
 import type {
   AbnehmFortschritt,
   DefizitReport,
+  DefizitTag,
   TagesAuswertung,
   TagesZusammenfassung,
   Verlauf,
@@ -21,6 +22,16 @@ export const auswertungApi = {
     if (bis) q.set('bis', bis);
     const s = q.toString();
     return api.get<Verlauf>(`/auswertung/verlauf${s ? `?${s}` : ''}`);
+  },
+  /** Tagesdefizit je Tag (fuer die Gewichtsprognose). */
+  defizitVerlauf: (von?: string, bis?: string) => {
+    const q = new URLSearchParams();
+    if (von) q.set('von', von);
+    if (bis) q.set('bis', bis);
+    const s = q.toString();
+    return api.get<DefizitTag[]>(
+      `/auswertung/defizit-verlauf${s ? `?${s}` : ''}`,
+    );
   },
   letzteTage: (n = 7) =>
     api.get<TagesZusammenfassung[]>(`/auswertung/letzte-tage?n=${n}`),

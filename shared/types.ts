@@ -169,6 +169,12 @@ export interface VerlaufPunkt {
   eiweiss_dg: number;
 }
 
+/** Tagesdefizit eines einzelnen Tages (Tage mit Eintraegen). */
+export interface DefizitTag {
+  datum: string;
+  defizit: number;
+}
+
 /** Langzeit-Verlauf ueber einen Zeitraum (nur Tage mit Eintraegen). */
 export interface Verlauf {
   von: string;

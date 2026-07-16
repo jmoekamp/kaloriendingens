@@ -3,6 +3,7 @@ import type {
   AbnehmFortschritt,
   DefizitFenster,
   DefizitReport,
+  DefizitTag,
   GewichtPunkt,
   TagesZusammenfassung,
   Verlauf,
@@ -102,6 +103,7 @@ export default function LangfristSeite({
   const [bis, setBis] = useState(heute);
   const [verlauf, setVerlauf] = useState<Verlauf | null>(null);
   const [gewicht, setGewicht] = useState<GewichtPunkt[]>([]);
+  const [defizitTage, setDefizitTage] = useState<DefizitTag[]>([]);
   const [letzte, setLetzte] = useState<TagesZusammenfassung[]>([]);
   const [defizit, setDefizit] = useState<DefizitReport | null>(null);
   const [abnehmen, setAbnehmen] = useState<AbnehmFortschritt | null>(null);
@@ -116,6 +118,10 @@ export default function LangfristSeite({
     gewichtApi
       .verlauf(von, bis)
       .then(setGewicht)
+      .catch((e) => setFehler(meldung(e)));
+    auswertungApi
+      .defizitVerlauf(von, bis)
+      .then(setDefizitTage)
       .catch((e) => setFehler(meldung(e)));
   }
 
@@ -149,6 +155,29 @@ export default function LangfristSeite({
     gewicht.map((g) => g.gramm),
   );
   const trendProWoche = gewichtReg ? gewichtReg.steigung * 7 : null;
+
+  // Gewichtsprognose auf Defizitbasis: ab dem ersten Gewichtspunkt jeden Tag um
+  // (Tagesdefizit / 7000) kg abziehen, d. h. Gramm = Defizit_kcal / 7.
+  const gewichtSortiert = [...gewicht].sort(
+    (a, b) => tagNummer(a.datum) - tagNummer(b.datum),
+  );
+  const prognosePunkte: ChartPunkt[] = [];
+  if (gewichtSortiert.length > 0) {
+    const anker = gewichtSortiert[0];
+    const ankerTag = tagNummer(anker.datum);
+    prognosePunkte.push({ datum: anker.datum, wert: anker.gramm });
+    let kumDefizit = 0;
+    for (const d of [...defizitTage].sort(
+      (a, b) => tagNummer(a.datum) - tagNummer(b.datum),
+    )) {
+      if (tagNummer(d.datum) <= ankerTag) continue; // ab dem Tag NACH dem Anker
+      kumDefizit += d.defizit;
+      prognosePunkte.push({
+        datum: d.datum,
+        wert: anker.gramm - kumDefizit / 7,
+      });
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -301,14 +330,14 @@ export default function LangfristSeite({
           <span className="text-sm font-bold text-text-muted">
             Gewicht (kg)
           </span>
-          {trendProWoche !== null && (
-            <span className="text-xs text-text-muted">
-              gestrichelt: linearer Trend ={' '}
-              <span className="font-bold text-text">
-                {formatKg(trendProWoche)} kg/Woche
-              </span>
-            </span>
-          )}
+          <span className="text-xs text-text-muted">
+            <span className="text-[#d0a35a]">gemessen</span> ·{' '}
+            <span className="text-text">gestrichelt: Trend</span>
+            {trendProWoche !== null && (
+              <> ({formatKg(trendProWoche)} kg/Woche)</>
+            )}{' '}
+            · <span className="text-[#5aa0d8]">Prognose aus Defizit</span>
+          </span>
         </div>
         <LinienChart
           von={von}
@@ -319,6 +348,8 @@ export default function LangfristSeite({
           nullbasis={false}
           verbinden
           regression
+          prognose={prognosePunkte}
+          prognoseFarbe="#5aa0d8"
         />
       </Card>
 

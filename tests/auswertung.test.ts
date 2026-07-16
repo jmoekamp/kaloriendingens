@@ -7,6 +7,7 @@ import { upsertVorgabe } from '../server/repos/vorgaben.ts';
 import type { VorgabeInput } from '../shared/types.ts';
 import {
   getDefizitReport,
+  getDefizitVerlauf,
   getLetzteTage,
   getTagesAuswertung,
   getVerlauf,
@@ -126,5 +127,19 @@ describe('Defizit', () => {
     const r = getDefizitReport(db, '2026-07-15');
     expect(r.gesamt.tage).toBe(1);
     expect(r.gesamt.defizit).toBe(2400 - 67);
+  });
+});
+
+describe('Defizit-Verlauf (je Tag)', () => {
+  it('liefert das Tagesdefizit je Tag, ohne Zukunft', () => {
+    vorgabe({ gesamtumsatz: 2400 });
+    iss('2026-07-14', 100); // 67 kcal -> Defizit 2333
+    iss('2026-07-15', 250); // 168 kcal -> Defizit 2232
+    iss('2026-07-20', 100); // Zukunft
+    const v = getDefizitVerlauf(db, '2026-07-01', '2026-07-31', '2026-07-16');
+    expect(v).toEqual([
+      { datum: '2026-07-14', defizit: 2400 - 67 },
+      { datum: '2026-07-15', defizit: 2400 - 168 },
+    ]);
   });
 });

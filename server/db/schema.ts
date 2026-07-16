@@ -67,6 +67,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_vorgaben_mandant_datum
 CREATE INDEX IF NOT EXISTS ix_vorgaben_mandant
   ON vorgaben (mandant_id);
 
+-- Abnehmziele: abzunehmendes Gewicht (Gramm) ab einem Stichtag. Das noetige
+-- Defizit ergibt sich aus Gewicht × 7000 kcal/kg. Aktiv ist das juengste Ziel
+-- mit gueltig_ab <= heute.
+CREATE TABLE IF NOT EXISTS abnehmziele (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  mandant_id INTEGER NOT NULL DEFAULT 1,
+  gueltig_ab TEXT    NOT NULL,
+  ziel_gramm INTEGER NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_abnehmziele_mandant_datum
+  ON abnehmziele (mandant_id, gueltig_ab);
+CREATE INDEX IF NOT EXISTS ix_abnehmziele_mandant
+  ON abnehmziele (mandant_id);
+
 -- Legacy: fruehere (nicht versionierte) Einstellungen als Key-Value. Bleibt als
 -- Migrationsquelle erhalten; neue Werte laufen ueber die Tabelle vorgaben.
 CREATE TABLE IF NOT EXISTS einstellungen (

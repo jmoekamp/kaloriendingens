@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
-import type { AuthUser, Vorgabe, ZielTyp } from '../../shared/types.ts';
+import type {
+  Abnehmziel,
+  AuthUser,
+  Vorgabe,
+  ZielTyp,
+} from '../../shared/types.ts';
 import {
   Banner,
   Button,
@@ -9,13 +14,17 @@ import {
   TextInput,
 } from '../components/ui.tsx';
 import {
+  benoetigtesDefizitKcal,
   formatGramm,
   formatKcal,
+  formatKg,
   parseGanzzahl,
   parseGrammToDg,
+  parseKgToGramm,
 } from '../../shared/naehrwerte.ts';
-import { formatDatum, heuteIso } from '../lib/format.ts';
+import { formatDatum, heuteIso, vorMonaten } from '../lib/format.ts';
 import { vorgabenApi } from '../lib/vorgaben.ts';
+import { abnehmzieleApi } from '../lib/abnehmziele.ts';
 import { authApi } from '../lib/auth.ts';
 
 function meldung(e: unknown): string {
@@ -320,6 +329,8 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
         </>
       )}
 
+      {!istAdmin && <AbnehmzielKarte />}
+
       <PasswortKarte />
 
       <Card title="Datensicherung">
@@ -338,6 +349,154 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
         </a>
       </Card>
     </div>
+  );
+}
+
+/** Karte für das Abnehmziel (Gewicht ab Stichtag; nötiges Defizit = kg × 7000). */
+function AbnehmzielKarte() {
+  const [liste, setListe] = useState<Abnehmziel[]>([]);
+  const [kg, setKg] = useState('');
+  const [gueltigAb, setGueltigAb] = useState('');
+  const [fehler, setFehler] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+  const [speichert, setSpeichert] = useState(false);
+
+  function laden() {
+    abnehmzieleApi
+      .list()
+      .then((vs) => {
+        setListe(vs);
+        // Erstes Ziel: Startdatum einen Monat in der Vergangenheit; sonst heute.
+        setGueltigAb(
+          (prev) => prev || (vs.length === 0 ? vorMonaten(1) : heuteIso()),
+        );
+      })
+      .catch((e) => setFehler(meldung(e)));
+  }
+  useEffect(laden, []);
+
+  async function speichern(e: React.FormEvent) {
+    e.preventDefault();
+    setFehler(null);
+    setOk(false);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(gueltigAb)) {
+      setFehler('Bitte ein gültiges „gültig ab"-Datum wählen.');
+      return;
+    }
+    const gramm = parseKgToGramm(kg);
+    if (gramm === null) {
+      setFehler('Bitte ein Abnehmziel in kg eingeben (größer als 0, z. B. 5).');
+      return;
+    }
+    setSpeichert(true);
+    try {
+      await abnehmzieleApi.save({ gueltig_ab: gueltigAb, ziel_gramm: gramm });
+      setKg('');
+      setOk(true);
+      laden();
+    } catch (err) {
+      setFehler(meldung(err));
+    } finally {
+      setSpeichert(false);
+    }
+  }
+
+  async function loeschen(z: Abnehmziel) {
+    if (
+      !confirm(`Abnehmziel ab ${formatDatum(z.gueltig_ab)} wirklich löschen?`)
+    )
+      return;
+    setFehler(null);
+    try {
+      await abnehmzieleApi.remove(z.id);
+      laden();
+    } catch (err) {
+      setFehler(meldung(err));
+    }
+  }
+
+  return (
+    <Card title="Abnehmziel">
+      <p className="mb-3 text-sm text-text-muted">
+        Wieviel Gewicht möchtest du abnehmen? Das nötige Gesamtdefizit ergibt
+        sich aus <strong>Gewicht × 7000 kcal/kg</strong>. Das Ziel gilt ab dem
+        Stichtag; der Fortschritt wird auf der Auswertungsseite angezeigt.
+      </p>
+      <form
+        onSubmit={speichern}
+        className="mb-4 grid grid-cols-1 items-end gap-3 sm:grid-cols-3"
+      >
+        {fehler && (
+          <div className="sm:col-span-3">
+            <Banner kind="error" onClose={() => setFehler(null)}>
+              {fehler}
+            </Banner>
+          </div>
+        )}
+        {ok && (
+          <div className="sm:col-span-3">
+            <Banner kind="success" onClose={() => setOk(false)}>
+              Abnehmziel gespeichert.
+            </Banner>
+          </div>
+        )}
+        <Field label="Abnehmen (kg)">
+          <TextInput
+            className="tabular"
+            value={kg}
+            onChange={(e) => setKg(e.target.value)}
+            inputMode="decimal"
+            placeholder="z. B. 5"
+          />
+        </Field>
+        <Field label="gültig ab">
+          <TextInput
+            type="date"
+            value={gueltigAb}
+            onChange={(e) => e.target.value && setGueltigAb(e.target.value)}
+            className="tabular"
+          />
+        </Field>
+        <Button type="submit" variant="primary" disabled={speichert}>
+          {speichert ? 'Speichert …' : 'Speichern'}
+        </Button>
+      </form>
+
+      {liste.length > 0 && (
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-text-muted">
+              <th className="py-2 pr-3 font-normal">gültig ab</th>
+              <th className="py-2 pr-3 text-right font-normal">Abnehmen</th>
+              <th className="py-2 pr-3 text-right font-normal">
+                nötiges Defizit
+              </th>
+              <th className="py-2 font-normal"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {liste.map((z) => (
+              <tr key={z.id} className="border-b border-border/50">
+                <td className="py-2 pr-3 tabular">
+                  {formatDatum(z.gueltig_ab)}
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {formatKg(z.ziel_gramm)} kg
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {formatKcal(benoetigtesDefizitKcal(z.ziel_gramm))} kcal
+                </td>
+                <td className="py-2 text-right">
+                  <Button variant="danger" onClick={() => loeschen(z)}>
+                    Löschen
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Card>
   );
 }
 

@@ -1,5 +1,6 @@
 import type { Database } from 'better-sqlite3';
 import type {
+  AbnehmFortschritt,
   DefizitFenster,
   DefizitReport,
   TagesAuswertung,
@@ -9,8 +10,12 @@ import type {
   Vorgabe,
 } from '../../shared/types.ts';
 import { aktuellerMandant } from '../db/index.ts';
-import { bewerteZiel } from '../../shared/naehrwerte.ts';
+import {
+  benoetigtesDefizitKcal,
+  bewerteZiel,
+} from '../../shared/naehrwerte.ts';
 import { listEintraegeFuerTag } from './eintraege.ts';
+import { aktivesAbnehmziel } from './abnehmziele.ts';
 import {
   getVorgabeFuerTag,
   ladeVersionenAsc,
@@ -180,5 +185,45 @@ export function getDefizitReport(db: Database, heute: string): DefizitReport {
     woche: fenster(db, versionenAsc, verschiebeDatum(heute, -6), heute),
     monat: fenster(db, versionenAsc, verschiebeDatum(heute, -29), heute),
     gesamt: fenster(db, versionenAsc, null, null),
+  };
+}
+
+/**
+ * Fortschritt des aktiven Abnehmziels: erreichtes Defizit seit dem Stichtag des
+ * Ziels (nur Tage mit Eintraegen, je Tag mit dem damals gueltigen Gesamtumsatz)
+ * im Verhaeltnis zum noetigen Defizit (Gewicht × 7000 kcal/kg).
+ */
+export function getAbnehmFortschritt(
+  db: Database,
+  heute: string,
+): AbnehmFortschritt {
+  const ziel = aktivesAbnehmziel(db, heute);
+  if (!ziel) {
+    return {
+      hat_ziel: false,
+      gueltig_ab: null,
+      ziel_gramm: 0,
+      benoetigt_kcal: 0,
+      erreicht_kcal: 0,
+      prozent: 0,
+    };
+  }
+  const versionenAsc = ladeVersionenAsc(db);
+  const erreicht_kcal = fenster(
+    db,
+    versionenAsc,
+    ziel.gueltig_ab,
+    heute,
+  ).defizit;
+  const benoetigt_kcal = benoetigtesDefizitKcal(ziel.ziel_gramm);
+  const prozent =
+    benoetigt_kcal > 0 ? Math.round((erreicht_kcal / benoetigt_kcal) * 100) : 0;
+  return {
+    hat_ziel: true,
+    gueltig_ab: ziel.gueltig_ab,
+    ziel_gramm: ziel.ziel_gramm,
+    benoetigt_kcal,
+    erreicht_kcal,
+    prozent,
   };
 }

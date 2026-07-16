@@ -162,6 +162,39 @@ export interface DefizitReport {
   gesamt: DefizitFenster; // gesamter Erfassungszeitraum
 }
 
+/**
+ * Ein Abnehmziel: wieviel Gewicht (in Gramm) ab einem Stichtag abgenommen werden
+ * soll. Das dafuer noetige Kaloriendefizit ergibt sich aus Gewicht × 7000 kcal/kg.
+ * Es gilt (wie die Vorgaben) ab gueltig_ab; das aktive Ziel ist das juengste mit
+ * gueltig_ab <= heute.
+ */
+export interface Abnehmziel {
+  id: number;
+  gueltig_ab: string; // YYYY-MM-DD
+  ziel_gramm: number; // abzunehmendes Gewicht in Gramm
+}
+
+/** Eingabe zum Anlegen/Ersetzen eines Abnehmziels. */
+export interface AbnehmzielInput {
+  gueltig_ab: string;
+  ziel_gramm: number;
+}
+
+/**
+ * Fortschritt des aktiven Abnehmziels. erreicht_kcal ist das seit gueltig_ab
+ * tatsaechlich erzielte Defizit (nur Tage mit Eintraegen, je Tag mit dem damals
+ * gueltigen Gesamtumsatz); benoetigt_kcal = Gewicht × 7000 kcal/kg; prozent ist
+ * erreicht/benoetigt in Prozent (kaufmaennisch gerundet).
+ */
+export interface AbnehmFortschritt {
+  hat_ziel: boolean;
+  gueltig_ab: string | null;
+  ziel_gramm: number;
+  benoetigt_kcal: number;
+  erreicht_kcal: number;
+  prozent: number;
+}
+
 /** Standard-Fehlerantwort des Backends. */
 export interface ApiErrorBody {
   error: string;

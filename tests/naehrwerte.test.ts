@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
+  benoetigtesDefizitKcal,
   bewerteZiel,
   formatGramm,
   formatKcal,
+  formatKg,
   parseGanzzahl,
   parseGrammToDg,
+  parseKgToGramm,
   portionEiweissDg,
   portionKcal,
 } from '../shared/naehrwerte.ts';
@@ -82,5 +85,21 @@ describe('Zielbewertung', () => {
     const b = bewerteZiel(500, 0, 'max');
     expect(b.hat_ziel).toBe(false);
     expect(b.erfuellt).toBe(true);
+  });
+});
+
+describe('Gewicht / Abnehmziel', () => {
+  it('rechnet kg in Gramm und zurueck', () => {
+    expect(parseKgToGramm('5')).toBe(5000);
+    expect(parseKgToGramm('5,5')).toBe(5500);
+    expect(parseKgToGramm('0')).toBeNull(); // muss > 0 sein
+    expect(parseKgToGramm('')).toBeNull();
+    expect(formatKg(5500)).toBe('5,5');
+    expect(formatKg(5000)).toBe('5,0');
+  });
+
+  it('rechnet das noetige Defizit als Gewicht × 7000 kcal/kg', () => {
+    expect(benoetigtesDefizitKcal(5000)).toBe(35000); // 5 kg
+    expect(benoetigtesDefizitKcal(500)).toBe(3500); // 0,5 kg
   });
 });

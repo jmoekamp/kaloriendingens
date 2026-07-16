@@ -39,6 +39,12 @@ Port **3010**.
   (`gueltig_ab`) gespeichert. Eine neue Vorgabe ändert nur Tage ab ihrem Stichtag;
   frühere Tage behalten die davor gültige Vorgabe. So lässt sich der mit
   sinkendem Gewicht sinkende Gesamtumsatz korrekt über die Zeit abbilden.
+- **Abnehmziel:** abzunehmendes Gewicht (kg) ab einem Stichtag. Das nötige
+  Gesamtdefizit ist Gewicht × 7000 kcal/kg. Auf der Auswertungsseite wird der
+  Fortschritt in Prozent gezeigt: erreichtes Defizit seit dem Stichtag (nur Tage
+  mit Einträgen, je Tag mit dem damals gültigen Gesamtumsatz) / nötiges Defizit.
+  Das erste angelegte Abnehmziel bekommt als Startdatum standardmäßig „heute − 1
+  Monat" (damit der bereits erfasste Vormonat einzahlt).
 - **Tagesauswertung:** Lebensmittel eines Tages mit kcal/Eiweiß, Summen und
   Abweichung vom Ziel. Default ist heute; jeder Tag ist anwählbar (Datumsnavigation).
 - **Langfrist-Auswertung:** Zwei Liniengraphen (kcal/Tag, Eiweiß/Tag) für einen
@@ -102,6 +108,9 @@ kein Zugriff auf Fachdaten). Erst-Accounts beim ersten Start: `admin/admin`
   für Tage vor der ersten Vorgabe die älteste. So bleiben vergangene Tage mit der
   damals gültigen Vorgabe bewertet (sinkender Gesamtumsatz bei sinkendem Gewicht).
   Das Defizit rechnet je Tag mit dem damals gültigen Gesamtumsatz.
+- `abnehmziele`: id, mandant_id, gueltig_ab, ziel_gramm (abzunehmendes Gewicht in
+  Gramm). Aktiv ist das jüngste Ziel mit `gueltig_ab ≤ heute`; nötiges Defizit =
+  ziel_gramm/1000 × 7000 kcal.
 - `einstellungen`: Legacy-Key-Value, nur noch Migrationsquelle für `vorgaben`.
 - `users`, `sessions`: mandant-übergreifend (Auth-Verwaltung).
 

@@ -1,0 +1,116 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import type { Database } from 'better-sqlite3';
+import { openDb } from '../server/db/index.ts';
+import { AppError } from '../server/errors.ts';
+import {
+  aktivesAbnehmziel,
+  deleteAbnehmziel,
+  listAbnehmziele,
+  upsertAbnehmziel,
+} from '../server/repos/abnehmziele.ts';
+import { upsertVorgabe } from '../server/repos/vorgaben.ts';
+import { createLebensmittel } from '../server/repos/lebensmittel.ts';
+import { createEintrag } from '../server/repos/eintraege.ts';
+import { getAbnehmFortschritt } from '../server/repos/auswertung.ts';
+
+let db: Database;
+beforeEach(() => {
+  db = openDb({ file: ':memory:' });
+});
+
+describe('Abnehmziel-Verwaltung', () => {
+  it('legt an, ersetzt denselben Stichtag und listet', () => {
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 5000 });
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 6000 });
+    const liste = listAbnehmziele(db);
+    expect(liste).toHaveLength(1);
+    expect(liste[0].ziel_gramm).toBe(6000);
+  });
+
+  it('lehnt ein Ziel <= 0 ab', () => {
+    expect(() =>
+      upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 0 }),
+    ).toThrow(AppError);
+  });
+
+  it('waehlt das aktive Ziel (juengstes mit gueltig_ab <= heute)', () => {
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 5000 });
+    upsertAbnehmziel(db, { gueltig_ab: '2026-07-01', ziel_gramm: 3000 });
+    expect(aktivesAbnehmziel(db, '2026-06-15')?.ziel_gramm).toBe(5000);
+    expect(aktivesAbnehmziel(db, '2026-07-10')?.ziel_gramm).toBe(3000);
+    // Vor dem ersten Stichtag ist kein Ziel aktiv.
+    expect(aktivesAbnehmziel(db, '2026-05-01')).toBeNull();
+  });
+
+  it('loescht und meldet Unbekanntes', () => {
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 5000 });
+    const z = listAbnehmziele(db)[0];
+    deleteAbnehmziel(db, z.id);
+    expect(listAbnehmziele(db)).toHaveLength(0);
+    expect(() => deleteAbnehmziel(db, 999)).toThrow(AppError);
+  });
+});
+
+describe('Abnehmfortschritt', () => {
+  beforeEach(() => {
+    createLebensmittel(db, {
+      name: 'Magerquark',
+      kcal_pro_100g: 67,
+      eiweiss_dg_pro_100g: 120,
+    });
+  });
+
+  it('rechnet benoetigtes Defizit (kg × 7000) und Prozent des erreichten', () => {
+    upsertVorgabe(db, {
+      gueltig_ab: '2000-01-01',
+      kcal_ziel: 0,
+      kcal_ziel_typ: 'max',
+      eiweiss_ziel_dg: 0,
+      eiweiss_ziel_typ: 'min',
+      gesamtumsatz: 2400,
+    });
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 5000 }); // 5 kg
+    createEintrag(db, {
+      datum: '2026-06-15',
+      uhrzeit: '08:00',
+      lebensmittel_id: 1,
+      menge_gramm: 100, // 67 kcal -> Defizit 2333
+    });
+    const f = getAbnehmFortschritt(db, '2026-06-30');
+    expect(f.hat_ziel).toBe(true);
+    expect(f.benoetigt_kcal).toBe(35000); // 5 * 7000
+    expect(f.erreicht_kcal).toBe(2400 - 67);
+    expect(f.prozent).toBe(Math.round(((2400 - 67) / 35000) * 100)); // 7
+  });
+
+  it('zaehlt nur Tage ab dem Stichtag des Ziels', () => {
+    upsertVorgabe(db, {
+      gueltig_ab: '2000-01-01',
+      kcal_ziel: 0,
+      kcal_ziel_typ: 'max',
+      eiweiss_ziel_dg: 0,
+      eiweiss_ziel_typ: 'min',
+      gesamtumsatz: 2400,
+    });
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-10', ziel_gramm: 5000 });
+    // Ein Tag VOR dem Stichtag zaehlt nicht mit.
+    createEintrag(db, {
+      datum: '2026-06-05',
+      uhrzeit: '08:00',
+      lebensmittel_id: 1,
+      menge_gramm: 100,
+    });
+    createEintrag(db, {
+      datum: '2026-06-15',
+      uhrzeit: '08:00',
+      lebensmittel_id: 1,
+      menge_gramm: 100,
+    });
+    const f = getAbnehmFortschritt(db, '2026-06-30');
+    expect(f.erreicht_kcal).toBe(2400 - 67); // nur der 15.06.
+  });
+
+  it('meldet hat_ziel=false ohne Ziel', () => {
+    expect(getAbnehmFortschritt(db, '2026-06-30').hat_ziel).toBe(false);
+  });
+});

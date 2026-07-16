@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getDb } from '../db/index.ts';
 import { badRequest } from '../errors.ts';
 import {
+  getAbnehmFortschritt,
   getDefizitReport,
   getLetzteTage,
   getTagesAuswertung,
@@ -65,4 +66,9 @@ auswertungRouter.get('/letzte-tage', (req, res) => {
 /** GET /api/auswertung/defizit – Kaloriendefizit (Tag/Woche/Monat/gesamt). */
 auswertungRouter.get('/defizit', (_req, res) => {
   res.json(getDefizitReport(getDb(), heuteIso()));
+});
+
+/** GET /api/auswertung/abnehmfortschritt – Fortschritt des aktiven Abnehmziels. */
+auswertungRouter.get('/abnehmfortschritt', (_req, res) => {
+  res.json(getAbnehmFortschritt(getDb(), heuteIso()));
 });

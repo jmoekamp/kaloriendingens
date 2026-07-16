@@ -1,5 +1,6 @@
 /** Typisierte API-Aufrufe fuer die Auswertungen (Tag, Verlauf, Defizit). */
 import type {
+  AbnehmFortschritt,
   DefizitReport,
   TagesAuswertung,
   TagesZusammenfassung,
@@ -24,4 +25,6 @@ export const auswertungApi = {
   letzteTage: (n = 7) =>
     api.get<TagesZusammenfassung[]>(`/auswertung/letzte-tage?n=${n}`),
   defizit: () => api.get<DefizitReport>('/auswertung/defizit'),
+  abnehmfortschritt: () =>
+    api.get<AbnehmFortschritt>('/auswertung/abnehmfortschritt'),
 };

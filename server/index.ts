@@ -20,6 +20,7 @@ import { healthRouter } from './routes/health.ts';
 import { lebensmittelRouter } from './routes/lebensmittel.ts';
 import { eintraegeRouter } from './routes/eintraege.ts';
 import { vorgabenRouter } from './routes/vorgaben.ts';
+import { abnehmzieleRouter } from './routes/abnehmziele.ts';
 import { auswertungRouter } from './routes/auswertung.ts';
 
 const PORT = Number(process.env.PORT ?? 3010);
@@ -49,6 +50,7 @@ app.use('/api/users', requireAdmin, usersRouter);
 app.use('/api/lebensmittel', requireDatenNutzer, lebensmittelRouter);
 app.use('/api/eintraege', requireDatenNutzer, eintraegeRouter);
 app.use('/api/vorgaben', requireDatenNutzer, vorgabenRouter);
+app.use('/api/abnehmziele', requireDatenNutzer, abnehmzieleRouter);
 app.use('/api/auswertung', requireDatenNutzer, auswertungRouter);
 
 // Backup: fuer beide Rollen erlaubt, Inhalt richtet sich nach der Rolle.

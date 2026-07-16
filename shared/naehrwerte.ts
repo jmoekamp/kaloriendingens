@@ -66,6 +66,31 @@ export function parseGanzzahl(eingabe: string): number | null {
   return Number(t);
 }
 
+/** Energiegehalt von Koerperfett: ca. 7000 kcal je Kilogramm. */
+export const KCAL_PRO_KG_FETT = 7000;
+
+/** Noetiges Defizit (kcal) fuer ein Abnehmziel in Gramm: Gramm/1000 × 7000. */
+export function benoetigtesDefizitKcal(zielGramm: number): number {
+  return runde((zielGramm * KCAL_PRO_KG_FETT) / 1000);
+}
+
+/** Formatiert Gramm als Kilogramm mit einer Nachkommastelle, z. B. 5500 -> "5,5". */
+export function formatKg(gramm: number): string {
+  const zehntelKg = runde(gramm / 100); // in 0,1-kg-Schritten
+  const negativ = zehntelKg < 0;
+  const abs = Math.abs(zehntelKg);
+  return `${negativ ? '-' : ''}${Math.floor(abs / 10)},${abs % 10}`;
+}
+
+/** Parst eine Kilogramm-Eingabe (Komma/Punkt) in Gramm. Muss > 0 sein. */
+export function parseKgToGramm(eingabe: string): number | null {
+  const t = eingabe.trim().replace(',', '.');
+  if (t === '' || !/^\d*(\.\d*)?$/.test(t) || t === '.') return null;
+  const kg = Number(t);
+  if (!Number.isFinite(kg) || kg <= 0) return null;
+  return runde(kg * 1000);
+}
+
 /**
  * Bewertet eine Summe gegen ein Ziel. abweichung = summe - ziel (vorzeichen-
  * behaftet). Bei Zieltyp 'max' ist das Ziel eine Obergrenze (erfuellt, solange

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type {
+  AbnehmFortschritt,
   DefizitFenster,
   DefizitReport,
   TagesZusammenfassung,
@@ -7,7 +8,7 @@ import type {
 } from '../../shared/types.ts';
 import { Banner, Button, Card, Field, TextInput } from '../components/ui.tsx';
 import { LinienChart, type ChartPunkt } from '../components/LinienChart.tsx';
-import { formatGramm, formatKcal } from '../../shared/naehrwerte.ts';
+import { formatGramm, formatKcal, formatKg } from '../../shared/naehrwerte.ts';
 import { formatDatum, heuteIso, verschiebeDatum } from '../lib/format.ts';
 import { auswertungApi } from '../lib/auswertung.ts';
 
@@ -57,6 +58,7 @@ export default function LangfristSeite({
   const [verlauf, setVerlauf] = useState<Verlauf | null>(null);
   const [letzte, setLetzte] = useState<TagesZusammenfassung[]>([]);
   const [defizit, setDefizit] = useState<DefizitReport | null>(null);
+  const [abnehmen, setAbnehmen] = useState<AbnehmFortschritt | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
 
   function ladeVerlauf() {
@@ -77,6 +79,10 @@ export default function LangfristSeite({
       .defizit()
       .then(setDefizit)
       .catch((e) => setFehler(meldung(e)));
+    auswertungApi
+      .abnehmfortschritt()
+      .then(setAbnehmen)
+      .catch((e) => setFehler(meldung(e)));
   }, []);
 
   const kcalPunkte: ChartPunkt[] =
@@ -94,6 +100,46 @@ export default function LangfristSeite({
         <Banner kind="error" onClose={() => setFehler(null)}>
           {fehler}
         </Banner>
+      )}
+
+      {/* Abnehmziel-Fortschritt */}
+      {abnehmen && (
+        <Card title="Abnehmziel">
+          {!abnehmen.hat_ziel ? (
+            <p className="text-text-muted">
+              Kein Abnehmziel gesetzt – lege es unter „Einstellungen" an.
+            </p>
+          ) : (
+            <>
+              <p className="mb-3 text-sm text-text-muted">
+                Ziel:{' '}
+                <span className="font-bold text-text">
+                  {formatKg(abnehmen.ziel_gramm)} kg
+                </span>{' '}
+                abnehmen (ab {formatDatum(abnehmen.gueltig_ab ?? '')}). Nötiges
+                Defizit {formatKcal(abnehmen.benoetigt_kcal)} kcal, davon
+                erreicht{' '}
+                <span className="font-bold text-text">
+                  {formatKcal(abnehmen.erreicht_kcal)} kcal
+                </span>
+                .
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="h-4 flex-1 overflow-hidden rounded-full bg-surface-2">
+                  <div
+                    className="h-full rounded-full bg-accent"
+                    style={{
+                      width: `${Math.max(0, Math.min(100, abnehmen.prozent))}%`,
+                    }}
+                  />
+                </div>
+                <span className="tabular text-lg font-bold">
+                  {abnehmen.prozent}%
+                </span>
+              </div>
+            </>
+          )}
+        </Card>
       )}
 
       {/* Defizit-Übersicht */}

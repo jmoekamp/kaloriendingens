@@ -22,6 +22,7 @@ describe('Lebensmittel-CRUD', () => {
       name: 'Magerquark',
       kcal_pro_100g: 67,
       eiweiss_dg_pro_100g: 120,
+      packung_gramm: null,
     });
     expect(l.id).toBeGreaterThan(0);
     expect(l.eintrag_anzahl).toBe(0);
@@ -34,14 +35,44 @@ describe('Lebensmittel-CRUD', () => {
       name: 'Haferflocken',
       kcal_pro_100g: 370,
       eiweiss_dg_pro_100g: 135,
+      packung_gramm: null,
     });
     const u = updateLebensmittel(db, l.id, {
       name: 'Haferflocken fein',
       kcal_pro_100g: 372,
       eiweiss_dg_pro_100g: 136,
+      packung_gramm: null,
     });
     expect(u.name).toBe('Haferflocken fein');
     expect(u.kcal_pro_100g).toBe(372);
+  });
+
+  it('speichert eine optionale Packungsgroesse und lehnt <= 0 ab', () => {
+    const l = createLebensmittel(db, {
+      name: 'Skyr Becher',
+      kcal_pro_100g: 63,
+      eiweiss_dg_pro_100g: 110,
+      packung_gramm: 450,
+    });
+    expect(l.packung_gramm).toBe(450);
+    expect(getLebensmittel(db, l.id)?.packung_gramm).toBe(450);
+    // Ohne Packung bleibt es null.
+    const ohne = createLebensmittel(db, {
+      name: 'Apfel lose',
+      kcal_pro_100g: 52,
+      eiweiss_dg_pro_100g: 3,
+      packung_gramm: null,
+    });
+    expect(ohne.packung_gramm).toBeNull();
+    // Ungueltige Packungsgroesse.
+    expect(() =>
+      createLebensmittel(db, {
+        name: 'Kaputt',
+        kcal_pro_100g: 10,
+        eiweiss_dg_pro_100g: 1,
+        packung_gramm: 0,
+      }),
+    ).toThrow(AppError);
   });
 
   it('lehnt doppelte Namen ab', () => {
@@ -49,12 +80,14 @@ describe('Lebensmittel-CRUD', () => {
       name: 'Apfel',
       kcal_pro_100g: 52,
       eiweiss_dg_pro_100g: 3,
+      packung_gramm: null,
     });
     expect(() =>
       createLebensmittel(db, {
         name: 'Apfel',
         kcal_pro_100g: 52,
         eiweiss_dg_pro_100g: 3,
+        packung_gramm: null,
       }),
     ).toThrow(AppError);
   });
@@ -64,6 +97,7 @@ describe('Lebensmittel-CRUD', () => {
       name: 'Banane',
       kcal_pro_100g: 89,
       eiweiss_dg_pro_100g: 11,
+      packung_gramm: null,
     });
     createEintrag(db, {
       datum: '2026-07-15',
@@ -78,6 +112,7 @@ describe('Lebensmittel-CRUD', () => {
       name: 'Birne',
       kcal_pro_100g: 57,
       eiweiss_dg_pro_100g: 4,
+      packung_gramm: null,
     });
     deleteLebensmittel(db, frei.id);
     expect(getLebensmittel(db, frei.id)).toBeUndefined();

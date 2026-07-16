@@ -14,6 +14,7 @@ interface LebensmittelRow {
   name: string;
   kcal_pro_100g: number;
   eiweiss_dg_pro_100g: number;
+  packung_gramm: number | null;
   erstellt_am: string;
   geaendert_am: string;
   eintrag_anzahl: number;
@@ -25,6 +26,7 @@ function toLebensmittel(row: LebensmittelRow): Lebensmittel {
     name: row.name,
     kcal_pro_100g: row.kcal_pro_100g,
     eiweiss_dg_pro_100g: row.eiweiss_dg_pro_100g,
+    packung_gramm: row.packung_gramm,
     erstellt_am: row.erstellt_am,
     geaendert_am: row.geaendert_am,
     eintrag_anzahl: row.eintrag_anzahl,
@@ -32,7 +34,7 @@ function toLebensmittel(row: LebensmittelRow): Lebensmittel {
 }
 
 const SELECT = `
-  SELECT l.id, l.name, l.kcal_pro_100g, l.eiweiss_dg_pro_100g,
+  SELECT l.id, l.name, l.kcal_pro_100g, l.eiweiss_dg_pro_100g, l.packung_gramm,
          l.erstellt_am, l.geaendert_am,
          (SELECT COUNT(*) FROM eintraege e WHERE e.lebensmittel_id = l.id)
            AS eintrag_anzahl
@@ -69,6 +71,12 @@ function pruefeEingabe(input: LebensmittelInput): void {
   ) {
     throw conflict('Eiweiss je 100 g muss eine nicht-negative Zahl sein.');
   }
+  if (
+    input.packung_gramm != null &&
+    (!Number.isInteger(input.packung_gramm) || input.packung_gramm <= 0)
+  ) {
+    throw conflict('Packungsgroesse muss eine positive Ganzzahl (g) sein.');
+  }
 }
 
 export function createLebensmittel(
@@ -81,15 +89,16 @@ export function createLebensmittel(
     const info = db
       .prepare(
         `INSERT INTO lebensmittel
-           (mandant_id, name, kcal_pro_100g, eiweiss_dg_pro_100g,
+           (mandant_id, name, kcal_pro_100g, eiweiss_dg_pro_100g, packung_gramm,
             erstellt_am, geaendert_am)
-         VALUES (@mandant, @name, @kcal, @eiweiss, @jetzt, @jetzt)`,
+         VALUES (@mandant, @name, @kcal, @eiweiss, @packung, @jetzt, @jetzt)`,
       )
       .run({
         mandant: aktuellerMandant(),
         name: input.name.trim(),
         kcal: input.kcal_pro_100g,
         eiweiss: input.eiweiss_dg_pro_100g,
+        packung: input.packung_gramm,
         jetzt,
       });
     return getLebensmittel(db, Number(info.lastInsertRowid)) as Lebensmittel;
@@ -115,7 +124,8 @@ export function updateLebensmittel(
     db.prepare(
       `UPDATE lebensmittel
           SET name = @name, kcal_pro_100g = @kcal,
-              eiweiss_dg_pro_100g = @eiweiss, geaendert_am = @jetzt
+              eiweiss_dg_pro_100g = @eiweiss, packung_gramm = @packung,
+              geaendert_am = @jetzt
         WHERE id = @id AND mandant_id = @mandant`,
     ).run({
       id,
@@ -123,6 +133,7 @@ export function updateLebensmittel(
       name: input.name.trim(),
       kcal: input.kcal_pro_100g,
       eiweiss: input.eiweiss_dg_pro_100g,
+      packung: input.packung_gramm,
       jetzt: new Date().toISOString(),
     });
   } catch (e) {

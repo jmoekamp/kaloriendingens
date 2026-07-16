@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import type { LebensmittelInput } from '../../shared/types.ts';
 import { getDb } from '../db/index.ts';
-import { requireInteger, requireString, parseId } from '../validation.ts';
+import {
+  optionalIntegerOrNull,
+  requireInteger,
+  requireString,
+  parseId,
+} from '../validation.ts';
 import {
   createLebensmittel,
   deleteLebensmittel,
@@ -16,6 +21,7 @@ function leseInput(body: Record<string, unknown>): LebensmittelInput {
     name: requireString(body, 'name'),
     kcal_pro_100g: requireInteger(body, 'kcal_pro_100g'),
     eiweiss_dg_pro_100g: requireInteger(body, 'eiweiss_dg_pro_100g'),
+    packung_gramm: optionalIntegerOrNull(body, 'packung_gramm'),
   };
 }
 

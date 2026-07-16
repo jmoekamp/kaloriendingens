@@ -64,6 +64,7 @@ describe('Historische Bewertung', () => {
       name: 'Magerquark',
       kcal_pro_100g: 67,
       eiweiss_dg_pro_100g: 120,
+      packung_gramm: null,
     });
   });
 

@@ -13,7 +13,7 @@ function meldung(e: unknown): string {
   return e instanceof Error ? e.message : 'Unbekannter Fehler';
 }
 
-const LEER = { name: '', kcal: '', eiweiss: '' };
+const LEER = { name: '', kcal: '', eiweiss: '', packung: '' };
 
 /** Stammdaten: Lebensmittel anlegen, bearbeiten und loeschen (Werte je 100 g). */
 export default function LebensmittelVerwaltung() {
@@ -47,6 +47,7 @@ export default function LebensmittelVerwaltung() {
       name: l.name,
       kcal: String(l.kcal_pro_100g),
       eiweiss: formatGramm(l.eiweiss_dg_pro_100g),
+      packung: l.packung_gramm == null ? '' : String(l.packung_gramm),
     });
     setHinweis(null);
     setFehler(null);
@@ -70,10 +71,17 @@ export default function LebensmittelVerwaltung() {
       setFehler('Eiweiß je 100 g muss eine Zahl ≥ 0 sein (z. B. 12,5).');
       return;
     }
+    const packung =
+      form.packung.trim() === '' ? null : parseGanzzahl(form.packung);
+    if (packung === null && form.packung.trim() !== '') {
+      setFehler('Packungsgröße muss eine ganze Zahl > 0 sein (oder leer).');
+      return;
+    }
     const input = {
       name: form.name.trim(),
       kcal_pro_100g: kcal,
       eiweiss_dg_pro_100g: eiweissDg,
+      packung_gramm: packung,
     };
     setSpeichert(true);
     try {
@@ -128,7 +136,7 @@ export default function LebensmittelVerwaltung() {
       >
         <form
           onSubmit={speichern}
-          className="grid grid-cols-1 items-end gap-3 sm:grid-cols-4"
+          className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-5"
         >
           <Field label="Name">
             <TextInput
@@ -153,6 +161,15 @@ export default function LebensmittelVerwaltung() {
               onChange={(e) => set('eiweiss', e.target.value)}
               inputMode="decimal"
               placeholder="z. B. 12,5"
+            />
+          </Field>
+          <Field label="Packungsgröße (g, optional)">
+            <TextInput
+              className="tabular"
+              value={form.packung}
+              onChange={(e) => set('packung', e.target.value)}
+              inputMode="numeric"
+              placeholder="z. B. 500"
             />
           </Field>
           <div className="flex gap-2">
@@ -186,6 +203,7 @@ export default function LebensmittelVerwaltung() {
                 <th className="py-2 pr-3 text-right font-normal">
                   Eiweiß / 100 g
                 </th>
+                <th className="py-2 pr-3 text-right font-normal">Packung</th>
                 <th className="py-2 font-normal"></th>
               </tr>
             </thead>
@@ -198,6 +216,9 @@ export default function LebensmittelVerwaltung() {
                   </td>
                   <td className="py-2 pr-3 text-right tabular">
                     {formatGramm(l.eiweiss_dg_pro_100g)} g
+                  </td>
+                  <td className="py-2 pr-3 text-right tabular">
+                    {l.packung_gramm == null ? '—' : `${l.packung_gramm} g`}
                   </td>
                   <td className="py-2">
                     <div className="flex justify-end gap-2">

@@ -60,6 +60,7 @@ describe('Abnehmfortschritt', () => {
       name: 'Magerquark',
       kcal_pro_100g: 67,
       eiweiss_dg_pro_100g: 120,
+      packung_gramm: null,
     });
   });
 
@@ -188,6 +189,7 @@ describe('Abnehmfortschritt', () => {
       name: 'Magerquark',
       kcal_pro_100g: 67,
       eiweiss_dg_pro_100g: 120,
+      packung_gramm: null,
     });
     upsertVorgabe(db2, {
       gueltig_ab: '2000-01-01',

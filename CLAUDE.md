@@ -26,12 +26,14 @@ Port **3010**.
 ## Was die App können soll
 
 - **Lebensmittel (Stammdaten):** Anlegen/Bearbeiten/Löschen mit kcal und Eiweiß,
-  jeweils bezogen auf 100 g. Ein Lebensmittel, das noch in Einträgen verwendet
-  wird, kann NICHT gelöscht werden (strikter Löschschutz).
+  jeweils bezogen auf 100 g, plus optionaler **Packungsgröße** (g). Ein
+  Lebensmittel, das noch in Einträgen verwendet wird, kann NICHT gelöscht werden
+  (strikter Löschschutz).
 - **Tageserfassung:** Je Eintrag Uhrzeit, Lebensmittel (Auswahl) und Menge in g.
   kcal und Eiweiß eines Eintrags werden LIVE aus dem Lebensmittel und der Menge
   berechnet, nicht gespeichert (ändert man die Nährwerte, ändern sich vergangene
-  Auswertungen entsprechend mit).
+  Auswertungen entsprechend mit). Hat das gewählte Lebensmittel eine
+  Packungsgröße, füllt ein Button „ganze Packung" die Menge damit.
 - **Planung / Zukunftsdaten:** Zu jedem Tag – auch in der Zukunft – lassen sich
   Daten erfassen (Planung). Tage mit Datum > heute fließen in KEINE Statistik ein
   (Defizit, Prognosen, Verläufe, Diagramme, „letzte Tage"). Nur die Tagesansicht
@@ -119,7 +121,7 @@ kein Zugriff auf Fachdaten). Erst-Accounts beim ersten Start: `admin/admin`
 ## Datenmodell (Kurzform)
 
 - `lebensmittel`: id, mandant_id, name (eindeutig/Mandant), kcal_pro_100g,
-  eiweiss_dg_pro_100g, Zeitstempel.
+  eiweiss_dg_pro_100g, packung_gramm (optional, für „ganze Packung"), Zeitstempel.
 - `eintraege`: id, mandant_id, datum, uhrzeit, lebensmittel_id (FK), menge_gramm,
   Zeitstempel. kcal/Eiweiß werden live berechnet.
 - `vorgaben`: zeitversionierte Ziele + Gesamtumsatz. Spalten: id, mandant_id,

@@ -20,6 +20,8 @@ export interface Lebensmittel {
   kcal_pro_100g: number;
   /** Eiweiss je 100 g in Dezigramm (0,1 g). */
   eiweiss_dg_pro_100g: number;
+  /** Optionale Packungsgroesse in Gramm (null = keine); fuer „ganze Packung". */
+  packung_gramm: number | null;
   erstellt_am: string;
   geaendert_am: string;
   /** Nur lesend: Anzahl Eintraege, die dieses Lebensmittel verwenden (Loeschschutz). */
@@ -31,6 +33,7 @@ export interface LebensmittelInput {
   name: string;
   kcal_pro_100g: number;
   eiweiss_dg_pro_100g: number;
+  packung_gramm: number | null;
 }
 
 /**

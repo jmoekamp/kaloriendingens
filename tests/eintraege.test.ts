@@ -19,6 +19,7 @@ beforeEach(() => {
     name: 'Magerquark',
     kcal_pro_100g: 67,
     eiweiss_dg_pro_100g: 120, // 12,0 g / 100 g
+    packung_gramm: null,
   }).id;
 });
 

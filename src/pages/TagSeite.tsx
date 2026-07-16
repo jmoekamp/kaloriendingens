@@ -151,6 +151,7 @@ export default function TagSeite({
 
   const istHeute = datum === heuteIso();
   const istZukunft = datum > heuteIso();
+  const gewaehltesLm = lebensmittel.find((l) => String(l.id) === lmId);
 
   return (
     <div className="flex flex-col gap-4">
@@ -223,13 +224,24 @@ export default function TagSeite({
             </Select>
           </Field>
           <Field label="Menge (g)">
-            <TextInput
-              className="tabular"
-              value={menge}
-              onChange={(e) => setMenge(e.target.value)}
-              inputMode="numeric"
-              placeholder="z. B. 150"
-            />
+            <div className="flex flex-col gap-1">
+              <TextInput
+                className="tabular"
+                value={menge}
+                onChange={(e) => setMenge(e.target.value)}
+                inputMode="numeric"
+                placeholder="z. B. 150"
+              />
+              {gewaehltesLm?.packung_gramm != null && (
+                <button
+                  type="button"
+                  onClick={() => setMenge(String(gewaehltesLm.packung_gramm))}
+                  className="text-left text-xs text-accent hover:underline"
+                >
+                  ganze Packung ({gewaehltesLm.packung_gramm} g)
+                </button>
+              )}
+            </div>
           </Field>
           <Button type="submit" variant="primary" disabled={speichert}>
             {speichert ? 'Fügt hinzu …' : 'Hinzufügen'}

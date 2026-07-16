@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS lebensmittel (
   name                TEXT    NOT NULL,
   kcal_pro_100g       INTEGER NOT NULL DEFAULT 0,
   eiweiss_dg_pro_100g INTEGER NOT NULL DEFAULT 0,
+  packung_gramm       INTEGER,
   erstellt_am         TEXT    NOT NULL,
   geaendert_am        TEXT    NOT NULL
 );
@@ -194,7 +195,28 @@ function migriereEinstellungenZuVorgaben(db: Database): void {
   }
 }
 
+/**
+ * Ergaenzt eine Spalte per ALTER TABLE, falls sie in einer bereits bestehenden
+ * Tabelle noch fehlt (idempotente Leichtgewicht-Migration). Fuer neue DBs deckt
+ * das CREATE-TABLE-Statement die Spalte bereits ab.
+ */
+function ensureColumn(
+  db: Database,
+  tabelle: string,
+  spalte: string,
+  definition: string,
+): void {
+  const cols = db.prepare(`PRAGMA table_info(${tabelle})`).all() as {
+    name: string;
+  }[];
+  if (!cols.some((c) => c.name === spalte)) {
+    db.exec(`ALTER TABLE ${tabelle} ADD COLUMN ${spalte} ${definition}`);
+  }
+}
+
 export function applySchema(db: Database): void {
   db.exec(SCHEMA_SQL);
+  // Optionale Packungsgroesse fuer bestehende Datenbanken nachziehen.
+  ensureColumn(db, 'lebensmittel', 'packung_gramm', 'INTEGER');
   migriereEinstellungenZuVorgaben(db);
 }

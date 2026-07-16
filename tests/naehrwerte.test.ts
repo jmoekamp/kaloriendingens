@@ -5,6 +5,7 @@ import {
   formatGramm,
   formatKcal,
   formatKg,
+  formatProzent,
   parseGanzzahl,
   parseGrammToDg,
   parseKgToGramm,
@@ -101,5 +102,13 @@ describe('Gewicht / Abnehmziel', () => {
   it('rechnet das noetige Defizit als Gewicht × 7000 kcal/kg', () => {
     expect(benoetigtesDefizitKcal(5000)).toBe(35000); // 5 kg
     expect(benoetigtesDefizitKcal(500)).toBe(3500); // 0,5 kg
+  });
+
+  it('formatiert Prozent mit zwei Nachkommastellen (Komma)', () => {
+    expect(formatProzent((4565 / 35000) * 100)).toBe('13,04');
+    expect(formatProzent(0)).toBe('0,00');
+    expect(formatProzent(100)).toBe('100,00');
+    expect(formatProzent(13.239)).toBe('13,24');
+    expect(formatProzent(-0.001)).toBe('0,00'); // kein "-0,00"
   });
 });

@@ -66,6 +66,15 @@ export function parseGanzzahl(eingabe: string): number | null {
   return Number(t);
 }
 
+/** Formatiert einen Prozentwert mit fester Nachkommastellenzahl (deutsch: Komma). */
+export function formatProzent(wert: number, stellen = 2): string {
+  const faktor = 10 ** stellen;
+  const gerundet = Math.round(wert * faktor) / faktor;
+  // -0 vermeiden, damit nicht "-0,00" erscheint.
+  const norm = gerundet === 0 ? 0 : gerundet;
+  return norm.toFixed(stellen).replace('.', ',');
+}
+
 /** Energiegehalt von Koerperfett: ca. 7000 kcal je Kilogramm. */
 export const KCAL_PRO_KG_FETT = 7000;
 

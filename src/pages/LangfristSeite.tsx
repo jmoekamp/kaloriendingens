@@ -8,7 +8,12 @@ import type {
 } from '../../shared/types.ts';
 import { Banner, Button, Card, Field, TextInput } from '../components/ui.tsx';
 import { LinienChart, type ChartPunkt } from '../components/LinienChart.tsx';
-import { formatGramm, formatKcal, formatKg } from '../../shared/naehrwerte.ts';
+import {
+  formatGramm,
+  formatKcal,
+  formatKg,
+  formatProzent,
+} from '../../shared/naehrwerte.ts';
 import { formatDatum, heuteIso, verschiebeDatum } from '../lib/format.ts';
 import { auswertungApi } from '../lib/auswertung.ts';
 
@@ -134,7 +139,7 @@ export default function LangfristSeite({
                   />
                 </div>
                 <span className="tabular text-lg font-bold">
-                  {abnehmen.prozent}%
+                  {formatProzent(abnehmen.prozent)} %
                 </span>
               </div>
             </>

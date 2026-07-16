@@ -184,7 +184,8 @@ export interface AbnehmzielInput {
  * Fortschritt des aktiven Abnehmziels. erreicht_kcal ist das seit gueltig_ab
  * tatsaechlich erzielte Defizit (nur Tage mit Eintraegen, je Tag mit dem damals
  * gueltigen Gesamtumsatz); benoetigt_kcal = Gewicht × 7000 kcal/kg; prozent ist
- * erreicht/benoetigt in Prozent (kaufmaennisch gerundet).
+ * erreicht/benoetigt in Prozent (ungerundet; die Anzeige rundet auf zwei
+ * Nachkommastellen).
  */
 export interface AbnehmFortschritt {
   hat_ziel: boolean;

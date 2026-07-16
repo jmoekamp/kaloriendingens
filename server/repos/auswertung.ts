@@ -216,8 +216,9 @@ export function getAbnehmFortschritt(
     heute,
   ).defizit;
   const benoetigt_kcal = benoetigtesDefizitKcal(ziel.ziel_gramm);
+  // Ungerundet zurueckgeben; die Anzeige formatiert auf zwei Nachkommastellen.
   const prozent =
-    benoetigt_kcal > 0 ? Math.round((erreicht_kcal / benoetigt_kcal) * 100) : 0;
+    benoetigt_kcal > 0 ? (erreicht_kcal / benoetigt_kcal) * 100 : 0;
   return {
     hat_ziel: true,
     gueltig_ab: ziel.gueltig_ab,

@@ -80,7 +80,8 @@ describe('Abnehmfortschritt', () => {
     expect(f.hat_ziel).toBe(true);
     expect(f.benoetigt_kcal).toBe(35000); // 5 * 7000
     expect(f.erreicht_kcal).toBe(2400 - 67);
-    expect(f.prozent).toBe(Math.round(((2400 - 67) / 35000) * 100)); // 7
+    // Ungerundet (Anzeige rundet auf zwei Nachkommastellen).
+    expect(f.prozent).toBeCloseTo(((2400 - 67) / 35000) * 100, 6);
   });
 
   it('zaehlt nur Tage ab dem Stichtag des Ziels', () => {

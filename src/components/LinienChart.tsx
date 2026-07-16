@@ -14,11 +14,15 @@ export function LinienChart({
   farbe = 'var(--accent, #5aa0d8)',
   formatWert = (n: number) => String(n),
   hoehe = 220,
+  nullbasis = true,
 }: {
   punkte: ChartPunkt[];
   farbe?: string;
   formatWert?: (n: number) => string;
   hoehe?: number;
+  /** true: y-Achse beginnt bei 0. false: y-Achse skaliert auf den Datenbereich
+   * (z. B. Gewicht, das in einem schmalen Band schwankt). */
+  nullbasis?: boolean;
 }) {
   if (punkte.length === 0) {
     return (
@@ -36,16 +40,23 @@ export function LinienChart({
   const innerB = breite - padL - padR;
   const innerH = hoehe - padT - padB;
 
-  const maxWert = Math.max(...punkte.map((p) => p.wert), 1);
-  // „Schoene" Obergrenze: auf 10er/100er aufrunden je nach Groesse.
+  const werte = punkte.map((p) => p.wert);
+  const rohMax = Math.max(...werte, 1);
+  const rohMin = nullbasis ? 0 : Math.min(...werte);
+  // Schrittweite an der SPANNE ausrichten, damit auch enge Baender (Gewicht)
+  // sinnvoll aufgeloest werden.
+  const spanne = Math.max(1, rohMax - rohMin);
   const schritt =
-    maxWert > 500 ? 500 : maxWert > 100 ? 100 : maxWert > 10 ? 10 : 1;
-  const yMax = Math.ceil(maxWert / schritt) * schritt || 1;
+    spanne > 500 ? 500 : spanne > 100 ? 100 : spanne > 10 ? 10 : 1;
+  const yMin = nullbasis ? 0 : Math.floor(rohMin / schritt) * schritt;
+  let yMax = Math.ceil(rohMax / schritt) * schritt;
+  if (yMax === yMin) yMax = yMin + schritt;
 
   const x = (i: number) =>
     padL +
     (punkte.length === 1 ? innerB / 2 : (innerB * i) / (punkte.length - 1));
-  const y = (w: number) => padT + innerH - (innerH * w) / yMax;
+  const y = (w: number) =>
+    padT + innerH - (innerH * (w - yMin)) / (yMax - yMin);
 
   const linie = punkte.map((p, i) => `${x(i)},${y(p.wert)}`).join(' ');
   const flaeche =
@@ -53,8 +64,8 @@ export function LinienChart({
     punkte.map((p, i) => `${x(i)},${y(p.wert)}`).join(' ') +
     ` ${x(punkte.length - 1)},${padT + innerH}`;
 
-  // y-Gitterlinien (0, 1/2, max).
-  const yTicks = [0, yMax / 2, yMax];
+  // y-Gitterlinien (unten, Mitte, oben).
+  const yTicks = [yMin, (yMin + yMax) / 2, yMax];
   // x-Beschriftung: erste, mittlere, letzte (vermeidet Ueberlappung).
   const xTickIdx = Array.from(
     new Set([0, Math.floor((punkte.length - 1) / 2), punkte.length - 1]),

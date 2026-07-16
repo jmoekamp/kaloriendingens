@@ -14,7 +14,12 @@ import {
   Select,
   TextInput,
 } from '../components/ui.tsx';
-import { formatGramm, formatKcal } from '../../shared/naehrwerte.ts';
+import {
+  formatGramm,
+  formatKcal,
+  formatKg,
+  parseKgToGramm,
+} from '../../shared/naehrwerte.ts';
 import {
   formatDatum,
   heuteIso,
@@ -24,6 +29,7 @@ import {
 import { auswertungApi } from '../lib/auswertung.ts';
 import { eintraegeApi } from '../lib/eintraege.ts';
 import { bewegungApi } from '../lib/bewegung.ts';
+import { gewichtApi } from '../lib/gewicht.ts';
 import { lebensmittelApi } from '../lib/lebensmittel.ts';
 
 function meldung(e: unknown): string {
@@ -185,6 +191,9 @@ export default function TagSeite({
         </span>
       </div>
 
+      {/* Tagesgewicht */}
+      <GewichtAbschnitt datum={datum} />
+
       {/* Erfassen */}
       <Card title="Gegessen erfassen">
         <form
@@ -308,6 +317,92 @@ export default function TagSeite({
       {/* Bewegung des Tages */}
       <BewegungAbschnitt datum={datum} />
     </div>
+  );
+}
+
+/** Tagesgewicht (eine Waage-Eingabe je Tag); wird im Report als Kurve gezeigt. */
+function GewichtAbschnitt({ datum }: { datum: string }) {
+  const [kg, setKg] = useState('');
+  const [vorhanden, setVorhanden] = useState(false);
+  const [fehler, setFehler] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+  const [speichert, setSpeichert] = useState(false);
+
+  const laden = useCallback(() => {
+    gewichtApi
+      .fuerTag(datum)
+      .then((g) => {
+        setKg(g ? formatKg(g.gramm) : '');
+        setVorhanden(g !== null);
+        setOk(false);
+      })
+      .catch((e) => setFehler(meldung(e)));
+  }, [datum]);
+  useEffect(laden, [laden]);
+
+  async function speichern(e: React.FormEvent) {
+    e.preventDefault();
+    setFehler(null);
+    setOk(false);
+    const gramm = parseKgToGramm(kg);
+    if (gramm === null) {
+      setFehler('Bitte ein Gewicht in kg eingeben (größer als 0, z. B. 82,5).');
+      return;
+    }
+    setSpeichert(true);
+    try {
+      await gewichtApi.save(datum, gramm);
+      setVorhanden(true);
+      setOk(true);
+    } catch (err) {
+      setFehler(meldung(err));
+    } finally {
+      setSpeichert(false);
+    }
+  }
+
+  async function loeschen() {
+    setFehler(null);
+    try {
+      await gewichtApi.remove(datum);
+      setKg('');
+      setVorhanden(false);
+      setOk(false);
+    } catch (err) {
+      setFehler(meldung(err));
+    }
+  }
+
+  return (
+    <Card title="Gewicht">
+      {fehler && (
+        <div className="mb-3">
+          <Banner kind="error" onClose={() => setFehler(null)}>
+            {fehler}
+          </Banner>
+        </div>
+      )}
+      <form onSubmit={speichern} className="flex flex-wrap items-end gap-3">
+        <Field label="Gewicht (kg)">
+          <TextInput
+            className="w-40 tabular"
+            value={kg}
+            onChange={(e) => setKg(e.target.value)}
+            inputMode="decimal"
+            placeholder="z. B. 82,5"
+          />
+        </Field>
+        <Button type="submit" variant="primary" disabled={speichert}>
+          {speichert ? 'Speichert …' : 'Speichern'}
+        </Button>
+        {vorhanden && (
+          <Button type="button" variant="danger" onClick={loeschen}>
+            Löschen
+          </Button>
+        )}
+        {ok && <span className="text-sm text-success">gespeichert ✓</span>}
+      </form>
+    </Card>
   );
 }
 

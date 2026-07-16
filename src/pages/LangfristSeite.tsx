@@ -3,6 +3,7 @@ import type {
   AbnehmFortschritt,
   DefizitFenster,
   DefizitReport,
+  GewichtPunkt,
   TagesZusammenfassung,
   Verlauf,
 } from '../../shared/types.ts';
@@ -16,6 +17,7 @@ import {
 } from '../../shared/naehrwerte.ts';
 import { formatDatum, heuteIso, verschiebeDatum } from '../lib/format.ts';
 import { auswertungApi } from '../lib/auswertung.ts';
+import { gewichtApi } from '../lib/gewicht.ts';
 
 function meldung(e: unknown): string {
   return e instanceof Error ? e.message : 'Unbekannter Fehler';
@@ -98,6 +100,7 @@ export default function LangfristSeite({
   const [von, setVon] = useState(verschiebeDatum(heute, -29));
   const [bis, setBis] = useState(heute);
   const [verlauf, setVerlauf] = useState<Verlauf | null>(null);
+  const [gewicht, setGewicht] = useState<GewichtPunkt[]>([]);
   const [letzte, setLetzte] = useState<TagesZusammenfassung[]>([]);
   const [defizit, setDefizit] = useState<DefizitReport | null>(null);
   const [abnehmen, setAbnehmen] = useState<AbnehmFortschritt | null>(null);
@@ -108,6 +111,10 @@ export default function LangfristSeite({
     auswertungApi
       .verlauf(von, bis)
       .then(setVerlauf)
+      .catch((e) => setFehler(meldung(e)));
+    gewichtApi
+      .verlauf(von, bis)
+      .then(setGewicht)
       .catch((e) => setFehler(meldung(e)));
   }
 
@@ -135,6 +142,10 @@ export default function LangfristSeite({
       label: kurzDatum(p.datum),
       wert: p.eiweiss_dg,
     })) ?? [];
+  const gewichtPunkte: ChartPunkt[] = gewicht.map((p) => ({
+    label: kurzDatum(p.datum),
+    wert: p.gramm,
+  }));
 
   return (
     <div className="flex flex-col gap-4">
@@ -277,6 +288,16 @@ export default function LangfristSeite({
           punkte={eiweissPunkte}
           farbe="#63b784"
           formatWert={(dg) => formatGramm(dg)}
+        />
+
+        <div className="mb-2 mt-6 text-sm font-bold text-text-muted">
+          Gewicht (kg)
+        </div>
+        <LinienChart
+          punkte={gewichtPunkte}
+          farbe="#d0a35a"
+          formatWert={(g) => formatKg(g)}
+          nullbasis={false}
         />
       </Card>
 

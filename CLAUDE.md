@@ -55,8 +55,12 @@ Port **3010**.
   seit Festlegung und beim Defizit wie am Vortag (jeweils als Zieldatum).
 - **Tagesauswertung:** Lebensmittel eines Tages mit kcal/Eiweiß, Summen und
   Abweichung vom Ziel. Default ist heute; jeder Tag ist anwählbar (Datumsnavigation).
-- **Langfrist-Auswertung:** Zwei Liniengraphen (kcal/Tag, Eiweiß/Tag) für einen
-  wählbaren Zeitraum (Default: letzte 30 Tage), Liste der letzten 7 Tage mit Sprung
+- **Tagesgewicht:** Pro Tag lässt sich ein Gewicht (kg) eingeben (eine Waage-
+  Eingabe je Tag, Upsert). Wird auf der Auswertungsseite als Liniendiagramm über
+  den gewählten Zeitraum gezeigt (y-Achse skaliert auf den Datenbereich, nicht ab 0).
+- **Langfrist-Auswertung:** Drei Liniengraphen (kcal/Tag, Eiweiß/Tag, Gewicht/kg)
+  für einen wählbaren Zeitraum (Default: letzte 30 Tage), Liste der letzten 7 Tage
+  mit Sprung
   zur jeweiligen Tagesseite sowie das Kaloriendefizit für Tag, letzte 7 Tage,
   letzte 30 Tage und den gesamten Erfassungszeitraum (kumuliert). Das Defizit zählt
   nur Tage mit Einträgen.
@@ -121,6 +125,8 @@ kein Zugriff auf Fachdaten). Erst-Accounts beim ersten Start: `admin/admin`
   ziel_gramm/1000 × 7000 kcal.
 - `bewegung`: id, mandant_id, datum, uhrzeit, beschreibung, kcal
   (Aktivitätskalorien). Je Tag zum Gesamtverbrauch addiert (Defizit/Prognose).
+- `gewicht`: id, mandant_id, datum, gramm. Ein Tagesgewicht je (mandant_id, datum);
+  Quelle für das Gewichts-Liniendiagramm.
 - `einstellungen`: Legacy-Key-Value, nur noch Migrationsquelle für `vorgaben`.
 - `users`, `sessions`: mandant-übergreifend (Auth-Verwaltung).
 

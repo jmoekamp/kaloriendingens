@@ -85,6 +85,27 @@ export interface BewegungInput {
   kcal: number;
 }
 
+/** Ein Tagesgewicht (eine Waage-Eingabe je Tag). Gewicht in Gramm. */
+export interface Gewicht {
+  id: number;
+  datum: string; // YYYY-MM-DD
+  gramm: number;
+  erstellt_am: string;
+  geaendert_am: string;
+}
+
+/** Eingabe zum Setzen/Ersetzen des Tagesgewichts. */
+export interface GewichtInput {
+  datum: string;
+  gramm: number;
+}
+
+/** Ein Punkt der Gewichts-Verlaufskurve. */
+export interface GewichtPunkt {
+  datum: string;
+  gramm: number;
+}
+
 /**
  * Anwendungseinstellungen (je Mandant). Intern Key-Value, nach aussen typisiert.
  * Ein Zielwert von 0 bedeutet „kein Ziel gesetzt" und wird in Auswertungen nicht

@@ -46,6 +46,7 @@ const MANDANT_TABELLEN = [
   'lebensmittel',
   'eintraege',
   'bewegung',
+  'gewicht',
   'vorgaben',
   'abnehmziele',
   'einstellungen',

@@ -64,6 +64,21 @@ CREATE INDEX IF NOT EXISTS ix_bewegung_mandant
 CREATE INDEX IF NOT EXISTS ix_bewegung_mandant_datum
   ON bewegung (mandant_id, datum);
 
+-- Tagesgewicht: eine Waage-Eingabe je Tag (Gewicht in Gramm). Ein Eintrag pro
+-- Tag und Mandant; wird fuer das Gewichts-Liniendiagramm ausgewertet.
+CREATE TABLE IF NOT EXISTS gewicht (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  mandant_id   INTEGER NOT NULL DEFAULT 1,
+  datum        TEXT    NOT NULL,
+  gramm        INTEGER NOT NULL,
+  erstellt_am  TEXT    NOT NULL,
+  geaendert_am TEXT    NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_gewicht_mandant_datum
+  ON gewicht (mandant_id, datum);
+CREATE INDEX IF NOT EXISTS ix_gewicht_mandant
+  ON gewicht (mandant_id);
+
 -- Zeitversionierte Vorgaben (Ziele + Gesamtumsatz). Jede Aenderung gilt ab
 -- einem Stichtag (gueltig_ab); fuer einen Tag gilt die juengste Vorgabe mit
 -- gueltig_ab <= Tag, fuer Tage vor der ersten Vorgabe die aelteste. So bleiben

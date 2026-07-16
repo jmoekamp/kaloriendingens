@@ -76,8 +76,17 @@ export function getTagesAuswertung(
   };
 }
 
-/** Tagessummen im Zeitraum [von, bis] – nur Tage mit Eintraegen. */
-export function getVerlauf(db: Database, von: string, bis: string): Verlauf {
+/**
+ * Tagessummen im Zeitraum [von, bis] – nur Tage mit Eintraegen. Tage in der
+ * ZUKUNFT (datum > heute) werden ausgeschlossen; sie dienen nur der Planung und
+ * fliessen in keine Statistik ein.
+ */
+export function getVerlauf(
+  db: Database,
+  von: string,
+  bis: string,
+  heute: string,
+): Verlauf {
   const rows = db
     .prepare(
       `SELECT e.datum AS datum,
@@ -85,11 +94,13 @@ export function getVerlauf(db: Database, von: string, bis: string): Verlauf {
               SUM(${TAG_EIW})  AS eiweiss_dg
          FROM eintraege e
          JOIN lebensmittel l ON l.id = e.lebensmittel_id
-        WHERE e.mandant_id = @mandant AND e.datum BETWEEN @von AND @bis
+        WHERE e.mandant_id = @mandant
+          AND e.datum BETWEEN @von AND @bis
+          AND e.datum <= @heute
         GROUP BY e.datum
         ORDER BY e.datum`,
     )
-    .all({ mandant: aktuellerMandant(), von, bis }) as TagAggRow[];
+    .all({ mandant: aktuellerMandant(), von, bis, heute }) as TagAggRow[];
   const punkte: VerlaufPunkt[] = rows.map((r) => ({
     datum: r.datum,
     kcal: r.kcal,
@@ -151,18 +162,20 @@ function fenster(
   versionenAsc: Vorgabe[],
   von: string | null,
   bis: string | null,
+  heute: string,
 ): DefizitFenster {
   const bereich =
     von !== null && bis !== null ? 'AND e.datum BETWEEN @von AND @bis' : '';
+  // Zukunftstage (datum > heute) sind reine Planung und zaehlen nirgends.
   const rows = db
     .prepare(
       `SELECT e.datum AS datum, SUM(${TAG_KCAL}) AS kcal
          FROM eintraege e
          JOIN lebensmittel l ON l.id = e.lebensmittel_id
-        WHERE e.mandant_id = @mandant ${bereich}
+        WHERE e.mandant_id = @mandant AND e.datum <= @heute ${bereich}
         GROUP BY e.datum`,
     )
-    .all({ mandant: aktuellerMandant(), von, bis }) as TagKcalRow[];
+    .all({ mandant: aktuellerMandant(), von, bis, heute }) as TagKcalRow[];
   const bewegung = bewegungKcalProTag(db, von, bis);
 
   let tage = 0;
@@ -186,10 +199,10 @@ export function getDefizitReport(db: Database, heute: string): DefizitReport {
   return {
     // Zur Anzeige/Hinweis: der heute gueltige Gesamtumsatz.
     gesamtumsatz: vorgabeFuerTag(versionenAsc, heute).gesamtumsatz,
-    tag: fenster(db, versionenAsc, heute, heute),
-    woche: fenster(db, versionenAsc, verschiebeDatum(heute, -6), heute),
-    monat: fenster(db, versionenAsc, verschiebeDatum(heute, -29), heute),
-    gesamt: fenster(db, versionenAsc, null, null),
+    tag: fenster(db, versionenAsc, heute, heute, heute),
+    woche: fenster(db, versionenAsc, verschiebeDatum(heute, -6), heute, heute),
+    monat: fenster(db, versionenAsc, verschiebeDatum(heute, -29), heute, heute),
+    gesamt: fenster(db, versionenAsc, null, null, heute),
   };
 }
 
@@ -199,16 +212,19 @@ function tagesDefizite(
   versionenAsc: Vorgabe[],
   von: string,
   bis: string,
+  heute: string,
 ): number[] {
   const rows = db
     .prepare(
       `SELECT e.datum AS datum, SUM(${TAG_KCAL}) AS kcal
          FROM eintraege e
          JOIN lebensmittel l ON l.id = e.lebensmittel_id
-        WHERE e.mandant_id = @mandant AND e.datum BETWEEN @von AND @bis
+        WHERE e.mandant_id = @mandant
+          AND e.datum BETWEEN @von AND @bis
+          AND e.datum <= @heute
         GROUP BY e.datum`,
     )
-    .all({ mandant: aktuellerMandant(), von, bis }) as TagKcalRow[];
+    .all({ mandant: aktuellerMandant(), von, bis, heute }) as TagKcalRow[];
   const bewegung = bewegungKcalProTag(db, von, bis);
   return rows.map(
     (r) =>
@@ -267,7 +283,13 @@ export function getAbnehmFortschritt(
     };
   }
   const versionenAsc = ladeVersionenAsc(db);
-  const defizite = tagesDefizite(db, versionenAsc, ziel.gueltig_ab, heute);
+  const defizite = tagesDefizite(
+    db,
+    versionenAsc,
+    ziel.gueltig_ab,
+    heute,
+    heute,
+  );
   const erreicht_kcal = defizite.reduce((a, b) => a + b, 0);
   const benoetigt_kcal = benoetigtesDefizitKcal(ziel.ziel_gramm);
   // Ungerundet zurueckgeben; die Anzeige formatiert auf zwei Nachkommastellen.
@@ -280,7 +302,7 @@ export function getAbnehmFortschritt(
 
   // Defizit des Vortags (heute − 1); null, wenn dort keine Eintraege liegen.
   const vortag = verschiebeDatum(heute, -1);
-  const vortagWin = fenster(db, versionenAsc, vortag, vortag);
+  const vortagWin = fenster(db, versionenAsc, vortag, vortag, heute);
   const vortag_defizit = vortagWin.tage > 0 ? vortagWin.defizit : null;
 
   return {

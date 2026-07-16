@@ -150,6 +150,7 @@ export default function TagSeite({
   }
 
   const istHeute = datum === heuteIso();
+  const istZukunft = datum > heuteIso();
 
   return (
     <div className="flex flex-col gap-4">
@@ -170,10 +171,7 @@ export default function TagSeite({
           onChange={(e) => e.target.value && setDatum(e.target.value)}
           className="tabular"
         />
-        <Button
-          onClick={() => setDatum(verschiebeDatum(datum, 1))}
-          disabled={istHeute}
-        >
+        <Button onClick={() => setDatum(verschiebeDatum(datum, 1))}>
           Folgetag ▶
         </Button>
         {!istHeute && (
@@ -186,6 +184,11 @@ export default function TagSeite({
           {istHeute && (
             <span className="ml-2 text-sm font-normal text-text-muted">
               (heute)
+            </span>
+          )}
+          {istZukunft && (
+            <span className="ml-2 text-sm font-normal text-warning">
+              (geplant – zählt in keiner Statistik)
             </span>
           )}
         </span>

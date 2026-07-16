@@ -71,9 +71,16 @@ describe('Verlauf', () => {
   it('liefert nur Tage mit Daten, aufsteigend', () => {
     iss('2026-07-10', 100);
     iss('2026-07-12', 200);
-    const v = getVerlauf(db, '2026-07-01', '2026-07-15');
+    const v = getVerlauf(db, '2026-07-01', '2026-07-15', '2026-07-15');
     expect(v.punkte.map((p) => p.datum)).toEqual(['2026-07-10', '2026-07-12']);
     expect(v.punkte[1].kcal).toBe(134);
+  });
+
+  it('schliesst Zukunftstage (datum > heute) aus', () => {
+    iss('2026-07-10', 100);
+    iss('2026-07-20', 200); // liegt in der Zukunft
+    const v = getVerlauf(db, '2026-07-01', '2026-07-31', '2026-07-15');
+    expect(v.punkte.map((p) => p.datum)).toEqual(['2026-07-10']);
   });
 });
 
@@ -109,5 +116,14 @@ describe('Defizit', () => {
     expect(r.gesamtumsatz).toBe(0);
     expect(r.gesamt.defizit).toBe(-168); // 0*Tage - Aufnahme
     expect(r.tag.tage).toBe(1);
+  });
+
+  it('ignoriert Zukunftstage im gesamten Zeitraum', () => {
+    vorgabe({ gesamtumsatz: 2400 });
+    iss('2026-07-14', 100); // Defizit 2333
+    iss('2026-07-20', 100); // Zukunft -> zaehlt nicht
+    const r = getDefizitReport(db, '2026-07-15');
+    expect(r.gesamt.tage).toBe(1);
+    expect(r.gesamt.defizit).toBe(2400 - 67);
   });
 });

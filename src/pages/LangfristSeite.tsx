@@ -295,6 +295,7 @@ export default function LangfristSeite({
           farbe="#d0a35a"
           formatWert={(g) => formatKg(g)}
           nullbasis={false}
+          verbinden
         />
       </Card>
 

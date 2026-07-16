@@ -32,6 +32,10 @@ Port **3010**.
   kcal und Eiweiß eines Eintrags werden LIVE aus dem Lebensmittel und der Menge
   berechnet, nicht gespeichert (ändert man die Nährwerte, ändern sich vergangene
   Auswertungen entsprechend mit).
+- **Planung / Zukunftsdaten:** Zu jedem Tag – auch in der Zukunft – lassen sich
+  Daten erfassen (Planung). Tage mit Datum > heute fließen in KEINE Statistik ein
+  (Defizit, Prognosen, Verläufe, Diagramme, „letzte Tage"). Nur die Tagesansicht
+  selbst zeigt den geplanten Tag; sie ist als „geplant" gekennzeichnet.
 - **Bewegung erfassen:** Zweiter Abschnitt auf der Tagesseite. Je Eintrag Datum,
   Uhrzeit, Beschreibung und Aktivitätskalorien. Die Aktivitätskalorien eines Tages
   werden zum Gesamtverbrauch dieses Tages hinzugezählt (Gesamtverbrauch =
@@ -61,9 +65,10 @@ Port **3010**.
 - **Langfrist-Auswertung:** Drei Liniengraphen (kcal/Tag, Eiweiß/Tag, Gewicht/kg)
   für einen wählbaren Zeitraum (Default: letzte 30 Tage). Alle Diagramme teilen
   dieselbe datumsbasierte x-Achse (von–bis); jeder Punkt liegt an seinem echten
-  Datum. An Tagen ohne Daten wird nichts gezeichnet – die Linie bricht an Lücken
-  ab (nur aufeinanderfolgende Kalendertage werden verbunden). Zusätzlich: Liste
-  der letzten 7 Tage mit Sprung
+  Datum. An Tagen ohne Daten wird nichts gezeichnet. Bei kcal/Eiweiß bricht die
+  Linie an Lücken ab (nur aufeinanderfolgende Kalendertage werden verbunden); das
+  Gewicht wird als durchgehende Trendlinie über die Messpunkte gezeichnet
+  (`verbinden`). Zusätzlich: Liste der letzten 7 Tage mit Sprung
   zur jeweiligen Tagesseite sowie das Kaloriendefizit für Tag, letzte 7 Tage,
   letzte 30 Tage und den gesamten Erfassungszeitraum (kumuliert). Das Defizit zählt
   nur Tage mit Einträgen.

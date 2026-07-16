@@ -23,19 +23,26 @@ export function getGewichtFuerTag(db: Database, datum: string): Gewicht | null {
   return row ?? null;
 }
 
-/** Gewichtsverlauf im Zeitraum (nur Tage mit Eintrag), aufsteigend. */
+/**
+ * Gewichtsverlauf im Zeitraum (nur Tage mit Eintrag), aufsteigend. Tage in der
+ * Zukunft (datum > heute) werden ausgeschlossen – geplante Tage veraendern keine
+ * Statistik/Kurve.
+ */
 export function listGewichtImZeitraum(
   db: Database,
   von: string,
   bis: string,
+  heute: string,
 ): GewichtPunkt[] {
   return db
     .prepare(
       `SELECT datum, gramm FROM gewicht
-        WHERE mandant_id = @mandant AND datum BETWEEN @von AND @bis
+        WHERE mandant_id = @mandant
+          AND datum BETWEEN @von AND @bis
+          AND datum <= @heute
         ORDER BY datum`,
     )
-    .all({ mandant: aktuellerMandant(), von, bis }) as GewichtPunkt[];
+    .all({ mandant: aktuellerMandant(), von, bis, heute }) as GewichtPunkt[];
 }
 
 export function upsertGewicht(db: Database, input: GewichtInput): Gewicht {

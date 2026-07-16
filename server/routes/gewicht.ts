@@ -19,12 +19,21 @@ function leseDatum(wert: unknown, feld: string): string {
   return wert;
 }
 
+/** Lokales Kalenderdatum (Server) im Format YYYY-MM-DD. */
+function heuteIso(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const t = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${t}`;
+}
+
 /** GET /api/gewicht/verlauf?von=&bis= – Gewichtsverlauf im Zeitraum. */
 gewichtRouter.get('/verlauf', (req, res) => {
   const von = leseDatum(req.query.von, 'von');
   const bis = leseDatum(req.query.bis, 'bis');
   if (von > bis) throw badRequest('"von" darf nicht nach "bis" liegen.');
-  res.json(listGewichtImZeitraum(getDb(), von, bis));
+  res.json(listGewichtImZeitraum(getDb(), von, bis, heuteIso()));
 });
 
 /** GET /api/gewicht?datum= – Tagesgewicht (oder null). */

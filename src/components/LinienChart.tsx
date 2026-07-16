@@ -35,6 +35,7 @@ export function LinienChart({
   formatWert = (n: number) => String(n),
   hoehe = 220,
   nullbasis = true,
+  verbinden = false,
 }: {
   von: string;
   bis: string;
@@ -45,6 +46,9 @@ export function LinienChart({
   /** true: y-Achse beginnt bei 0. false: y-Achse skaliert auf den Datenbereich
    * (z. B. Gewicht, das in einem schmalen Band schwankt). */
   nullbasis?: boolean;
+  /** true: alle Messpunkte durchgehend verbinden (Trendlinie, z. B. Gewicht),
+   * auch ueber Tage ohne Messung hinweg. false: Linie an Luecken unterbrechen. */
+  verbinden?: boolean;
 }) {
   if (punkte.length === 0) {
     return (
@@ -84,19 +88,24 @@ export function LinienChart({
   const y = (w: number) =>
     padT + innerH - (innerH * (w - yMin)) / (yMax - yMin);
 
-  // Punkte nach Datum sortieren und in Segmente aus aufeinanderfolgenden
-  // Kalendertagen zerlegen (Luecken unterbrechen die Linie).
+  // Punkte nach Datum sortieren. Bei verbinden=true entsteht EIN Segment
+  // (durchgehende Trendlinie); sonst wird an Luecken (nicht aufeinanderfolgende
+  // Kalendertage) unterbrochen.
   const sortiert = [...punkte].sort(
     (a, b) => tagNummer(a.datum) - tagNummer(b.datum),
   );
   const segmente: ChartPunkt[][] = [];
-  for (const p of sortiert) {
-    const letztes = segmente[segmente.length - 1];
-    const anschluss =
-      letztes &&
-      tagNummer(p.datum) === tagNummer(letztes[letztes.length - 1].datum) + 1;
-    if (anschluss) letztes.push(p);
-    else segmente.push([p]);
+  if (verbinden) {
+    if (sortiert.length > 0) segmente.push(sortiert);
+  } else {
+    for (const p of sortiert) {
+      const letztes = segmente[segmente.length - 1];
+      const anschluss =
+        letztes &&
+        tagNummer(p.datum) === tagNummer(letztes[letztes.length - 1].datum) + 1;
+      if (anschluss) letztes.push(p);
+      else segmente.push([p]);
+    }
   }
 
   const baseY = padT + innerH;

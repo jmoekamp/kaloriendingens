@@ -47,7 +47,7 @@ auswertungRouter.get('/verlauf', (req, res) => {
           .slice(0, 10)
       : leseDatum(req.query.von, 'von');
   if (von > bis) throw badRequest('"von" darf nicht nach "bis" liegen.');
-  res.json(getVerlauf(getDb(), von, bis));
+  res.json(getVerlauf(getDb(), von, bis, heute));
 });
 
 /** GET /api/auswertung/letzte-tage?n=7 – die letzten n Kalendertage. */

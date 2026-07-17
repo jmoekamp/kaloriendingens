@@ -271,6 +271,12 @@ export interface AbnehmFortschritt {
   abgenommen_gramm: number;
   /** Anteil der Gewichtsabnahme am Ziel in Prozent (ungerundet). */
   gewicht_prozent: number;
+  /** Allererste Messung (Gramm; inkl. ausgeschlossener Tage); null = keine. */
+  erst_gewicht_gramm: number | null;
+  /** Abgenommen seit der ersten Messung (Gramm; erste − aktuell). */
+  abgenommen_gesamt_gramm: number;
+  /** Anteil am Ziel seit der ersten Messung in Prozent (ungerundet). */
+  gewicht_prozent_gesamt: number;
 }
 
 /** Standard-Fehlerantwort des Backends. */

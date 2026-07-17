@@ -26,9 +26,10 @@ Port **3010**.
 ## Was die App können soll
 
 - **Lebensmittel (Stammdaten):** Anlegen/Bearbeiten/Löschen mit kcal und Eiweiß,
-  jeweils bezogen auf 100 g, plus optionaler **Packungsgröße** (g). Ein
-  Lebensmittel, das noch in Einträgen verwendet wird, kann NICHT gelöscht werden
-  (strikter Löschschutz).
+  jeweils bezogen auf 100 g, plus optionaler **Packungsgröße** (g). Die Liste
+  zeigt je Zeile zusätzlich die abgeleiteten (nicht editierbaren) Werte **kcal/g**
+  und **Eiweiß/g**. Ein Lebensmittel, das noch in Einträgen verwendet wird, kann
+  NICHT gelöscht werden (strikter Löschschutz).
 - **Tageserfassung:** Je Eintrag Uhrzeit, Lebensmittel (Auswahl) und Menge in g.
   kcal und Eiweiß eines Eintrags werden LIVE aus dem Lebensmittel und der Menge
   berechnet, nicht gespeichert (ändert man die Nährwerte, ändern sich vergangene
@@ -59,10 +60,10 @@ Port **3010**.
   Monat" (damit der bereits erfasste Vormonat einzahlt). Zusätzlich werden zwei
   Prognosen für das Erreichen des Restdefizits gezeigt: beim Median-Tagesdefizit
   seit Festlegung und beim Defizit wie am Vortag (jeweils als Zieldatum).
-  Neben dem Defizit-Balken gibt es einen zweiten Balken für die **tatsächliche
-  Gewichtsabnahme seit Festlegung**: Startgewicht (erste NICHT ausgeschlossene
-  Messung ab `gueltig_ab`) minus aktuelles Gewicht, im Verhältnis zum Ziel.
-  Aus dem Trend ausgeschlossene Messungen (Wasser-Tage) zählen dabei nicht.
+  Neben dem Defizit-Balken gibt es zwei Gewichtsbalken: (a) **seit Festlegung**
+  (Startgewicht = erste NICHT ausgeschlossene Messung ab `gueltig_ab`, ohne
+  Wasser-Tage) und (b) **ab der ersten Messung** (allererste Messung inkl.
+  ausgeschlossener Tage). Beide gegen das aktuelle Gewicht, im Verhältnis zum Ziel.
 - **Tagesauswertung:** Lebensmittel eines Tages mit kcal/Eiweiß, Summen und
   Abweichung vom Ziel. Default ist heute; jeder Tag ist anwählbar (Datumsnavigation).
 - **Tagesgewicht:** Pro Tag lässt sich ein Gewicht (kg) eingeben (eine Waage-

@@ -66,13 +66,28 @@ export function parseGanzzahl(eingabe: string): number | null {
   return Number(t);
 }
 
-/** Formatiert einen Prozentwert mit fester Nachkommastellenzahl (deutsch: Komma). */
-export function formatProzent(wert: number, stellen = 2): string {
+/** Formatiert eine Dezimalzahl mit fester Nachkommastellenzahl (deutsch: Komma). */
+export function formatDezimal(wert: number, stellen = 2): string {
   const faktor = 10 ** stellen;
   const gerundet = Math.round(wert * faktor) / faktor;
   // -0 vermeiden, damit nicht "-0,00" erscheint.
   const norm = gerundet === 0 ? 0 : gerundet;
   return norm.toFixed(stellen).replace('.', ',');
+}
+
+/** Formatiert einen Prozentwert mit fester Nachkommastellenzahl (deutsch: Komma). */
+export function formatProzent(wert: number, stellen = 2): string {
+  return formatDezimal(wert, stellen);
+}
+
+/** kcal je Gramm aus dem 100-g-Wert (z. B. 250 -> 2,5 kcal/g). */
+export function kcalProGramm(kcalPro100g: number): number {
+  return kcalPro100g / 100;
+}
+
+/** Eiweiss in Gramm je Gramm aus dem dg-je-100g-Wert (z. B. 120 dg -> 0,12 g/g). */
+export function eiweissGrammProGramm(eiweissDgPro100g: number): number {
+  return eiweissDgPro100g / 1000;
 }
 
 /**

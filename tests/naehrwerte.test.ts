@@ -2,10 +2,13 @@ import { describe, it, expect } from 'vitest';
 import {
   benoetigtesDefizitKcal,
   bewerteZiel,
+  eiweissGrammProGramm,
+  formatDezimal,
   formatGramm,
   formatKcal,
   formatKg,
   formatProzent,
+  kcalProGramm,
   lineareRegression,
   parseGanzzahl,
   parseGrammToDg,
@@ -132,5 +135,12 @@ describe('Lineare Regression', () => {
     expect(formatProzent(100)).toBe('100,00');
     expect(formatProzent(13.239)).toBe('13,24');
     expect(formatProzent(-0.001)).toBe('0,00'); // kein "-0,00"
+  });
+
+  it('rechnet und formatiert Naehrwerte je Gramm', () => {
+    expect(kcalProGramm(250)).toBe(2.5);
+    expect(eiweissGrammProGramm(120)).toBeCloseTo(0.12, 6);
+    expect(formatDezimal(kcalProGramm(250))).toBe('2,50');
+    expect(formatDezimal(eiweissGrammProGramm(120))).toBe('0,12');
   });
 });

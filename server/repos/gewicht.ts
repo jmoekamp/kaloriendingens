@@ -92,6 +92,14 @@ export function erstesGewichtAb(
   return row ? toGewicht(row) : null;
 }
 
+/** Allererste Messung bis (inkl.) `bis`, UNABHAENGIG von aus_trend. null = keine. */
+export function erstesGewichtGesamt(db: Database, bis: string): Gewicht | null {
+  const row = db
+    .prepare(`${SELECT} AND datum <= @bis ORDER BY datum ASC LIMIT 1`)
+    .get({ mandant: aktuellerMandant(), bis }) as GewichtRow | undefined;
+  return row ? toGewicht(row) : null;
+}
+
 /** Letzte NICHT ausgeschlossene Messung bis (inkl.) `bis`. null, wenn keine. */
 export function letztesGewichtBis(db: Database, bis: string): Gewicht | null {
   const row = db

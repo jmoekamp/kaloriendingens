@@ -17,7 +17,11 @@ import {
 } from '../../shared/naehrwerte.ts';
 import { listEintraegeFuerTag } from './eintraege.ts';
 import { bewegungKcalProTag } from './bewegung.ts';
-import { erstesGewichtAb, letztesGewichtBis } from './gewicht.ts';
+import {
+  erstesGewichtAb,
+  erstesGewichtGesamt,
+  letztesGewichtBis,
+} from './gewicht.ts';
 import { aktivesAbnehmziel } from './abnehmziele.ts';
 import {
   getVorgabeFuerTag,
@@ -314,6 +318,9 @@ export function getAbnehmFortschritt(
       aktuell_gewicht_gramm: null,
       abgenommen_gramm: 0,
       gewicht_prozent: 0,
+      erst_gewicht_gramm: null,
+      abgenommen_gesamt_gramm: 0,
+      gewicht_prozent_gesamt: 0,
     };
   }
   const versionenAsc = ladeVersionenAsc(db);
@@ -350,6 +357,14 @@ export function getAbnehmFortschritt(
   const gewicht_prozent =
     ziel.ziel_gramm > 0 ? (abgenommen_gramm / ziel.ziel_gramm) * 100 : 0;
 
+  // Zusaetzlich: Gesamtabnahme ab der ALLERERSTEN Messung (inkl. Wasser-Tage).
+  const erstG = erstesGewichtGesamt(db, heute);
+  const erst_gewicht_gramm = erstG ? erstG.gramm : null;
+  const abgenommen_gesamt_gramm =
+    erstG && aktuellG ? erstG.gramm - aktuellG.gramm : 0;
+  const gewicht_prozent_gesamt =
+    ziel.ziel_gramm > 0 ? (abgenommen_gesamt_gramm / ziel.ziel_gramm) * 100 : 0;
+
   return {
     hat_ziel: true,
     gueltig_ab: ziel.gueltig_ab,
@@ -367,5 +382,8 @@ export function getAbnehmFortschritt(
     aktuell_gewicht_gramm,
     abgenommen_gramm,
     gewicht_prozent,
+    erst_gewicht_gramm,
+    abgenommen_gesamt_gramm,
+    gewicht_prozent_gesamt,
   };
 }

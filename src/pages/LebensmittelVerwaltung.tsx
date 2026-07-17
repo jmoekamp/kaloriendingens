@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react';
 import type { Lebensmittel } from '../../shared/types.ts';
 import { Banner, Button, Card, Field, TextInput } from '../components/ui.tsx';
 import {
+  eiweissGrammProGramm,
+  formatDezimal,
   formatGramm,
   formatKcal,
+  kcalProGramm,
   parseGanzzahl,
   parseGrammToDg,
 } from '../../shared/naehrwerte.ts';
@@ -203,6 +206,8 @@ export default function LebensmittelVerwaltung() {
                 <th className="py-2 pr-3 text-right font-normal">
                   Eiweiß / 100 g
                 </th>
+                <th className="py-2 pr-3 text-right font-normal">kcal / g</th>
+                <th className="py-2 pr-3 text-right font-normal">Eiweiß / g</th>
                 <th className="py-2 pr-3 text-right font-normal">Packung</th>
                 <th className="py-2 font-normal"></th>
               </tr>
@@ -216,6 +221,13 @@ export default function LebensmittelVerwaltung() {
                   </td>
                   <td className="py-2 pr-3 text-right tabular">
                     {formatGramm(l.eiweiss_dg_pro_100g)} g
+                  </td>
+                  <td className="py-2 pr-3 text-right tabular text-text-muted">
+                    {formatDezimal(kcalProGramm(l.kcal_pro_100g))}
+                  </td>
+                  <td className="py-2 pr-3 text-right tabular text-text-muted">
+                    {formatDezimal(eiweissGrammProGramm(l.eiweiss_dg_pro_100g))}{' '}
+                    g
                   </td>
                   <td className="py-2 pr-3 text-right tabular">
                     {l.packung_gramm == null ? '—' : `${l.packung_gramm} g`}

@@ -316,7 +316,7 @@ export default function LangfristSeite({
                 start={abnehmen.erst_gewicht_gramm}
                 aktuell={abnehmen.aktuell_gewicht_gramm}
                 abgenommen={abnehmen.abgenommen_gesamt_gramm}
-                ziel={abnehmen.ziel_gramm}
+                ziel={abnehmen.ziel_gesamt_gramm}
                 prozent={abnehmen.gewicht_prozent_gesamt}
                 farbe="#63b784"
                 leerHinweis="Noch keine Messung erfasst."

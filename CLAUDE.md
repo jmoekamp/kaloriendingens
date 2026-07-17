@@ -64,6 +64,10 @@ Port **3010**.
   (Startgewicht = erste NICHT ausgeschlossene Messung ab `gueltig_ab`, ohne
   Wasser-Tage) und (b) **ab der ersten Messung** (allererste Messung inkl.
   ausgeschlossener Tage). Beide gegen das aktuelle Gewicht, im Verhältnis zum Ziel.
+  Für den „ab erster Messung"-Balken wird das Ziel um die anfängliche
+  (ausgeschlossene) Abnahme erweitert (`ziel_gesamt_gramm` = Ziel + erste Messung
+  − erste nicht ausgeschlossene Messung, falls die erste höher liegt), damit beide
+  Balken beim selben Zielgewicht 100 % erreichen.
 - **Tagesauswertung:** Lebensmittel eines Tages mit kcal/Eiweiß, Summen und
   Abweichung vom Ziel. Default ist heute; jeder Tag ist anwählbar (Datumsnavigation).
 - **Tagesgewicht:** Pro Tag lässt sich ein Gewicht (kg) eingeben (eine Waage-

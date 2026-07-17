@@ -275,7 +275,15 @@ export interface AbnehmFortschritt {
   erst_gewicht_gramm: number | null;
   /** Abgenommen seit der ersten Messung (Gramm; erste − aktuell). */
   abgenommen_gesamt_gramm: number;
-  /** Anteil am Ziel seit der ersten Messung in Prozent (ungerundet). */
+  /**
+   * Effektives Ziel fuer den „ab erster Messung"-Balken (Gramm): Abnehmziel plus
+   * die anfaengliche (ausgeschlossene) Abnahme = erste Messung − erste nicht
+   * ausgeschlossene Messung, falls die erste Messung hoeher liegt. Da dieser
+   * Balken die Anfangsabnahme im Zaehler mitzaehlt, wandert dieselbe Differenz
+   * in den Nenner.
+   */
+  ziel_gesamt_gramm: number;
+  /** Anteil am (erweiterten) Ziel seit der ersten Messung in Prozent (ungerundet). */
   gewicht_prozent_gesamt: number;
 }
 

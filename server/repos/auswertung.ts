@@ -320,6 +320,7 @@ export function getAbnehmFortschritt(
       gewicht_prozent: 0,
       erst_gewicht_gramm: null,
       abgenommen_gesamt_gramm: 0,
+      ziel_gesamt_gramm: 0,
       gewicht_prozent_gesamt: 0,
     };
   }
@@ -362,8 +363,18 @@ export function getAbnehmFortschritt(
   const erst_gewicht_gramm = erstG ? erstG.gramm : null;
   const abgenommen_gesamt_gramm =
     erstG && aktuellG ? erstG.gramm - aktuellG.gramm : 0;
+  // Liegt die erste Messung ueber der ersten NICHT ausgeschlossenen Messung, wird
+  // diese anfaengliche Abnahme aufs Ziel draufgelegt (sie steckt sonst nur im
+  // Zaehler dieses Balkens, nicht im Nenner).
+  const anfangsabnahme =
+    erstG && startG && erstG.gramm > startG.gramm
+      ? erstG.gramm - startG.gramm
+      : 0;
+  const ziel_gesamt_gramm = ziel.ziel_gramm + anfangsabnahme;
   const gewicht_prozent_gesamt =
-    ziel.ziel_gramm > 0 ? (abgenommen_gesamt_gramm / ziel.ziel_gramm) * 100 : 0;
+    ziel_gesamt_gramm > 0
+      ? (abgenommen_gesamt_gramm / ziel_gesamt_gramm) * 100
+      : 0;
 
   return {
     hat_ziel: true,
@@ -384,6 +395,7 @@ export function getAbnehmFortschritt(
     gewicht_prozent,
     erst_gewicht_gramm,
     abgenommen_gesamt_gramm,
+    ziel_gesamt_gramm,
     gewicht_prozent_gesamt,
   };
 }

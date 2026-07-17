@@ -132,9 +132,11 @@ describe('Abnehmfortschritt', () => {
     expect(f.abgenommen_gramm).toBe(1000);
     expect(f.gewicht_prozent).toBeCloseTo((1000 / 5000) * 100, 6); // 20 %
     // Ab erster Messung (inkl. Wasser-Tag 83000): 83000 -> 81000 = 2000 g.
+    // Ziel wird um die Anfangsabnahme (83000-82000=1000) erweitert -> 6000 g.
     expect(f.erst_gewicht_gramm).toBe(83000);
     expect(f.abgenommen_gesamt_gramm).toBe(2000);
-    expect(f.gewicht_prozent_gesamt).toBeCloseTo((2000 / 5000) * 100, 6); // 40 %
+    expect(f.ziel_gesamt_gramm).toBe(6000);
+    expect(f.gewicht_prozent_gesamt).toBeCloseTo((2000 / 6000) * 100, 6); // 33,3 %
   });
 
   it('liefert null-Gewichte, wenn seit Festlegung nichts gewogen wurde', () => {

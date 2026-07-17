@@ -263,6 +263,14 @@ export interface AbnehmFortschritt {
   vortag_defizit: number | null;
   /** Prognose-Datum, wenn das Defizit weiter wie am Vortag ausfaellt; null wenn nicht absehbar. */
   prognose_vortag: string | null;
+  /** Startgewicht (Gramm) bei Festlegung: erste NICHT ausgeschlossene Messung ab gueltig_ab; null = keine. */
+  start_gewicht_gramm: number | null;
+  /** Aktuelles Gewicht (Gramm): letzte NICHT ausgeschlossene Messung bis heute; null = keine. */
+  aktuell_gewicht_gramm: number | null;
+  /** Tatsaechlich abgenommenes Gewicht seit Festlegung (Gramm; start − aktuell). */
+  abgenommen_gramm: number;
+  /** Anteil der Gewichtsabnahme am Ziel in Prozent (ungerundet). */
+  gewicht_prozent: number;
 }
 
 /** Standard-Fehlerantwort des Backends. */

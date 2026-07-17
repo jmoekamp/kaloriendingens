@@ -245,6 +245,44 @@ export default function LangfristSeite({
                 </span>
               </div>
 
+              {/* Zweiter Balken: tatsaechliche Gewichtsabnahme seit Festlegung */}
+              {abnehmen.start_gewicht_gramm !== null &&
+              abnehmen.aktuell_gewicht_gramm !== null ? (
+                <>
+                  <p className="mb-1 mt-4 text-sm text-text-muted">
+                    Gewicht seit {formatDatum(abnehmen.gueltig_ab ?? '')}:{' '}
+                    <span className="font-bold text-text">
+                      {formatKg(abnehmen.start_gewicht_gramm)} →{' '}
+                      {formatKg(abnehmen.aktuell_gewicht_gramm)} kg
+                    </span>{' '}
+                    ·{' '}
+                    <span className="font-bold text-text">
+                      {formatKg(abnehmen.abgenommen_gramm)} kg
+                    </span>{' '}
+                    von {formatKg(abnehmen.ziel_gramm)} kg abgenommen.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="h-4 flex-1 overflow-hidden rounded-full bg-surface-2">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.max(0, Math.min(100, abnehmen.gewicht_prozent))}%`,
+                          backgroundColor: '#d0a35a',
+                        }}
+                      />
+                    </div>
+                    <span className="tabular text-lg font-bold">
+                      {formatProzent(abnehmen.gewicht_prozent)} %
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <p className="mt-4 text-sm text-text-muted">
+                  Noch kein Gewicht seit Festlegung erfasst – trage Gewichte
+                  ein, um die Gewichtsabnahme zu sehen.
+                </p>
+              )}
+
               {/* Prognosen: Median-Defizit seit Festlegung und Defizit wie am Vortag */}
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Prognose

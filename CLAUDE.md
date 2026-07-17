@@ -59,6 +59,10 @@ Port **3010**.
   Monat" (damit der bereits erfasste Vormonat einzahlt). Zusätzlich werden zwei
   Prognosen für das Erreichen des Restdefizits gezeigt: beim Median-Tagesdefizit
   seit Festlegung und beim Defizit wie am Vortag (jeweils als Zieldatum).
+  Neben dem Defizit-Balken gibt es einen zweiten Balken für die **tatsächliche
+  Gewichtsabnahme seit Festlegung**: Startgewicht (erste NICHT ausgeschlossene
+  Messung ab `gueltig_ab`) minus aktuelles Gewicht, im Verhältnis zum Ziel.
+  Aus dem Trend ausgeschlossene Messungen (Wasser-Tage) zählen dabei nicht.
 - **Tagesauswertung:** Lebensmittel eines Tages mit kcal/Eiweiß, Summen und
   Abweichung vom Ziel. Default ist heute; jeder Tag ist anwählbar (Datumsnavigation).
 - **Tagesgewicht:** Pro Tag lässt sich ein Gewicht (kg) eingeben (eine Waage-

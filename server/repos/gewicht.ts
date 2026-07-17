@@ -74,6 +74,34 @@ export function listGewichtImZeitraum(
   }));
 }
 
+/**
+ * Erste NICHT ausgeschlossene Messung im Bereich [ab, bis] (fuer das Startgewicht
+ * bei Festlegung eines Abnehmziels). null, wenn keine vorhanden.
+ */
+export function erstesGewichtAb(
+  db: Database,
+  ab: string,
+  bis: string,
+): Gewicht | null {
+  const row = db
+    .prepare(
+      `${SELECT} AND aus_trend = 0 AND datum >= @ab AND datum <= @bis
+        ORDER BY datum ASC LIMIT 1`,
+    )
+    .get({ mandant: aktuellerMandant(), ab, bis }) as GewichtRow | undefined;
+  return row ? toGewicht(row) : null;
+}
+
+/** Letzte NICHT ausgeschlossene Messung bis (inkl.) `bis`. null, wenn keine. */
+export function letztesGewichtBis(db: Database, bis: string): Gewicht | null {
+  const row = db
+    .prepare(
+      `${SELECT} AND aus_trend = 0 AND datum <= @bis ORDER BY datum DESC LIMIT 1`,
+    )
+    .get({ mandant: aktuellerMandant(), bis }) as GewichtRow | undefined;
+  return row ? toGewicht(row) : null;
+}
+
 export function upsertGewicht(db: Database, input: GewichtInput): Gewicht {
   if (!Number.isInteger(input.gramm) || input.gramm <= 0) {
     throw badRequest('Gewicht muss groesser als 0 sein.');

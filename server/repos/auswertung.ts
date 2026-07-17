@@ -17,6 +17,7 @@ import {
 } from '../../shared/naehrwerte.ts';
 import { listEintraegeFuerTag } from './eintraege.ts';
 import { bewegungKcalProTag } from './bewegung.ts';
+import { erstesGewichtAb, letztesGewichtBis } from './gewicht.ts';
 import { aktivesAbnehmziel } from './abnehmziele.ts';
 import {
   getVorgabeFuerTag,
@@ -309,6 +310,10 @@ export function getAbnehmFortschritt(
       prognose_median: null,
       vortag_defizit: null,
       prognose_vortag: null,
+      start_gewicht_gramm: null,
+      aktuell_gewicht_gramm: null,
+      abgenommen_gramm: 0,
+      gewicht_prozent: 0,
     };
   }
   const versionenAsc = ladeVersionenAsc(db);
@@ -334,6 +339,17 @@ export function getAbnehmFortschritt(
   const vortagWin = fenster(db, versionenAsc, vortag, vortag, heute);
   const vortag_defizit = vortagWin.tage > 0 ? vortagWin.defizit : null;
 
+  // Tatsaechliche Gewichtsabnahme seit Festlegung (nur nicht ausgeschlossene
+  // Messungen): Startgewicht ab gueltig_ab gegen das aktuelle Gewicht.
+  const startG = erstesGewichtAb(db, ziel.gueltig_ab, heute);
+  const aktuellG = letztesGewichtBis(db, heute);
+  const start_gewicht_gramm = startG ? startG.gramm : null;
+  const aktuell_gewicht_gramm = aktuellG ? aktuellG.gramm : null;
+  const abgenommen_gramm =
+    startG && aktuellG ? startG.gramm - aktuellG.gramm : 0;
+  const gewicht_prozent =
+    ziel.ziel_gramm > 0 ? (abgenommen_gramm / ziel.ziel_gramm) * 100 : 0;
+
   return {
     hat_ziel: true,
     gueltig_ab: ziel.gueltig_ab,
@@ -347,5 +363,9 @@ export function getAbnehmFortschritt(
     prognose_median: prognoseDatum(heute, rest_kcal, median_defizit),
     vortag_defizit,
     prognose_vortag: prognoseDatum(heute, rest_kcal, vortag_defizit),
+    start_gewicht_gramm,
+    aktuell_gewicht_gramm,
+    abgenommen_gramm,
+    gewicht_prozent,
   };
 }

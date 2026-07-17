@@ -9,6 +9,7 @@ import {
   upsertAbnehmziel,
 } from '../server/repos/abnehmziele.ts';
 import { upsertVorgabe } from '../server/repos/vorgaben.ts';
+import { upsertGewicht } from '../server/repos/gewicht.ts';
 import { createLebensmittel } from '../server/repos/lebensmittel.ts';
 import { createEintrag } from '../server/repos/eintraege.ts';
 import {
@@ -117,6 +118,26 @@ describe('Abnehmfortschritt', () => {
 
   it('meldet hat_ziel=false ohne Ziel', () => {
     expect(getAbnehmFortschritt(db, '2026-06-30').hat_ziel).toBe(false);
+  });
+
+  it('rechnet die Gewichtsabnahme seit Festlegung (ohne ausgeschlossene Messungen)', () => {
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 5000 }); // 5 kg
+    // Wasser-Tag ausgeschlossen -> nicht als Startgewicht verwenden.
+    upsertGewicht(db, { datum: '2026-06-01', gramm: 83000, aus_trend: true });
+    upsertGewicht(db, { datum: '2026-06-03', gramm: 82000, aus_trend: false });
+    upsertGewicht(db, { datum: '2026-06-20', gramm: 81000, aus_trend: false });
+    const f = getAbnehmFortschritt(db, '2026-06-30');
+    expect(f.start_gewicht_gramm).toBe(82000); // 06-03, nicht der Wasser-Tag
+    expect(f.aktuell_gewicht_gramm).toBe(81000);
+    expect(f.abgenommen_gramm).toBe(1000);
+    expect(f.gewicht_prozent).toBeCloseTo((1000 / 5000) * 100, 6); // 20 %
+  });
+
+  it('liefert null-Gewichte, wenn seit Festlegung nichts gewogen wurde', () => {
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 5000 });
+    const f = getAbnehmFortschritt(db, '2026-06-30');
+    expect(f.start_gewicht_gramm).toBeNull();
+    expect(f.abgenommen_gramm).toBe(0);
   });
 
   it('prognostiziert Zieltermine (Median seit Festlegung und wie Vortag)', () => {

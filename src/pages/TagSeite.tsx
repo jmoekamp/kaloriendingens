@@ -314,8 +314,12 @@ export default function TagSeite({
             </tbody>
             <tfoot>
               <tr className="border-t border-border font-bold">
-                <td className="py-2 pr-3" colSpan={3}>
+                <td className="py-2 pr-3" colSpan={2}>
                   Summe
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {auswertung.eintraege.reduce((s, e) => s + e.menge_gramm, 0)}{' '}
+                  g
                 </td>
                 <td className="py-2 pr-3 text-right tabular">
                   {formatKcal(auswertung.summe_kcal)}

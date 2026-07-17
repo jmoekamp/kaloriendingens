@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import {
   benoetigtesDefizitKcal,
   bewerteZiel,
-  eiweissGrammProGramm,
-  formatDezimal,
+  eiweissProKcal,
   formatGramm,
   formatKcal,
   formatKg,
   formatProzent,
-  kcalProGramm,
+  grammProGrammEiweiss,
+  grammProKcal,
   lineareRegression,
   parseGanzzahl,
   parseGrammToDg,
@@ -137,10 +137,17 @@ describe('Lineare Regression', () => {
     expect(formatProzent(-0.001)).toBe('0,00'); // kein "-0,00"
   });
 
-  it('rechnet und formatiert Naehrwerte je Gramm', () => {
-    expect(kcalProGramm(250)).toBe(2.5);
-    expect(eiweissGrammProGramm(120)).toBeCloseTo(0.12, 6);
-    expect(formatDezimal(kcalProGramm(250))).toBe('2,50');
-    expect(formatDezimal(eiweissGrammProGramm(120))).toBe('0,12');
+  it('rechnet Kennzahlen je kcal / je Gramm Eiweiss', () => {
+    // 100 g = 67 kcal, 12,0 g Eiweiss (120 dg).
+    expect(eiweissProKcal(67, 120)).toBeCloseTo(12 / 67, 9); // g Eiweiss je kcal
+    expect(grammProKcal(67)).toBeCloseTo(100 / 67, 9); // g je kcal
+    expect(grammProGrammEiweiss(120)).toBeCloseTo(100 / 12, 9); // g je g Eiweiss
+  });
+
+  it('liefert null bei Division durch 0', () => {
+    expect(eiweissProKcal(0, 120)).toBeNull();
+    expect(grammProKcal(0)).toBeNull();
+    expect(grammProGrammEiweiss(0)).toBeNull();
+    expect(eiweissProKcal(67, 0)).toBe(0); // kein Eiweiss -> 0 je kcal
   });
 });

@@ -80,14 +80,26 @@ export function formatProzent(wert: number, stellen = 2): string {
   return formatDezimal(wert, stellen);
 }
 
-/** kcal je Gramm aus dem 100-g-Wert (z. B. 250 -> 2,5 kcal/g). */
-export function kcalProGramm(kcalPro100g: number): number {
-  return kcalPro100g / 100;
+/**
+ * Eiweiss (Gramm) je kcal – „Protein pro Kalorie", hoeher = eiweissreicher bei
+ * gleicher Energie. null, wenn kcal je 100 g = 0.
+ */
+export function eiweissProKcal(
+  kcalPro100g: number,
+  eiweissDgPro100g: number,
+): number | null {
+  if (kcalPro100g <= 0) return null;
+  return eiweissDgPro100g / 10 / kcalPro100g;
 }
 
-/** Eiweiss in Gramm je Gramm aus dem dg-je-100g-Wert (z. B. 120 dg -> 0,12 g/g). */
-export function eiweissGrammProGramm(eiweissDgPro100g: number): number {
-  return eiweissDgPro100g / 1000;
+/** Gramm des Lebensmittels je kcal (100 g / kcal). null, wenn kcal = 0. */
+export function grammProKcal(kcalPro100g: number): number | null {
+  return kcalPro100g > 0 ? 100 / kcalPro100g : null;
+}
+
+/** Gramm des Lebensmittels je Gramm Eiweiss (100 g / Eiweiss-g). null, wenn kein Eiweiss. */
+export function grammProGrammEiweiss(eiweissDgPro100g: number): number | null {
+  return eiweissDgPro100g > 0 ? 1000 / eiweissDgPro100g : null;
 }
 
 /**

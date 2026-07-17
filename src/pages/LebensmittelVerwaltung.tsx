@@ -2,14 +2,20 @@ import { useEffect, useState } from 'react';
 import type { Lebensmittel } from '../../shared/types.ts';
 import { Banner, Button, Card, Field, TextInput } from '../components/ui.tsx';
 import {
-  eiweissGrammProGramm,
+  eiweissProKcal,
   formatDezimal,
   formatGramm,
   formatKcal,
-  kcalProGramm,
+  grammProGrammEiweiss,
+  grammProKcal,
   parseGanzzahl,
   parseGrammToDg,
 } from '../../shared/naehrwerte.ts';
+
+/** Formatiert eine optionale Kennzahl; null -> Gedankenstrich. */
+function fmtOderStrich(n: number | null): string {
+  return n === null ? '—' : formatDezimal(n);
+}
 import { lebensmittelApi } from '../lib/lebensmittel.ts';
 
 function meldung(e: unknown): string {
@@ -206,8 +212,13 @@ export default function LebensmittelVerwaltung() {
                 <th className="py-2 pr-3 text-right font-normal">
                   Eiweiß / 100 g
                 </th>
-                <th className="py-2 pr-3 text-right font-normal">kcal / g</th>
-                <th className="py-2 pr-3 text-right font-normal">Eiweiß / g</th>
+                <th className="py-2 pr-3 text-right font-normal">
+                  Eiweiß / kcal
+                </th>
+                <th className="py-2 pr-3 text-right font-normal">g / kcal</th>
+                <th className="py-2 pr-3 text-right font-normal">
+                  g / g Eiweiß
+                </th>
                 <th className="py-2 pr-3 text-right font-normal">Packung</th>
                 <th className="py-2 font-normal"></th>
               </tr>
@@ -223,11 +234,15 @@ export default function LebensmittelVerwaltung() {
                     {formatGramm(l.eiweiss_dg_pro_100g)} g
                   </td>
                   <td className="py-2 pr-3 text-right tabular text-text-muted">
-                    {formatDezimal(kcalProGramm(l.kcal_pro_100g))}
+                    {fmtOderStrich(
+                      eiweissProKcal(l.kcal_pro_100g, l.eiweiss_dg_pro_100g),
+                    )}
                   </td>
                   <td className="py-2 pr-3 text-right tabular text-text-muted">
-                    {formatDezimal(eiweissGrammProGramm(l.eiweiss_dg_pro_100g))}{' '}
-                    g
+                    {fmtOderStrich(grammProKcal(l.kcal_pro_100g))}
+                  </td>
+                  <td className="py-2 pr-3 text-right tabular text-text-muted">
+                    {fmtOderStrich(grammProGrammEiweiss(l.eiweiss_dg_pro_100g))}
                   </td>
                   <td className="py-2 pr-3 text-right tabular">
                     {l.packung_gramm == null ? '—' : `${l.packung_gramm} g`}

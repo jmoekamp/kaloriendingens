@@ -373,10 +373,15 @@ export default function LangfristSeite({
         />
 
         {gewicht.length > 0 && (
-          <div className="mt-4">
-            <div className="mb-2 text-xs text-text-muted">
-              Messungen im Trend (Häkchen entfernen = aus der Trendgerade
-              ausschließen, z. B. die ersten Wasser-Tage):
+          <details className="mt-4">
+            <summary className="cursor-pointer text-xs text-text-muted hover:text-text">
+              Messungen im Trend ein-/ausschließen
+              {gewicht.some((g) => g.aus_trend) &&
+                ` (${gewicht.filter((g) => g.aus_trend).length} ausgeschlossen)`}
+            </summary>
+            <div className="mt-2 mb-2 text-xs text-text-muted">
+              Häkchen entfernen = aus der Trendgerade ausschließen (z. B. die
+              ersten Wasser-Tage).
             </div>
             <div className="flex flex-wrap gap-x-6 gap-y-1">
               {[...gewicht]
@@ -396,7 +401,7 @@ export default function LangfristSeite({
                   </div>
                 ))}
             </div>
-          </div>
+          </details>
         )}
       </Card>
 

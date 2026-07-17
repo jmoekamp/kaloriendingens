@@ -8,7 +8,14 @@ import type {
   TagesZusammenfassung,
   Verlauf,
 } from '../../shared/types.ts';
-import { Banner, Button, Card, Field, TextInput } from '../components/ui.tsx';
+import {
+  Banner,
+  Button,
+  Card,
+  Checkbox,
+  Field,
+  TextInput,
+} from '../components/ui.tsx';
 import { LinienChart, type ChartPunkt } from '../components/LinienChart.tsx';
 import {
   formatGramm,
@@ -178,6 +185,17 @@ export default function LangfristSeite({
         datum: d.datum,
         wert: anker.gramm - kumDefizit / 7,
       });
+    }
+  }
+
+  // Trend-Zugehoerigkeit einer Messung direkt vom Report aus umschalten.
+  async function trendUmschalten(g: GewichtPunkt, imTrend: boolean) {
+    setFehler(null);
+    try {
+      await gewichtApi.save(g.datum, g.gramm, !imTrend); // aus_trend = !imTrend
+      setGewicht(await gewichtApi.verlauf(von, bis));
+    } catch (e) {
+      setFehler(meldung(e));
     }
   }
 
@@ -353,6 +371,33 @@ export default function LangfristSeite({
           prognose={prognosePunkte}
           prognoseFarbe="#5aa0d8"
         />
+
+        {gewicht.length > 0 && (
+          <div className="mt-4">
+            <div className="mb-2 text-xs text-text-muted">
+              Messungen im Trend (Häkchen entfernen = aus der Trendgerade
+              ausschließen, z. B. die ersten Wasser-Tage):
+            </div>
+            <div className="flex flex-wrap gap-x-6 gap-y-1">
+              {[...gewicht]
+                .sort((a, b) => tagNummer(a.datum) - tagNummer(b.datum))
+                .map((g) => (
+                  <div key={g.datum} className="flex items-center gap-2">
+                    <Checkbox
+                      label={`${formatDatum(g.datum)} · ${formatKg(g.gramm)} kg`}
+                      checked={!g.aus_trend}
+                      onChange={(c) => trendUmschalten(g, c)}
+                    />
+                    {g.aus_trend && (
+                      <span className="text-xs text-warning">
+                        nicht im Trend
+                      </span>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Letzte 7 Tage */}

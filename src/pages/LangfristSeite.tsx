@@ -165,11 +165,13 @@ export default function LangfristSeite({
   );
   const trendProWoche = gewichtReg ? gewichtReg.steigung * 7 : null;
 
-  // Gewichtsprognose auf Defizitbasis: ab dem ersten Gewichtspunkt jeden Tag um
-  // (Tagesdefizit / 7000) kg abziehen, d. h. Gramm = Defizit_kcal / 7.
-  const gewichtSortiert = [...gewicht].sort(
-    (a, b) => tagNummer(a.datum) - tagNummer(b.datum),
-  );
+  // Gewichtsprognose auf Defizitbasis: ab dem ersten NICHT ausgeschlossenen
+  // Gewichtspunkt jeden Tag um (Tagesdefizit / 7000) kg abziehen, d. h.
+  // Gramm = Defizit_kcal / 7. Aus dem Trend ausgeschlossene Messungen (z. B. die
+  // ersten Wasser-Tage) werden auch als Anker nicht verwendet.
+  const gewichtSortiert = [...gewicht]
+    .filter((g) => !g.aus_trend)
+    .sort((a, b) => tagNummer(a.datum) - tagNummer(b.datum));
   const prognosePunkte: ChartPunkt[] = [];
   if (gewichtSortiert.length > 0) {
     const anker = gewichtSortiert[0];

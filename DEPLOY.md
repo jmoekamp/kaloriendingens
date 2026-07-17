@@ -89,6 +89,28 @@ docker compose build --build-arg CACHEBUST=$(date +%s)
 docker compose up -d
 ```
 
+> **Wichtig – die `Dockerfile` liegt auf dem Docker-Host** (nicht im Image) und
+> wird NICHT über den Clone aktualisiert. Nach Änderungen am Dockerfile (z. B. am
+> CACHEBUST-Mechanismus) muss die neue `Dockerfile` aus dem Repo **auf den Host
+> kopiert** werden, sonst baut Docker weiter nach der alten Vorlage.
+
+> **BuildKit-Fallstrick (Grund, warum CACHEBUST scheinbar wirkungslos ist):**
+> Unter BuildKit (durch `# syntax=docker/dockerfile:1` aktiv) invalidiert ein
+> `ARG`, das im folgenden `RUN` **nicht referenziert** wird, den Cache NICHT –
+> der `git clone` käme trotz neuem Wert aus dem Cache. Deshalb referenziert der
+> `RUN` das `CACHEBUST` jetzt aktiv (`echo "cachebust=${CACHEBUST}"`). Mit einer
+> älteren Dockerfile-Version bleibt der alte Stand hängen; einmalig hilft dann
+> `docker compose build --no-cache`.
+
+**Verifizieren, dass der neue Stand wirklich im Container ist:**
+
+```bash
+# Datum des laufenden Images
+docker compose images
+# Stichprobe im laufenden Container (Beispiel: eine neuere Datei/Zeile)
+docker compose exec app grep -c aus_trend server/repos/gewicht.ts   # > 0 = neuer Stand
+```
+
 **Wichtig:** beim Update **kein `--no-cache`** verwenden. So bleibt die
 `apt-get`-Schicht im Cache (keine System-Pakete neu laden) und der persistente
 npm-Cache greift – bereits geladene Pakete werden **nicht erneut

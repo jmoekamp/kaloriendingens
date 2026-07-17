@@ -25,7 +25,12 @@ ARG GIT_REF=main
 # geladen. Deshalb beim Update NICHT mehr `--no-cache` verwenden (siehe DEPLOY.md).
 ARG CACHEBUST=1
 
-RUN git clone --depth 1 --branch "${GIT_REF}" "${GIT_REPO}" . \
+# WICHTIG: CACHEBUST wird hier im RUN AKTIV REFERENZIERT. Unter BuildKit
+# (aktiviert durch die syntax-Direktive oben) invalidiert ein nur DEKLARIERTES,
+# aber im RUN ungenutztes ARG den Cache NICHT – der Clone käme dann trotz neuem
+# CACHEBUST-Wert aus dem Cache (alter Stand). Die Referenz im echo behebt das.
+RUN echo "cachebust=${CACHEBUST}" \
+ && git clone --depth 1 --branch "${GIT_REF}" "${GIT_REPO}" . \
  && rm -rf .git
 
 # WICHTIG: hier KEIN NODE_ENV=production setzen – sonst lässt npm die

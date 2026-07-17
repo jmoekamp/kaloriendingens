@@ -29,7 +29,8 @@ Port **3010**.
   jeweils bezogen auf 100 g, plus optionaler **Packungsgröße** (g). Die Liste
   zeigt je Zeile zusätzlich abgeleitete (nicht editierbare) Kennzahlen:
   **Eiweiß/kcal** (g Eiweiß je kcal), **g/kcal** (Gramm je kcal) und
-  **g/g Eiweiß** (Gramm je Gramm Eiweiß). Die Tabelle ist per Klick auf die
+  **g/g Eiweiß** (Gramm je Gramm Eiweiß) sowie **kcal/Packung** (kcal der ganzen
+  Packung, „—" ohne Packungsgröße). Die Tabelle ist per Klick auf die
   Spaltenköpfe sortierbar (erneuter Klick dreht die Richtung; leere Werte ans
   Ende). Ein Lebensmittel, das noch in Einträgen verwendet wird, kann NICHT
   gelöscht werden (strikter Löschschutz).

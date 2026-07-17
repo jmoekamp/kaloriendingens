@@ -10,6 +10,7 @@ import {
   grammProKcal,
   parseGanzzahl,
   parseGrammToDg,
+  portionKcal,
 } from '../../shared/naehrwerte.ts';
 
 /** Formatiert eine optionale Kennzahl; null -> Gedankenstrich. */
@@ -31,7 +32,15 @@ type SortKey =
   | 'eiweiss_kcal'
   | 'g_kcal'
   | 'g_eiweiss'
-  | 'packung';
+  | 'packung'
+  | 'kcal_packung';
+
+/** kcal der ganzen Packung (null, wenn keine Packungsgroesse hinterlegt). */
+function kcalGanzePackung(l: Lebensmittel): number | null {
+  return l.packung_gramm == null
+    ? null
+    : portionKcal(l.kcal_pro_100g, l.packung_gramm);
+}
 
 /** Spaltendefinition der Lebensmittel-Tabelle (Reihenfolge = Anzeige). */
 const SPALTEN: { key: SortKey; label: string; rechts: boolean }[] = [
@@ -42,6 +51,7 @@ const SPALTEN: { key: SortKey; label: string; rechts: boolean }[] = [
   { key: 'g_kcal', label: 'g / kcal', rechts: true },
   { key: 'g_eiweiss', label: 'g / g Eiweiß', rechts: true },
   { key: 'packung', label: 'Packung', rechts: true },
+  { key: 'kcal_packung', label: 'kcal / Packung', rechts: true },
 ];
 
 /** Sortierwert einer Zeile fuer eine Spalte (null = ans Ende). */
@@ -61,6 +71,8 @@ function sortWert(l: Lebensmittel, key: SortKey): number | string | null {
       return grammProGrammEiweiss(l.eiweiss_dg_pro_100g);
     case 'packung':
       return l.packung_gramm;
+    case 'kcal_packung':
+      return kcalGanzePackung(l);
   }
 }
 
@@ -315,6 +327,11 @@ export default function LebensmittelVerwaltung() {
                   </td>
                   <td className="py-2 pr-3 text-right tabular">
                     {l.packung_gramm == null ? '—' : `${l.packung_gramm} g`}
+                  </td>
+                  <td className="py-2 pr-3 text-right tabular">
+                    {kcalGanzePackung(l) === null
+                      ? '—'
+                      : formatKcal(kcalGanzePackung(l) as number)}
                   </td>
                   <td className="py-2">
                     <div className="flex justify-end gap-2">

@@ -24,6 +24,46 @@ function meldung(e: unknown): string {
 
 const LEER = { name: '', kcal: '', eiweiss: '', packung: '' };
 
+type SortKey =
+  | 'name'
+  | 'kcal'
+  | 'eiweiss'
+  | 'eiweiss_kcal'
+  | 'g_kcal'
+  | 'g_eiweiss'
+  | 'packung';
+
+/** Spaltendefinition der Lebensmittel-Tabelle (Reihenfolge = Anzeige). */
+const SPALTEN: { key: SortKey; label: string; rechts: boolean }[] = [
+  { key: 'name', label: 'Name', rechts: false },
+  { key: 'kcal', label: 'kcal / 100 g', rechts: true },
+  { key: 'eiweiss', label: 'Eiweiß / 100 g', rechts: true },
+  { key: 'eiweiss_kcal', label: 'Eiweiß / kcal', rechts: true },
+  { key: 'g_kcal', label: 'g / kcal', rechts: true },
+  { key: 'g_eiweiss', label: 'g / g Eiweiß', rechts: true },
+  { key: 'packung', label: 'Packung', rechts: true },
+];
+
+/** Sortierwert einer Zeile fuer eine Spalte (null = ans Ende). */
+function sortWert(l: Lebensmittel, key: SortKey): number | string | null {
+  switch (key) {
+    case 'name':
+      return l.name.toLowerCase();
+    case 'kcal':
+      return l.kcal_pro_100g;
+    case 'eiweiss':
+      return l.eiweiss_dg_pro_100g;
+    case 'eiweiss_kcal':
+      return eiweissProKcal(l.kcal_pro_100g, l.eiweiss_dg_pro_100g);
+    case 'g_kcal':
+      return grammProKcal(l.kcal_pro_100g);
+    case 'g_eiweiss':
+      return grammProGrammEiweiss(l.eiweiss_dg_pro_100g);
+    case 'packung':
+      return l.packung_gramm;
+  }
+}
+
 /** Stammdaten: Lebensmittel anlegen, bearbeiten und loeschen (Werte je 100 g). */
 export default function LebensmittelVerwaltung() {
   const [liste, setListe] = useState<Lebensmittel[]>([]);
@@ -32,6 +72,30 @@ export default function LebensmittelVerwaltung() {
   const [form, setForm] = useState(LEER);
   const [bearbeitetId, setBearbeitetId] = useState<number | null>(null);
   const [speichert, setSpeichert] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('name');
+  const [sortAsc, setSortAsc] = useState(true);
+
+  function sortiereNach(key: SortKey) {
+    if (key === sortKey) setSortAsc((a) => !a);
+    else {
+      setSortKey(key);
+      setSortAsc(true);
+    }
+  }
+
+  // Nach der gewaehlten Spalte sortieren; null-Werte immer ans Ende.
+  const sortiert = [...liste].sort((a, b) => {
+    const va = sortWert(a, sortKey);
+    const vb = sortWert(b, sortKey);
+    if (va === null && vb === null) return 0;
+    if (va === null) return 1;
+    if (vb === null) return -1;
+    const cmp =
+      typeof va === 'string' && typeof vb === 'string'
+        ? va.localeCompare(vb, 'de')
+        : (va as number) - (vb as number);
+    return sortAsc ? cmp : -cmp;
+  });
 
   function laden() {
     lebensmittelApi
@@ -205,26 +269,31 @@ export default function LebensmittelVerwaltung() {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left text-text-muted">
-                <th className="py-2 pr-3 font-normal">Name</th>
-                <th className="py-2 pr-3 text-right font-normal">
-                  kcal / 100 g
-                </th>
-                <th className="py-2 pr-3 text-right font-normal">
-                  Eiweiß / 100 g
-                </th>
-                <th className="py-2 pr-3 text-right font-normal">
-                  Eiweiß / kcal
-                </th>
-                <th className="py-2 pr-3 text-right font-normal">g / kcal</th>
-                <th className="py-2 pr-3 text-right font-normal">
-                  g / g Eiweiß
-                </th>
-                <th className="py-2 pr-3 text-right font-normal">Packung</th>
+                {SPALTEN.map((s) => (
+                  <th
+                    key={s.key}
+                    className={`py-2 pr-3 font-normal ${s.rechts ? 'text-right' : ''}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => sortiereNach(s.key)}
+                      className={`inline-flex items-center gap-1 hover:text-text ${
+                        s.rechts ? 'flex-row-reverse' : ''
+                      } ${sortKey === s.key ? 'text-text' : ''}`}
+                      title="Nach dieser Spalte sortieren"
+                    >
+                      {s.label}
+                      <span className="text-[10px]">
+                        {sortKey === s.key ? (sortAsc ? '▲' : '▼') : '↕'}
+                      </span>
+                    </button>
+                  </th>
+                ))}
                 <th className="py-2 font-normal"></th>
               </tr>
             </thead>
             <tbody>
-              {liste.map((l) => (
+              {sortiert.map((l) => (
                 <tr key={l.id} className="border-b border-border/50">
                   <td className="py-2 pr-3">{l.name}</td>
                   <td className="py-2 pr-3 text-right tabular">

@@ -29,8 +29,10 @@ Port **3010**.
   jeweils bezogen auf 100 g, plus optionaler **Packungsgröße** (g). Die Liste
   zeigt je Zeile zusätzlich abgeleitete (nicht editierbare) Kennzahlen:
   **Eiweiß/kcal** (g Eiweiß je kcal), **g/kcal** (Gramm je kcal) und
-  **g/g Eiweiß** (Gramm je Gramm Eiweiß). Ein Lebensmittel, das noch in Einträgen
-  verwendet wird, kann NICHT gelöscht werden (strikter Löschschutz).
+  **g/g Eiweiß** (Gramm je Gramm Eiweiß). Die Tabelle ist per Klick auf die
+  Spaltenköpfe sortierbar (erneuter Klick dreht die Richtung; leere Werte ans
+  Ende). Ein Lebensmittel, das noch in Einträgen verwendet wird, kann NICHT
+  gelöscht werden (strikter Löschschutz).
 - **Tageserfassung:** Je Eintrag Uhrzeit, Lebensmittel (Auswahl) und Menge in g.
   kcal und Eiweiß eines Eintrags werden LIVE aus dem Lebensmittel und der Menge
   berechnet, nicht gespeichert (ändert man die Nährwerte, ändern sich vergangene

@@ -10,6 +10,7 @@ import {
   Banner,
   Button,
   Card,
+  Checkbox,
   Field,
   Select,
   TextInput,
@@ -338,6 +339,7 @@ export default function TagSeite({
 /** Tagesgewicht (eine Waage-Eingabe je Tag); wird im Report als Kurve gezeigt. */
 function GewichtAbschnitt({ datum }: { datum: string }) {
   const [kg, setKg] = useState('');
+  const [ausTrend, setAusTrend] = useState(false);
   const [vorhanden, setVorhanden] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
@@ -348,6 +350,7 @@ function GewichtAbschnitt({ datum }: { datum: string }) {
       .fuerTag(datum)
       .then((g) => {
         setKg(g ? formatKg(g.gramm) : '');
+        setAusTrend(g ? g.aus_trend : false);
         setVorhanden(g !== null);
         setOk(false);
       })
@@ -366,7 +369,7 @@ function GewichtAbschnitt({ datum }: { datum: string }) {
     }
     setSpeichert(true);
     try {
-      await gewichtApi.save(datum, gramm);
+      await gewichtApi.save(datum, gramm, ausTrend);
       setVorhanden(true);
       setOk(true);
     } catch (err) {
@@ -407,6 +410,13 @@ function GewichtAbschnitt({ datum }: { datum: string }) {
             placeholder="z. B. 82,5"
           />
         </Field>
+        <div className="pb-1.5">
+          <Checkbox
+            label="Aus Trendberechnung ausschließen"
+            checked={ausTrend}
+            onChange={setAusTrend}
+          />
+        </div>
         <Button type="submit" variant="primary" disabled={speichert}>
           {speichert ? 'Speichert …' : 'Speichern'}
         </Button>
@@ -417,6 +427,11 @@ function GewichtAbschnitt({ datum }: { datum: string }) {
         )}
         {ok && <span className="text-sm text-success">gespeichert ✓</span>}
       </form>
+      <p className="mt-2 text-xs text-text-muted">
+        Ausgeschlossene Messungen bleiben in der Kurve sichtbar, fließen aber
+        nicht in die Trendgerade ein (z. B. die ersten Tage mit starkem
+        Wasserverlust).
+      </p>
     </Card>
   );
 }

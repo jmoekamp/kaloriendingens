@@ -93,6 +93,8 @@ export interface Gewicht {
   id: number;
   datum: string; // YYYY-MM-DD
   gramm: number;
+  /** true = aus der Trend-/Regressionsberechnung ausgeschlossen (z. B. Wasser-Anfangstage). */
+  aus_trend: boolean;
   erstellt_am: string;
   geaendert_am: string;
 }
@@ -101,12 +103,15 @@ export interface Gewicht {
 export interface GewichtInput {
   datum: string;
   gramm: number;
+  aus_trend: boolean;
 }
 
 /** Ein Punkt der Gewichts-Verlaufskurve. */
 export interface GewichtPunkt {
   datum: string;
   gramm: number;
+  /** true = nicht in die Trendlinie einbeziehen (Messpunkt bleibt sichtbar). */
+  aus_trend: boolean;
 }
 
 /**

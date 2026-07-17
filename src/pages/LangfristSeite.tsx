@@ -148,11 +148,13 @@ export default function LangfristSeite({
   const gewichtPunkte: ChartPunkt[] = gewicht.map((p) => ({
     datum: p.datum,
     wert: p.gramm,
+    imTrend: !p.aus_trend,
   }));
-  // Trend aus linearer Regression: Steigung in Gramm/Tag -> Gramm/Woche.
+  // Trend aus linearer Regression – nur ueber Messungen, die im Trend zaehlen.
+  const trendMessungen = gewicht.filter((g) => !g.aus_trend);
   const gewichtReg = lineareRegression(
-    gewicht.map((g) => tagNummer(g.datum)),
-    gewicht.map((g) => g.gramm),
+    trendMessungen.map((g) => tagNummer(g.datum)),
+    trendMessungen.map((g) => g.gramm),
   );
   const trendProWoche = gewichtReg ? gewichtReg.steigung * 7 : null;
 

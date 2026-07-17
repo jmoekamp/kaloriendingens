@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS gewicht (
   mandant_id   INTEGER NOT NULL DEFAULT 1,
   datum        TEXT    NOT NULL,
   gramm        INTEGER NOT NULL,
+  aus_trend    INTEGER NOT NULL DEFAULT 0,
   erstellt_am  TEXT    NOT NULL,
   geaendert_am TEXT    NOT NULL
 );
@@ -218,5 +219,7 @@ export function applySchema(db: Database): void {
   db.exec(SCHEMA_SQL);
   // Optionale Packungsgroesse fuer bestehende Datenbanken nachziehen.
   ensureColumn(db, 'lebensmittel', 'packung_gramm', 'INTEGER');
+  // Trend-Ausschluss-Flag am Gewicht nachziehen.
+  ensureColumn(db, 'gewicht', 'aus_trend', 'INTEGER NOT NULL DEFAULT 0');
   migriereEinstellungenZuVorgaben(db);
 }

@@ -12,21 +12,41 @@ import { badRequest, notFound } from '../errors.ts';
  * Pro Tag und Mandant genau ein Eintrag (Upsert auf datum).
  */
 
+interface GewichtRow {
+  id: number;
+  datum: string;
+  gramm: number;
+  aus_trend: number;
+  erstellt_am: string;
+  geaendert_am: string;
+}
+
+function toGewicht(row: GewichtRow): Gewicht {
+  return {
+    id: row.id,
+    datum: row.datum,
+    gramm: row.gramm,
+    aus_trend: row.aus_trend === 1,
+    erstellt_am: row.erstellt_am,
+    geaendert_am: row.geaendert_am,
+  };
+}
+
 const SELECT =
-  'SELECT id, datum, gramm, erstellt_am, geaendert_am' +
+  'SELECT id, datum, gramm, aus_trend, erstellt_am, geaendert_am' +
   ' FROM gewicht WHERE mandant_id = @mandant';
 
 export function getGewichtFuerTag(db: Database, datum: string): Gewicht | null {
   const row = db
     .prepare(`${SELECT} AND datum = @datum`)
-    .get({ mandant: aktuellerMandant(), datum }) as Gewicht | undefined;
-  return row ?? null;
+    .get({ mandant: aktuellerMandant(), datum }) as GewichtRow | undefined;
+  return row ? toGewicht(row) : null;
 }
 
 /**
  * Gewichtsverlauf im Zeitraum (nur Tage mit Eintrag), aufsteigend. Tage in der
  * Zukunft (datum > heute) werden ausgeschlossen – geplante Tage veraendern keine
- * Statistik/Kurve.
+ * Statistik/Kurve. aus_trend markiert Punkte, die nicht in die Trendlinie fliessen.
  */
 export function listGewichtImZeitraum(
   db: Database,
@@ -34,15 +54,24 @@ export function listGewichtImZeitraum(
   bis: string,
   heute: string,
 ): GewichtPunkt[] {
-  return db
+  const rows = db
     .prepare(
-      `SELECT datum, gramm FROM gewicht
+      `SELECT datum, gramm, aus_trend FROM gewicht
         WHERE mandant_id = @mandant
           AND datum BETWEEN @von AND @bis
           AND datum <= @heute
         ORDER BY datum`,
     )
-    .all({ mandant: aktuellerMandant(), von, bis, heute }) as GewichtPunkt[];
+    .all({ mandant: aktuellerMandant(), von, bis, heute }) as {
+    datum: string;
+    gramm: number;
+    aus_trend: number;
+  }[];
+  return rows.map((r) => ({
+    datum: r.datum,
+    gramm: r.gramm,
+    aus_trend: r.aus_trend === 1,
+  }));
 }
 
 export function upsertGewicht(db: Database, input: GewichtInput): Gewicht {
@@ -51,14 +80,16 @@ export function upsertGewicht(db: Database, input: GewichtInput): Gewicht {
   }
   const jetzt = new Date().toISOString();
   db.prepare(
-    `INSERT INTO gewicht (mandant_id, datum, gramm, erstellt_am, geaendert_am)
-     VALUES (@mandant, @datum, @gramm, @jetzt, @jetzt)
+    `INSERT INTO gewicht (mandant_id, datum, gramm, aus_trend, erstellt_am, geaendert_am)
+     VALUES (@mandant, @datum, @gramm, @aus_trend, @jetzt, @jetzt)
      ON CONFLICT(mandant_id, datum)
-       DO UPDATE SET gramm = excluded.gramm, geaendert_am = excluded.geaendert_am`,
+       DO UPDATE SET gramm = excluded.gramm, aus_trend = excluded.aus_trend,
+                     geaendert_am = excluded.geaendert_am`,
   ).run({
     mandant: aktuellerMandant(),
     datum: input.datum,
     gramm: input.gramm,
+    aus_trend: input.aus_trend ? 1 : 0,
     jetzt,
   });
   return getGewichtFuerTag(db, input.datum) as Gewicht;

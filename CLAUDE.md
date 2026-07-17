@@ -64,6 +64,10 @@ Port **3010**.
 - **Tagesgewicht:** Pro Tag lässt sich ein Gewicht (kg) eingeben (eine Waage-
   Eingabe je Tag, Upsert). Wird auf der Auswertungsseite als Liniendiagramm über
   den gewählten Zeitraum gezeigt (y-Achse skaliert auf den Datenbereich, nicht ab 0).
+  Je Messung lässt sich „**Aus Trendberechnung ausschließen**" setzen (`aus_trend`):
+  der Punkt bleibt in der Kurve sichtbar (hohl dargestellt), fließt aber nicht in
+  die Regressionsgerade/Trendrate ein – gedacht für die ersten Tage mit starkem
+  Wasserverlust.
 - **Langfrist-Auswertung:** Drei Liniengraphen (kcal/Tag, Eiweiß/Tag, Gewicht/kg)
   für einen wählbaren Zeitraum (Default: letzte 30 Tage). Alle Diagramme teilen
   dieselbe datumsbasierte x-Achse (von–bis); jeder Punkt liegt an seinem echten
@@ -142,8 +146,9 @@ kein Zugriff auf Fachdaten). Erst-Accounts beim ersten Start: `admin/admin`
   ziel_gramm/1000 × 7000 kcal.
 - `bewegung`: id, mandant_id, datum, uhrzeit, beschreibung, kcal
   (Aktivitätskalorien). Je Tag zum Gesamtverbrauch addiert (Defizit/Prognose).
-- `gewicht`: id, mandant_id, datum, gramm. Ein Tagesgewicht je (mandant_id, datum);
-  Quelle für das Gewichts-Liniendiagramm.
+- `gewicht`: id, mandant_id, datum, gramm, aus_trend (0/1: aus der Trendlinie
+  ausgeschlossen). Ein Tagesgewicht je (mandant_id, datum); Quelle für das
+  Gewichts-Liniendiagramm.
 - `einstellungen`: Legacy-Key-Value, nur noch Migrationsquelle für `vorgaben`.
 - `users`, `sessions`: mandant-übergreifend (Auth-Verwaltung).
 

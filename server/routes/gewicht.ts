@@ -2,7 +2,11 @@ import { Router } from 'express';
 import type { GewichtInput } from '../../shared/types.ts';
 import { getDb } from '../db/index.ts';
 import { badRequest } from '../errors.ts';
-import { requireInteger, requireIsoDate } from '../validation.ts';
+import {
+  optionalBoolean,
+  requireInteger,
+  requireIsoDate,
+} from '../validation.ts';
 import {
   deleteGewicht,
   getGewichtFuerTag,
@@ -48,6 +52,7 @@ gewichtRouter.put('/', (req, res) => {
   const input: GewichtInput = {
     datum: requireIsoDate(body, 'datum'),
     gramm: requireInteger(body, 'gramm'),
+    aus_trend: optionalBoolean(body, 'aus_trend', false),
   };
   res.json(upsertGewicht(getDb(), input));
 });

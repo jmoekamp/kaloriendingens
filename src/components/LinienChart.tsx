@@ -14,6 +14,8 @@ import { fromTag, tagNummer } from '../lib/format.ts';
 export interface ChartPunkt {
   datum: string; // YYYY-MM-DD
   wert: number;
+  /** false = nicht in die Regressionsgerade einbeziehen (Punkt bleibt sichtbar). */
+  imTrend?: boolean;
 }
 
 function kurz(iso: string): string {
@@ -116,17 +118,19 @@ export function LinienChart({
     new Set([von, fromTag(d0 + Math.floor(spanTage / 2)), bis]),
   );
 
-  // Optionale Ausgleichsgerade (lineare Regression) ueber die Messpunkte.
-  const reg = regression
-    ? lineareRegression(
-        sortiert.map((p) => tagNummer(p.datum)),
-        sortiert.map((p) => p.wert),
-      )
-    : null;
+  // Ausgleichsgerade nur ueber die Punkte, die im Trend zaehlen (imTrend != false).
+  const trendPunkte = sortiert.filter((p) => p.imTrend !== false);
+  const reg =
+    regression && trendPunkte.length >= 2
+      ? lineareRegression(
+          trendPunkte.map((p) => tagNummer(p.datum)),
+          trendPunkte.map((p) => p.wert),
+        )
+      : null;
   let regLinie: string | null = null;
-  if (reg && sortiert.length >= 2) {
-    const t0 = tagNummer(sortiert[0].datum);
-    const t1 = tagNummer(sortiert[sortiert.length - 1].datum);
+  if (reg) {
+    const t0 = tagNummer(trendPunkte[0].datum);
+    const t1 = tagNummer(trendPunkte[trendPunkte.length - 1].datum);
     const px = (t: number) => x(fromTag(t));
     const py = (t: number) => y(reg.steigung * t + reg.achsenabschnitt);
     regLinie = `${px(t0)},${py(t0)} ${px(t1)},${py(t1)}`;
@@ -220,17 +224,32 @@ export function LinienChart({
         />
       )}
 
-      {sortiert.map((p) => (
-        <circle
-          key={p.datum}
-          cx={x(p.datum)}
-          cy={y(p.wert)}
-          r={2.5}
-          fill={farbe}
-        >
-          <title>{`${kurz(p.datum)}: ${formatWert(p.wert)}`}</title>
-        </circle>
-      ))}
+      {sortiert.map((p) =>
+        p.imTrend === false ? (
+          // Aus dem Trend ausgeschlossen: hohler Punkt.
+          <circle
+            key={p.datum}
+            cx={x(p.datum)}
+            cy={y(p.wert)}
+            r={3}
+            fill="#161d26"
+            stroke={farbe}
+            strokeWidth={1.5}
+          >
+            <title>{`${kurz(p.datum)}: ${formatWert(p.wert)} (nicht im Trend)`}</title>
+          </circle>
+        ) : (
+          <circle
+            key={p.datum}
+            cx={x(p.datum)}
+            cy={y(p.wert)}
+            r={2.5}
+            fill={farbe}
+          >
+            <title>{`${kurz(p.datum)}: ${formatWert(p.wert)}`}</title>
+          </circle>
+        ),
+      )}
 
       {xTicks.map((iso) => (
         <text

@@ -95,6 +95,11 @@ export default function TagSeite({
   const [menge, setMenge] = useState('');
   const [speichert, setSpeichert] = useState(false);
 
+  // Inline-Bearbeitung einer Mahlzeit (Uhrzeit + Menge)
+  const [bearbeiteId, setBearbeiteId] = useState<number | null>(null);
+  const [editUhrzeit, setEditUhrzeit] = useState('');
+  const [editMenge, setEditMenge] = useState('');
+
   const ladeTag = useCallback(() => {
     auswertungApi
       .tag(datum)
@@ -144,6 +149,34 @@ export default function TagSeite({
     setFehler(null);
     try {
       await eintraegeApi.remove(eintrag.id);
+      ladeTag();
+    } catch (err) {
+      setFehler(meldung(err));
+    }
+  }
+
+  function bearbeitenStart(e: Eintrag) {
+    setFehler(null);
+    setBearbeiteId(e.id);
+    setEditUhrzeit(e.uhrzeit);
+    setEditMenge(String(e.menge_gramm));
+  }
+
+  async function bearbeitenSpeichern(e: Eintrag) {
+    setFehler(null);
+    const mengeZahl = Number(editMenge);
+    if (!Number.isInteger(mengeZahl) || mengeZahl <= 0) {
+      setFehler('Menge (g) muss eine positive ganze Zahl sein.');
+      return;
+    }
+    try {
+      await eintraegeApi.update(e.id, {
+        datum,
+        uhrzeit: editUhrzeit,
+        lebensmittel_id: e.lebensmittel_id,
+        menge_gramm: mengeZahl,
+      });
+      setBearbeiteId(null);
       ladeTag();
     } catch (err) {
       setFehler(meldung(err));
@@ -291,26 +324,73 @@ export default function TagSeite({
               </tr>
             </thead>
             <tbody>
-              {auswertung.eintraege.map((e) => (
-                <tr key={e.id} className="border-b border-border/50">
-                  <td className="py-2 pr-3 tabular">{e.uhrzeit}</td>
-                  <td className="py-2 pr-3">{e.lebensmittel_name}</td>
-                  <td className="py-2 pr-3 text-right tabular">
-                    {e.menge_gramm} g
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular">
-                    {formatKcal(e.kcal ?? 0)}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular">
-                    {formatGramm(e.eiweiss_dg ?? 0)} g
-                  </td>
-                  <td className="py-2 text-right">
-                    <Button variant="danger" onClick={() => loeschen(e)}>
-                      Löschen
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              {auswertung.eintraege.map((e) => {
+                const imEdit = bearbeiteId === e.id;
+                return (
+                  <tr key={e.id} className="border-b border-border/50">
+                    <td className="py-2 pr-3 tabular">
+                      {imEdit ? (
+                        <TextInput
+                          type="time"
+                          value={editUhrzeit}
+                          onChange={(ev) => setEditUhrzeit(ev.target.value)}
+                          className="w-28 tabular"
+                        />
+                      ) : (
+                        e.uhrzeit
+                      )}
+                    </td>
+                    <td className="py-2 pr-3">{e.lebensmittel_name}</td>
+                    <td className="py-2 pr-3 text-right tabular">
+                      {imEdit ? (
+                        <TextInput
+                          value={editMenge}
+                          onChange={(ev) => setEditMenge(ev.target.value)}
+                          inputMode="numeric"
+                          className="w-24 tabular"
+                        />
+                      ) : (
+                        `${e.menge_gramm} g`
+                      )}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular">
+                      {formatKcal(e.kcal ?? 0)}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular">
+                      {formatGramm(e.eiweiss_dg ?? 0)} g
+                    </td>
+                    <td className="py-2 text-right">
+                      <div className="flex justify-end gap-2">
+                        {imEdit ? (
+                          <>
+                            <Button
+                              variant="primary"
+                              onClick={() => bearbeitenSpeichern(e)}
+                            >
+                              Speichern
+                            </Button>
+                            <Button onClick={() => setBearbeiteId(null)}>
+                              Abbrechen
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button onClick={() => bearbeitenStart(e)}>
+                              Bearbeiten
+                            </Button>
+                            <Button
+                              variant="danger"
+                              onClick={() => loeschen(e)}
+                            >
+                              Löschen
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr className="border-t border-border font-bold">

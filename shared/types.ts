@@ -307,6 +307,22 @@ export interface AbnehmFortschritt {
   trend_gramm_pro_woche: number | null;
   /** Prognose-Datum, an dem der Gewichtstrend das Zielgewicht erreicht; null wenn nicht absehbar. */
   prognose_gewichtstrend: string | null;
+  /** Meilensteine bei durch 5 teilbaren ganzen Kilo bis zum Ziel (schwer -> leicht). */
+  meilensteine: GewichtsMeilenstein[];
+}
+
+/** Ein 5-kg-Meilenstein auf dem Weg zum Abnehmziel. */
+export interface GewichtsMeilenstein {
+  /** Meilensteingewicht in Gramm (Vielfaches von 5000). */
+  gramm: number;
+  /** true, wenn schon eine Messung ≤ diesem Gewicht vorliegt. */
+  erreicht: boolean;
+  /** Tatsaechliches Datum (erste Messung ≤ gramm) oder null. */
+  erreicht_am: string | null;
+  /** Trend-Prognosedatum oder null (kein Abnehmtrend / zu wenige Messungen). */
+  prognose: string | null;
+  /** Bei erreichten Meilensteinen: erreicht_am − Prognose in Tagen (− = früher). */
+  differenz_tage: number | null;
 }
 
 /** Geschlecht fuer die Grundumsatz-Formel. */

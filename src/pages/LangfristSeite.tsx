@@ -349,8 +349,8 @@ export default function LangfristSeite({
                 leerHinweis="Noch keine Messung erfasst."
               />
 
-              {/* Prognosen: Median-Defizit, Vortag, Gewichtstrend */}
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {/* Prognosen: Median-Defizit und Defizit wie am Vortag */}
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Prognose
                   titel="Ziel erreicht bei Median-Defizit seit Festlegung"
                   zielErreicht={abnehmen.ziel_erreicht}
@@ -366,34 +366,97 @@ export default function LangfristSeite({
                   rateText="Vortag"
                   keinWert="Am Vortag wurde nichts erfasst."
                 />
-                <div className="rounded-lg border border-border bg-surface-2 p-3">
-                  <div className="text-sm text-text-muted">
-                    Ziel erreicht laut Gewichtstrend
-                  </div>
-                  {abnehmen.start_gewicht_gramm !== null &&
-                  abnehmen.aktuell_gewicht_gramm !== null &&
-                  abnehmen.aktuell_gewicht_gramm <=
-                    abnehmen.start_gewicht_gramm - abnehmen.ziel_gramm ? (
-                    <div className="text-lg font-bold text-success">
-                      Ziel erreicht 🎉
-                    </div>
-                  ) : abnehmen.prognose_gewichtstrend ? (
-                    <div className="text-lg font-bold tabular">
-                      {formatDatum(abnehmen.prognose_gewichtstrend)}
-                    </div>
-                  ) : (
-                    <div className="text-text-muted">
-                      nicht absehbar (zu wenige Messungen oder kein Abnehmtrend)
-                    </div>
-                  )}
-                  {abnehmen.trend_gramm_pro_woche !== null && (
-                    <div className="mt-1 text-xs text-text-muted">
-                      Trend {formatKg(abnehmen.trend_gramm_pro_woche)} kg/Woche
-                    </div>
-                  )}
-                </div>
               </div>
             </>
+          )}
+        </Card>
+      )}
+
+      {/* Eigene Karte: Gewichtstrend + 5-kg-Meilensteine */}
+      {abnehmen?.hat_ziel && (
+        <Card title="Gewichtstrend">
+          <p className="mb-3 text-sm text-text-muted">
+            Ziel erreicht laut Gewichtstrend:{' '}
+            {abnehmen.start_gewicht_gramm !== null &&
+            abnehmen.aktuell_gewicht_gramm !== null &&
+            abnehmen.aktuell_gewicht_gramm <=
+              abnehmen.start_gewicht_gramm - abnehmen.ziel_gramm ? (
+              <span className="font-bold text-success">
+                bereits erreicht 🎉
+              </span>
+            ) : abnehmen.prognose_gewichtstrend ? (
+              <span className="font-bold text-text">
+                {formatDatum(abnehmen.prognose_gewichtstrend)}
+              </span>
+            ) : (
+              <span>
+                nicht absehbar (zu wenige Messungen oder kein Abnehmtrend)
+              </span>
+            )}
+            {abnehmen.trend_gramm_pro_woche !== null && (
+              <> · Trend {formatKg(abnehmen.trend_gramm_pro_woche)} kg/Woche</>
+            )}
+          </p>
+
+          {abnehmen.meilensteine.length === 0 ? (
+            <p className="text-sm text-text-muted">
+              Keine 5-kg-Meilensteine im Zielbereich.
+            </p>
+          ) : (
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-text-muted">
+                  <th className="py-2 pr-3 font-normal">Gewicht</th>
+                  <th className="py-2 pr-3 font-normal">Status</th>
+                  <th className="py-2 pr-3 text-right font-normal">
+                    früher / später
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {abnehmen.meilensteine.map((m) => (
+                  <tr key={m.gramm} className="border-b border-border/50">
+                    <td className="py-2 pr-3 tabular font-bold">
+                      {formatKg(m.gramm)} kg
+                    </td>
+                    <td className="py-2 pr-3">
+                      {m.erreicht ? (
+                        <span className="text-success">
+                          erreicht am {formatDatum(m.erreicht_am ?? '')}
+                        </span>
+                      ) : m.prognose ? (
+                        <span className="text-text-muted">
+                          voraussichtlich {formatDatum(m.prognose)}
+                        </span>
+                      ) : (
+                        <span className="text-text-muted">nicht absehbar</span>
+                      )}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular">
+                      {m.erreicht && m.differenz_tage !== null ? (
+                        m.differenz_tage === 0 ? (
+                          <span className="text-text-muted">wie im Trend</span>
+                        ) : (
+                          <span
+                            className={
+                              m.differenz_tage < 0
+                                ? 'text-success'
+                                : 'text-danger'
+                            }
+                          >
+                            {m.differenz_tage < 0
+                              ? `${-m.differenz_tage} Tage früher`
+                              : `${m.differenz_tage} Tage später`}
+                          </span>
+                        )
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </Card>
       )}

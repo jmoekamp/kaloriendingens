@@ -4,6 +4,7 @@ import type {
   DefizitFenster,
   DefizitReport,
   DefizitTag,
+  GewichtsMeilenstein,
   KalorienTag,
   TagesAuswertung,
   TagesZusammenfassung,
@@ -442,6 +443,7 @@ export function getAbnehmFortschritt(
       gewicht_prozent_gesamt: 0,
       trend_gramm_pro_woche: null,
       prognose_gewichtstrend: null,
+      meilensteine: [],
     };
   }
   const umsatz = ladeUmsatzKontext(db);
@@ -498,12 +500,43 @@ export function getAbnehmFortschritt(
     trendW.map((w) => w.gramm),
   );
   const trend_gramm_pro_woche = reg ? reg.steigung * 7 : null;
-  let prognose_gewichtstrend: string | null = null;
-  if (reg && reg.steigung < 0 && start_gewicht_gramm !== null) {
+  // Prognosedatum aus dem Trend fuer ein beliebiges Zielgewicht (Gramm).
+  const trendDatumFuer = (zielgewicht: number): string | null => {
+    if (!reg || reg.steigung >= 0) return null;
+    const x = (zielgewicht - reg.achsenabschnitt) / reg.steigung;
+    return Number.isFinite(x) ? fromTag(Math.round(x)) : null;
+  };
+  const prognose_gewichtstrend =
+    start_gewicht_gramm !== null
+      ? trendDatumFuer(start_gewicht_gramm - ziel.ziel_gramm)
+      : null;
+
+  // Meilensteine: durch 5 teilbare ganze Kilo unter dem Startgewicht bis zum Ziel.
+  const meilensteine: GewichtsMeilenstein[] = [];
+  if (start_gewicht_gramm !== null) {
     const zielgewicht = start_gewicht_gramm - ziel.ziel_gramm;
-    const xZiel = (zielgewicht - reg.achsenabschnitt) / reg.steigung;
-    if (Number.isFinite(xZiel))
-      prognose_gewichtstrend = fromTag(Math.round(xZiel));
+    for (
+      let m = Math.floor(start_gewicht_gramm / 5000) * 5000;
+      m >= zielgewicht;
+      m -= 5000
+    ) {
+      if (m >= start_gewicht_gramm) continue; // Startgewicht selbst ist kein Meilenstein
+      // Erste (nicht ausgeschlossene) Messung <= m gilt als erreicht.
+      const treffer = trendW.find((w) => w.gramm <= m);
+      const erreicht_am = treffer ? treffer.datum : null;
+      const prognose = trendDatumFuer(m);
+      const differenz_tage =
+        erreicht_am && prognose
+          ? tagNummer(erreicht_am) - tagNummer(prognose)
+          : null;
+      meilensteine.push({
+        gramm: m,
+        erreicht: erreicht_am !== null,
+        erreicht_am,
+        prognose,
+        differenz_tage,
+      });
+    }
   }
 
   return {
@@ -529,5 +562,6 @@ export function getAbnehmFortschritt(
     gewicht_prozent_gesamt,
     trend_gramm_pro_woche,
     prognose_gewichtstrend,
+    meilensteine,
   };
 }

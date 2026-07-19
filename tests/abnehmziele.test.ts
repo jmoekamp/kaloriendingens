@@ -150,6 +150,29 @@ describe('Abnehmfortschritt', () => {
     expect(f.prognose_gewichtstrend).toBe(verschiebeDatum('2026-06-01', 70));
   });
 
+  it('listet 5-kg-Meilensteine mit Trend-Prognose', () => {
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 10000 });
+    upsertGewicht(db, { datum: '2026-06-01', gramm: 82000, aus_trend: false });
+    upsertGewicht(db, { datum: '2026-06-15', gramm: 81000, aus_trend: false });
+    const f = getAbnehmFortschritt(db, '2026-06-30');
+    expect(f.meilensteine.map((m) => m.gramm)).toEqual([80000, 75000]);
+    const m80 = f.meilensteine[0];
+    expect(m80.erreicht).toBe(false);
+    // −1000 g/14 Tage -> 2000 g brauchen 28 Tage ab Start.
+    expect(m80.prognose).toBe(verschiebeDatum('2026-06-01', 28));
+  });
+
+  it('markiert erreichte Meilensteine mit Datum und Differenz', () => {
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 10000 });
+    upsertGewicht(db, { datum: '2026-06-01', gramm: 82000, aus_trend: false });
+    upsertGewicht(db, { datum: '2026-06-10', gramm: 79500, aus_trend: false });
+    const f = getAbnehmFortschritt(db, '2026-06-30');
+    const m80 = f.meilensteine.find((m) => m.gramm === 80000);
+    expect(m80?.erreicht).toBe(true);
+    expect(m80?.erreicht_am).toBe('2026-06-10');
+    expect(typeof m80?.differenz_tage).toBe('number');
+  });
+
   it('gibt keine Trendprognose ohne Abnehmtrend', () => {
     upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 5000 });
     upsertGewicht(db, { datum: '2026-06-01', gramm: 82000, aus_trend: false });

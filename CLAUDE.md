@@ -73,7 +73,10 @@ Port **3010**.
   seit Festlegung, beim Defizit wie am Vortag und – rein messbasiert – **aus dem
   Gewichtstrend** (lineare Regression über die nicht ausgeschlossenen Messungen:
   Wann trifft die Trendgerade das Zielgewicht? `prognose_gewichtstrend`,
-  `trend_gramm_pro_woche`). Jeweils als Zieldatum.
+  `trend_gramm_pro_woche`). Jeweils als Zieldatum. Der Gewichtstrend steht in einer
+  eigenen Karte samt **5-kg-Meilenstein-Übersicht** (`meilensteine`): je durch 5
+  teilbarem ganzen Kilo bis zum Ziel die Trend-Prognose bzw. – wenn erreicht – das
+  tatsächliche Datum plus „X Tage früher/später" gegenüber der Trend-Prognose.
   Neben dem Defizit-Balken gibt es zwei Gewichtsbalken: (a) **seit Festlegung**
   (Startgewicht = erste NICHT ausgeschlossene Messung ab `gueltig_ab`, ohne
   Wasser-Tage) und (b) **ab der ersten Messung** (allererste Messung inkl.

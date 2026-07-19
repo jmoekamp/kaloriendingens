@@ -61,6 +61,8 @@ export function LinienChart({
   prognose,
   prognoseFarbe = '#5aa0d8',
   serien,
+  flaeche = true,
+  differenz,
 }: {
   von: string;
   bis: string;
@@ -81,6 +83,13 @@ export function LinienChart({
   prognoseFarbe?: string;
   /** Weitere Linien im selben Diagramm (z. B. Umsatz + Aufnahme). */
   serien?: Serie[];
+  /** Flaeche unter der Hauptlinie fuellen (Standard true). */
+  flaeche?: boolean;
+  /**
+   * Flaeche zwischen der Hauptlinie und einer Serie farbig hervorheben:
+   * ueberFarbe, wo die Hauptlinie oben liegt (Serie darunter), sonst unterFarbe.
+   */
+  differenz?: { serie: number; ueberFarbe: string; unterFarbe: string };
 }) {
   if (punkte.length === 0) {
     return (
@@ -169,6 +178,50 @@ export function LinienChart({
     regLinie = `${px(t0)},${py(t0)} ${px(t1)},${py(t1)}`;
   }
 
+  // Differenzflaeche zwischen Hauptlinie und einer Serie (grün/rot je Vorzeichen).
+  const differenzFlaechen: { punkte: string; farbe: string }[] = [];
+  const diffSerie = differenz && serien ? serien[differenz.serie] : undefined;
+  if (differenz && diffSerie) {
+    const mainByDate = new Map(punkte.map((p) => [p.datum, p.wert]));
+    const sPts = [...diffSerie.punkte]
+      .filter((p) => mainByDate.has(p.datum))
+      .sort((a, b) => tagNummer(a.datum) - tagNummer(b.datum));
+    const farbeFor = (d: number) =>
+      d >= 0 ? differenz.ueberFarbe : differenz.unterFarbe;
+    for (let i = 0; i < sPts.length - 1; i++) {
+      const p = sPts[i];
+      const q = sPts[i + 1];
+      if (tagNummer(q.datum) !== tagNummer(p.datum) + 1) continue;
+      const m1 = mainByDate.get(p.datum) as number;
+      const m2 = mainByDate.get(q.datum) as number;
+      const a1 = p.wert;
+      const a2 = q.wert;
+      const d1 = m1 - a1;
+      const d2 = m2 - a2;
+      const x1 = x(p.datum);
+      const x2 = x(q.datum);
+      if ((d1 >= 0 && d2 >= 0) || (d1 <= 0 && d2 <= 0)) {
+        differenzFlaechen.push({
+          farbe: farbeFor(d1 !== 0 ? d1 : d2),
+          punkte: `${x1},${y(m1)} ${x2},${y(m2)} ${x2},${y(a2)} ${x1},${y(a1)}`,
+        });
+      } else {
+        // Vorzeichenwechsel: am Schnittpunkt teilen.
+        const t = d1 / (d1 - d2);
+        const xc = x1 + t * (x2 - x1);
+        const yc = y(m1 + t * (m2 - m1));
+        differenzFlaechen.push({
+          farbe: farbeFor(d1),
+          punkte: `${x1},${y(m1)} ${xc},${yc} ${x1},${y(a1)}`,
+        });
+        differenzFlaechen.push({
+          farbe: farbeFor(d2),
+          punkte: `${xc},${yc} ${x2},${y(m2)} ${x2},${y(a2)}`,
+        });
+      }
+    }
+  }
+
   // Optionale Prognose-Linie (zweite Kurve), nach Datum verbunden.
   const prognoseSortiert = (prognose ?? [])
     .slice()
@@ -205,6 +258,16 @@ export function LinienChart({
             {formatWert(Math.round(t))}
           </text>
         </g>
+      ))}
+
+      {/* Differenzflaeche zwischen Hauptlinie und Serie (liegt ganz hinten). */}
+      {differenzFlaechen.map((f, i) => (
+        <polygon
+          key={`diff-${i}`}
+          points={f.punkte}
+          fill={f.farbe}
+          opacity={0.2}
+        />
       ))}
 
       {/* Optionale Prognose-Linie (liegt hinter den Messwerten). */}
@@ -254,15 +317,17 @@ export function LinienChart({
       {segmente.map((seg, i) =>
         seg.length >= 2 ? (
           <g key={i}>
-            <polygon
-              points={
-                `${x(seg[0].datum)},${baseY} ` +
-                seg.map((p) => `${x(p.datum)},${y(p.wert)}`).join(' ') +
-                ` ${x(seg[seg.length - 1].datum)},${baseY}`
-              }
-              fill={farbe}
-              opacity={0.12}
-            />
+            {flaeche && (
+              <polygon
+                points={
+                  `${x(seg[0].datum)},${baseY} ` +
+                  seg.map((p) => `${x(p.datum)},${y(p.wert)}`).join(' ') +
+                  ` ${x(seg[seg.length - 1].datum)},${baseY}`
+                }
+                fill={farbe}
+                opacity={0.12}
+              />
+            )}
             <polyline
               points={seg.map((p) => `${x(p.datum)},${y(p.wert)}`).join(' ')}
               fill="none"

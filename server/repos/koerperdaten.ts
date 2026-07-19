@@ -15,7 +15,7 @@ export const KOERPERDATEN_DEFAULTS: Koerperdaten = {
   groesse_cm: 0,
   geschlecht: 'm',
   geburtsjahr: 0,
-  aktivitaetsfaktor: 1.375,
+  aktivitaetsfaktor: 1.5,
   modus: 'manuell',
 };
 

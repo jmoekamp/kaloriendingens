@@ -510,7 +510,7 @@ function KoerperdatenKarte({
                 >
                   {AKTIVITAETSSTUFEN.map((s) => (
                     <option key={s.faktor} value={s.faktor}>
-                      {s.label} (×{s.faktor})
+                      PAL {s.faktor.toFixed(1).replace('.', ',')} – {s.label}
                     </option>
                   ))}
                 </Select>

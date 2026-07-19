@@ -54,7 +54,8 @@ Port **3010**.
   Kaloriendefizit. Umschaltbar **manuell** (versionierter Wert je Vorgabe) oder
   **berechnet**: aus Körperdaten (Größe, Geschlecht, Geburtsjahr, Aktivitätsfaktor)
   und dem **an dem Tag gültigen Gewicht** (letzte Messung ≤ Tag) nach Mifflin‑St
-  Jeor × Aktivitätsfaktor. Der Gesamtumsatz sinkt so automatisch mit dem Gewicht.
+  Jeor × Aktivitätsfaktor. Die Aktivitätsstufen (PAL) folgen den DGE‑Referenzwerten
+  (`AKTIVITAETSSTUFEN` in `shared/umsatz.ts`). Der Gesamtumsatz sinkt so automatisch mit dem Gewicht.
   Ohne Gewicht an einem Tag greift der manuelle Wert als Rückfall.
   (`shared/umsatz.ts`, Körperdaten in der Key‑Value‑Tabelle, `gesamtumsatzFuerTag`
   in `server/repos/auswertung.ts`.)
@@ -96,7 +97,10 @@ Port **3010**.
   (`verbinden`). Ein viertes Diagramm **„Umsatz & Aufnahme"** zeigt je Tag drei
   Linien: Gesamtumsatz (berechnet/vorgegeben, durchgehend), Kalorienaufnahme und
   Aufnahme + erfasste Bewegung (`/api/auswertung/kalorien-verlauf`; LinienChart
-  kann über `serien` mehrere Linien zeichnen). Das Gewicht wird zusätzlich mit
+  kann über `serien` mehrere Linien zeichnen). Die Fläche zwischen Gesamtumsatz
+  und „Aufnahme + Bewegung" ist farbig hervorgehoben (grün = darunter/Defizit,
+  rot = darüber/Überschuss; `differenz`-Prop des LinienChart). Das Gewicht wird
+  zusätzlich mit
   einer gestrichelten **linearen
   Ausgleichsgeraden** (Regression, `regression`) versehen; die Trendrate wird als
   kg/Woche angezeigt (`lineareRegression` in shared/naehrwerte). Eine zweite Linie

@@ -507,7 +507,9 @@ export default function LangfristSeite({
           <span className="text-xs text-text-muted">
             <span className="text-[#d98c5a]">Gesamtumsatz</span> ·{' '}
             <span className="text-[#5aa0d8]">Aufnahme</span> ·{' '}
-            <span className="text-[#63b784]">Aufnahme + Bewegung</span>
+            <span className="text-[#63b784]">Aufnahme + Bewegung</span> · Fläche{' '}
+            <span className="text-[#63b784]">grün</span> = darunter (Defizit),{' '}
+            <span className="text-[#d0654f]">rot</span> = darüber (Überschuss)
           </span>
         </div>
         <LinienChart
@@ -517,10 +519,16 @@ export default function LangfristSeite({
           farbe="#d98c5a"
           formatWert={formatKcal}
           verbinden
+          flaeche={false}
           serien={[
             { punkte: aufnahmePunkte, farbe: '#5aa0d8', verbinden: false },
             { punkte: aufnahmeBewPunkte, farbe: '#63b784', verbinden: false },
           ]}
+          differenz={{
+            serie: 1,
+            ueberFarbe: '#63b784',
+            unterFarbe: '#d0654f',
+          }}
         />
       </Card>
 

@@ -182,13 +182,14 @@ export interface DefizitTag {
 
 /**
  * Ein Tag der Kalorien-Verlaufskurve: Gesamtumsatz (berechnet oder vorgegeben),
- * Aufnahme (null = kein Eintrag) und Aufnahme + erfasste Bewegung.
+ * Gesamtumsatz + erfasste Bewegung (Gesamtverbrauch) und Aufnahme (null = kein
+ * Eintrag). Bewegung zaehlt auf die Verbrauchsseite.
  */
 export interface KalorienTag {
   datum: string;
   gesamtumsatz: number;
+  gesamtumsatz_plus_bewegung: number;
   aufnahme: number | null;
-  aufnahme_plus_bewegung: number | null;
 }
 
 /** Langzeit-Verlauf ueber einen Zeitraum (nur Tage mit Eintraegen). */

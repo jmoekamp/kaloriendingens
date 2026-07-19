@@ -95,11 +95,12 @@ Port **3010**.
   Linie an Lücken ab (nur aufeinanderfolgende Kalendertage werden verbunden); das
   Gewicht wird als durchgehende Linie über die Messpunkte gezeichnet
   (`verbinden`). Ein viertes Diagramm **„Umsatz & Aufnahme"** zeigt je Tag drei
-  Linien: Gesamtumsatz (berechnet/vorgegeben, durchgehend), Kalorienaufnahme und
-  Aufnahme + erfasste Bewegung (`/api/auswertung/kalorien-verlauf`; LinienChart
-  kann über `serien` mehrere Linien zeichnen). Die Fläche zwischen Gesamtumsatz
-  und „Aufnahme + Bewegung" ist farbig hervorgehoben (grün = darunter/Defizit,
-  rot = darüber/Überschuss; `differenz`-Prop des LinienChart). Das Gewicht wird
+  Linien: Gesamtumsatz (berechnet/vorgegeben), Gesamtumsatz + erfasste Bewegung
+  (= Gesamtverbrauch) und Kalorienaufnahme (`/api/auswertung/kalorien-verlauf`;
+  LinienChart kann über `serien` mehrere Linien zeichnen). Die Bewegung zählt auf
+  die Verbrauchsseite; die Fläche zwischen „Gesamtumsatz + Bewegung" und
+  „Aufnahme" ist als **Tagesdefizit** farbig hervorgehoben (grün = Defizit, rot =
+  Überschuss; `differenz`-Prop des LinienChart). Das Gewicht wird
   zusätzlich mit
   einer gestrichelten **linearen
   Ausgleichsgeraden** (Regression, `regression`) versehen; die Trendrate wird als

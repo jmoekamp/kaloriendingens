@@ -181,20 +181,20 @@ describe('Kalorien-Verlauf', () => {
       {
         datum: '2026-07-13',
         gesamtumsatz: 2400,
+        gesamtumsatz_plus_bewegung: 2400,
         aufnahme: null,
-        aufnahme_plus_bewegung: null,
       },
       {
         datum: '2026-07-14',
         gesamtumsatz: 2400,
+        gesamtumsatz_plus_bewegung: 2700, // + 300 Bewegung
         aufnahme: 168,
-        aufnahme_plus_bewegung: 468,
       },
       {
         datum: '2026-07-15',
         gesamtumsatz: 2400,
+        gesamtumsatz_plus_bewegung: 2400,
         aufnahme: null,
-        aufnahme_plus_bewegung: null,
       },
     ]);
   });

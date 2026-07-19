@@ -216,17 +216,18 @@ export default function LangfristSeite({
     wert: p.gramm,
     imTrend: !p.aus_trend,
   }));
-  // Kalorien-Diagramm: Gesamtumsatz (durchgehend) + Aufnahme + Aufnahme+Bewegung.
+  // Kalorien-Diagramm: Gesamtumsatz, Gesamtumsatz+Bewegung (Verbrauch), Aufnahme.
   const umsatzPunkte: ChartPunkt[] = kalorien.map((k) => ({
     datum: k.datum,
     wert: k.gesamtumsatz,
   }));
+  const umsatzBewPunkte: ChartPunkt[] = kalorien.map((k) => ({
+    datum: k.datum,
+    wert: k.gesamtumsatz_plus_bewegung,
+  }));
   const aufnahmePunkte: ChartPunkt[] = kalorien
     .filter((k) => k.aufnahme !== null)
     .map((k) => ({ datum: k.datum, wert: k.aufnahme as number }));
-  const aufnahmeBewPunkte: ChartPunkt[] = kalorien
-    .filter((k) => k.aufnahme_plus_bewegung !== null)
-    .map((k) => ({ datum: k.datum, wert: k.aufnahme_plus_bewegung as number }));
   // Trend aus linearer Regression – nur ueber Messungen, die im Trend zaehlen.
   const trendMessungen = gewicht.filter((g) => !g.aus_trend);
   const gewichtReg = lineareRegression(
@@ -506,23 +507,23 @@ export default function LangfristSeite({
           </span>
           <span className="text-xs text-text-muted">
             <span className="text-[#d98c5a]">Gesamtumsatz</span> ·{' '}
-            <span className="text-[#5aa0d8]">Aufnahme</span> ·{' '}
-            <span className="text-[#63b784]">Aufnahme + Bewegung</span> · Fläche{' '}
-            <span className="text-[#63b784]">grün</span> = darunter (Defizit),{' '}
-            <span className="text-[#d0654f]">rot</span> = darüber (Überschuss)
+            <span className="text-[#a86bd0]">+ Bewegung (Verbrauch)</span> ·{' '}
+            <span className="text-[#5aa0d8]">Aufnahme</span> · Fläche{' '}
+            <span className="text-[#63b784]">grün</span> = Defizit,{' '}
+            <span className="text-[#d0654f]">rot</span> = Überschuss
           </span>
         </div>
         <LinienChart
           von={von}
           bis={bis}
-          punkte={umsatzPunkte}
-          farbe="#d98c5a"
+          punkte={umsatzBewPunkte}
+          farbe="#a86bd0"
           formatWert={formatKcal}
           verbinden
           flaeche={false}
           serien={[
+            { punkte: umsatzPunkte, farbe: '#d98c5a', verbinden: true },
             { punkte: aufnahmePunkte, farbe: '#5aa0d8', verbinden: false },
-            { punkte: aufnahmeBewPunkte, farbe: '#63b784', verbinden: false },
           ]}
           differenz={{
             serie: 1,

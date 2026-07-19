@@ -356,12 +356,12 @@ export function getKalorienVerlauf(
   const ergebnis: KalorienTag[] = [];
   for (let d = von; d <= effektivBis; d = verschiebeDatum(d, 1)) {
     const aufnahme = aufnahmeMap.has(d) ? (aufnahmeMap.get(d) as number) : null;
+    const g = umsatz(d);
     ergebnis.push({
       datum: d,
-      gesamtumsatz: umsatz(d),
+      gesamtumsatz: g,
+      gesamtumsatz_plus_bewegung: g + (bewegung.get(d) ?? 0),
       aufnahme,
-      aufnahme_plus_bewegung:
-        aufnahme === null ? null : aufnahme + (bewegung.get(d) ?? 0),
     });
   }
   return ergebnis;

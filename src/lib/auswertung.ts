@@ -3,6 +3,7 @@ import type {
   AbnehmFortschritt,
   DefizitReport,
   DefizitTag,
+  KalorienTag,
   TagesAuswertung,
   TagesZusammenfassung,
   Verlauf,
@@ -31,6 +32,16 @@ export const auswertungApi = {
     const s = q.toString();
     return api.get<DefizitTag[]>(
       `/auswertung/defizit-verlauf${s ? `?${s}` : ''}`,
+    );
+  },
+  /** Umsatz/Aufnahme je Tag (fuer das Kalorien-Diagramm). */
+  kalorienVerlauf: (von?: string, bis?: string) => {
+    const q = new URLSearchParams();
+    if (von) q.set('von', von);
+    if (bis) q.set('bis', bis);
+    const s = q.toString();
+    return api.get<KalorienTag[]>(
+      `/auswertung/kalorien-verlauf${s ? `?${s}` : ''}`,
     );
   },
   letzteTage: (n = 7) =>

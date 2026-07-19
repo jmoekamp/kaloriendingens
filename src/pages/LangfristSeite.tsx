@@ -5,6 +5,7 @@ import type {
   DefizitReport,
   DefizitTag,
   GewichtPunkt,
+  KalorienTag,
   TagesZusammenfassung,
   Verlauf,
 } from '../../shared/types.ts';
@@ -163,6 +164,7 @@ export default function LangfristSeite({
   const [bis, setBis] = useState(heute);
   const [verlauf, setVerlauf] = useState<Verlauf | null>(null);
   const [gewicht, setGewicht] = useState<GewichtPunkt[]>([]);
+  const [kalorien, setKalorien] = useState<KalorienTag[]>([]);
   const [defizitTage, setDefizitTage] = useState<DefizitTag[]>([]);
   const [letzte, setLetzte] = useState<TagesZusammenfassung[]>([]);
   const [defizit, setDefizit] = useState<DefizitReport | null>(null);
@@ -182,6 +184,10 @@ export default function LangfristSeite({
     auswertungApi
       .defizitVerlauf(von, bis)
       .then(setDefizitTage)
+      .catch((e) => setFehler(meldung(e)));
+    auswertungApi
+      .kalorienVerlauf(von, bis)
+      .then(setKalorien)
       .catch((e) => setFehler(meldung(e)));
   }
 
@@ -210,6 +216,17 @@ export default function LangfristSeite({
     wert: p.gramm,
     imTrend: !p.aus_trend,
   }));
+  // Kalorien-Diagramm: Gesamtumsatz (durchgehend) + Aufnahme + Aufnahme+Bewegung.
+  const umsatzPunkte: ChartPunkt[] = kalorien.map((k) => ({
+    datum: k.datum,
+    wert: k.gesamtumsatz,
+  }));
+  const aufnahmePunkte: ChartPunkt[] = kalorien
+    .filter((k) => k.aufnahme !== null)
+    .map((k) => ({ datum: k.datum, wert: k.aufnahme as number }));
+  const aufnahmeBewPunkte: ChartPunkt[] = kalorien
+    .filter((k) => k.aufnahme_plus_bewegung !== null)
+    .map((k) => ({ datum: k.datum, wert: k.aufnahme_plus_bewegung as number }));
   // Trend aus linearer Regression – nur ueber Messungen, die im Trend zaehlen.
   const trendMessungen = gewicht.filter((g) => !g.aus_trend);
   const gewichtReg = lineareRegression(
@@ -482,6 +499,29 @@ export default function LangfristSeite({
             </div>
           </details>
         )}
+
+        <div className="mb-2 mt-6 flex flex-wrap items-baseline justify-between gap-2">
+          <span className="text-sm font-bold text-text-muted">
+            Umsatz &amp; Aufnahme (kcal)
+          </span>
+          <span className="text-xs text-text-muted">
+            <span className="text-[#d98c5a]">Gesamtumsatz</span> ·{' '}
+            <span className="text-[#5aa0d8]">Aufnahme</span> ·{' '}
+            <span className="text-[#63b784]">Aufnahme + Bewegung</span>
+          </span>
+        </div>
+        <LinienChart
+          von={von}
+          bis={bis}
+          punkte={umsatzPunkte}
+          farbe="#d98c5a"
+          formatWert={formatKcal}
+          verbinden
+          serien={[
+            { punkte: aufnahmePunkte, farbe: '#5aa0d8', verbinden: false },
+            { punkte: aufnahmeBewPunkte, farbe: '#63b784', verbinden: false },
+          ]}
+        />
       </Card>
 
       {/* Letzte 7 Tage */}

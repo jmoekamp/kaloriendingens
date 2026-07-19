@@ -5,6 +5,7 @@ import {
   getAbnehmFortschritt,
   getDefizitReport,
   getDefizitVerlauf,
+  getKalorienVerlauf,
   getLetzteTage,
   getTagesAuswertung,
   getVerlauf,
@@ -64,6 +65,21 @@ auswertungRouter.get('/defizit-verlauf', (req, res) => {
       : leseDatum(req.query.von, 'von');
   if (von > bis) throw badRequest('"von" darf nicht nach "bis" liegen.');
   res.json(getDefizitVerlauf(getDb(), von, bis, heute));
+});
+
+/** GET /api/auswertung/kalorien-verlauf?von=&bis= – Umsatz/Aufnahme je Tag. */
+auswertungRouter.get('/kalorien-verlauf', (req, res) => {
+  const heute = heuteIso();
+  const bis =
+    req.query.bis === undefined ? heute : leseDatum(req.query.bis, 'bis');
+  const von =
+    req.query.von === undefined
+      ? new Date(new Date(`${bis}T00:00:00Z`).getTime() - 29 * 86400000)
+          .toISOString()
+          .slice(0, 10)
+      : leseDatum(req.query.von, 'von');
+  if (von > bis) throw badRequest('"von" darf nicht nach "bis" liegen.');
+  res.json(getKalorienVerlauf(getDb(), von, bis, heute));
 });
 
 /** GET /api/auswertung/letzte-tage?n=7 – die letzten n Kalendertage. */

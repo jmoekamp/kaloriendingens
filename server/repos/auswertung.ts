@@ -4,6 +4,7 @@ import type {
   DefizitFenster,
   DefizitReport,
   DefizitTag,
+  KalorienTag,
   TagesAuswertung,
   TagesZusammenfassung,
   Verlauf,
@@ -318,6 +319,52 @@ export function getDefizitVerlauf(
   heute: string,
 ): DefizitTag[] {
   return tagesDefiziteMitDatum(db, ladeUmsatzKontext(db), von, bis, heute);
+}
+
+/**
+ * Kalorien-Verlauf je Tag (fuer das Diagramm): Gesamtumsatz (berechnet oder
+ * vorgegeben – je Tag mit dem an dem Tag gueltigen Gewicht), Aufnahme (kcal aus
+ * Eintraegen, null wenn keiner) und Aufnahme + erfasste Bewegung. Ein Punkt je
+ * Kalendertag im Zeitraum bis heute (Zukunft ausgeschlossen).
+ */
+export function getKalorienVerlauf(
+  db: Database,
+  von: string,
+  bis: string,
+  heute: string,
+): KalorienTag[] {
+  const effektivBis = bis <= heute ? bis : heute;
+  if (von > effektivBis) return [];
+
+  const umsatz = ladeUmsatzKontext(db);
+  const aufnahmeRows = db
+    .prepare(
+      `SELECT e.datum AS datum, SUM(${TAG_KCAL}) AS kcal
+         FROM eintraege e
+         JOIN lebensmittel l ON l.id = e.lebensmittel_id
+        WHERE e.mandant_id = @mandant AND e.datum BETWEEN @von AND @bis
+        GROUP BY e.datum`,
+    )
+    .all({
+      mandant: aktuellerMandant(),
+      von,
+      bis: effektivBis,
+    }) as TagKcalRow[];
+  const aufnahmeMap = new Map(aufnahmeRows.map((r) => [r.datum, r.kcal]));
+  const bewegung = bewegungKcalProTag(db, von, effektivBis);
+
+  const ergebnis: KalorienTag[] = [];
+  for (let d = von; d <= effektivBis; d = verschiebeDatum(d, 1)) {
+    const aufnahme = aufnahmeMap.has(d) ? (aufnahmeMap.get(d) as number) : null;
+    ergebnis.push({
+      datum: d,
+      gesamtumsatz: umsatz(d),
+      aufnahme,
+      aufnahme_plus_bewegung:
+        aufnahme === null ? null : aufnahme + (bewegung.get(d) ?? 0),
+    });
+  }
+  return ergebnis;
 }
 
 /** Median einer nicht-leeren Zahlenliste. */

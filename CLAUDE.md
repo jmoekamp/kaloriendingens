@@ -93,7 +93,11 @@ Port **3010**.
   Datum. An Tagen ohne Daten wird nichts gezeichnet. Bei kcal/Eiweiß bricht die
   Linie an Lücken ab (nur aufeinanderfolgende Kalendertage werden verbunden); das
   Gewicht wird als durchgehende Linie über die Messpunkte gezeichnet
-  (`verbinden`) und zusätzlich mit einer gestrichelten **linearen
+  (`verbinden`). Ein viertes Diagramm **„Umsatz & Aufnahme"** zeigt je Tag drei
+  Linien: Gesamtumsatz (berechnet/vorgegeben, durchgehend), Kalorienaufnahme und
+  Aufnahme + erfasste Bewegung (`/api/auswertung/kalorien-verlauf`; LinienChart
+  kann über `serien` mehrere Linien zeichnen). Das Gewicht wird zusätzlich mit
+  einer gestrichelten **linearen
   Ausgleichsgeraden** (Regression, `regression`) versehen; die Trendrate wird als
   kg/Woche angezeigt (`lineareRegression` in shared/naehrwerte). Eine zweite Linie
   (`prognose`, blau) zeigt den **auf Defizitbasis prognostizierten Gewichtsverlust**:

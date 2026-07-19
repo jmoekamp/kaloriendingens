@@ -7,9 +7,11 @@ import { upsertVorgabe } from '../server/repos/vorgaben.ts';
 import { updateKoerperdaten } from '../server/repos/koerperdaten.ts';
 import { upsertGewicht } from '../server/repos/gewicht.ts';
 import type { VorgabeInput } from '../shared/types.ts';
+import { createBewegung } from '../server/repos/bewegung.ts';
 import {
   getDefizitReport,
   getDefizitVerlauf,
+  getKalorienVerlauf,
   getLetzteTage,
   getTagesAuswertung,
   getVerlauf,
@@ -161,6 +163,46 @@ describe('Berechneter Gesamtumsatz (Mifflin-St Jeor)', () => {
     iss('2026-07-15', 250);
     const r = getDefizitReport(db, '2026-07-15');
     expect(r.gesamtumsatz).toBe(2400); // kein Gewicht -> Fallback
+  });
+});
+
+describe('Kalorien-Verlauf', () => {
+  it('liefert je Tag Umsatz, Aufnahme und Aufnahme + Bewegung', () => {
+    vorgabe({ gesamtumsatz: 2400 });
+    iss('2026-07-14', 250); // 168 kcal
+    createBewegung(db, {
+      datum: '2026-07-14',
+      uhrzeit: '18:00',
+      beschreibung: 'Laufen',
+      kcal: 300,
+    });
+    const v = getKalorienVerlauf(db, '2026-07-13', '2026-07-15', '2026-07-16');
+    expect(v).toEqual([
+      {
+        datum: '2026-07-13',
+        gesamtumsatz: 2400,
+        aufnahme: null,
+        aufnahme_plus_bewegung: null,
+      },
+      {
+        datum: '2026-07-14',
+        gesamtumsatz: 2400,
+        aufnahme: 168,
+        aufnahme_plus_bewegung: 468,
+      },
+      {
+        datum: '2026-07-15',
+        gesamtumsatz: 2400,
+        aufnahme: null,
+        aufnahme_plus_bewegung: null,
+      },
+    ]);
+  });
+
+  it('schliesst Zukunftstage aus (bis = heute)', () => {
+    vorgabe({ gesamtumsatz: 2000 });
+    const v = getKalorienVerlauf(db, '2026-07-13', '2026-07-20', '2026-07-14');
+    expect(v.map((k) => k.datum)).toEqual(['2026-07-13', '2026-07-14']);
   });
 });
 

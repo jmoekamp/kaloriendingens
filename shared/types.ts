@@ -180,6 +180,17 @@ export interface DefizitTag {
   defizit: number;
 }
 
+/**
+ * Ein Tag der Kalorien-Verlaufskurve: Gesamtumsatz (berechnet oder vorgegeben),
+ * Aufnahme (null = kein Eintrag) und Aufnahme + erfasste Bewegung.
+ */
+export interface KalorienTag {
+  datum: string;
+  gesamtumsatz: number;
+  aufnahme: number | null;
+  aufnahme_plus_bewegung: number | null;
+}
+
 /** Langzeit-Verlauf ueber einen Zeitraum (nur Tage mit Eintraegen). */
 export interface Verlauf {
   von: string;

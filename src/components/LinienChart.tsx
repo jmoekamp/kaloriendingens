@@ -18,8 +18,34 @@ export interface ChartPunkt {
   imTrend?: boolean;
 }
 
+/** Eine zusaetzliche Linie im selben Diagramm (gleiche Achsen). */
+export interface Serie {
+  punkte: ChartPunkt[];
+  farbe: string;
+  /** true: durchgehend verbinden; false: an Luecken (fehlende Tage) unterbrechen. */
+  verbinden?: boolean;
+}
+
 function kurz(iso: string): string {
   return `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+}
+
+/** Punkte (bereits nach Datum sortiert) in Segmente aufeinanderfolgender Tage teilen. */
+function baueSegmente(
+  sortiert: ChartPunkt[],
+  verbinden: boolean,
+): ChartPunkt[][] {
+  if (verbinden) return sortiert.length > 0 ? [sortiert] : [];
+  const segmente: ChartPunkt[][] = [];
+  for (const p of sortiert) {
+    const letztes = segmente[segmente.length - 1];
+    const anschluss =
+      letztes &&
+      tagNummer(p.datum) === tagNummer(letztes[letztes.length - 1].datum) + 1;
+    if (anschluss) letztes.push(p);
+    else segmente.push([p]);
+  }
+  return segmente;
 }
 
 export function LinienChart({
@@ -34,6 +60,7 @@ export function LinienChart({
   regression = false,
   prognose,
   prognoseFarbe = '#5aa0d8',
+  serien,
 }: {
   von: string;
   bis: string;
@@ -52,6 +79,8 @@ export function LinienChart({
   /** Optionale zweite Linie (z. B. Gewichtsprognose auf Defizitbasis). */
   prognose?: ChartPunkt[];
   prognoseFarbe?: string;
+  /** Weitere Linien im selben Diagramm (z. B. Umsatz + Aufnahme). */
+  serien?: Serie[];
 }) {
   if (punkte.length === 0) {
     return (
@@ -78,8 +107,12 @@ export function LinienChart({
       ? padL + innerB / 2
       : padL + (innerB * (tagNummer(iso) - d0)) / spanTage;
 
-  // y-Achse: Skalierung an der Spanne der Werte (inkl. Prognose-Linie).
-  const werte = [...punkte, ...(prognose ?? [])].map((p) => p.wert);
+  // y-Achse: Skalierung an der Spanne aller Werte (inkl. Prognose + Serien).
+  const werte = [
+    ...punkte,
+    ...(prognose ?? []),
+    ...(serien ?? []).flatMap((s) => s.punkte),
+  ].map((p) => p.wert);
   const rohMax = Math.max(...werte, 1);
   const rohMin = nullbasis ? 0 : Math.min(...werte);
   const spanne = Math.max(1, rohMax - rohMin);
@@ -97,19 +130,19 @@ export function LinienChart({
   const sortiert = [...punkte].sort(
     (a, b) => tagNummer(a.datum) - tagNummer(b.datum),
   );
-  const segmente: ChartPunkt[][] = [];
-  if (verbinden) {
-    if (sortiert.length > 0) segmente.push(sortiert);
-  } else {
-    for (const p of sortiert) {
-      const letztes = segmente[segmente.length - 1];
-      const anschluss =
-        letztes &&
-        tagNummer(p.datum) === tagNummer(letztes[letztes.length - 1].datum) + 1;
-      if (anschluss) letztes.push(p);
-      else segmente.push([p]);
-    }
-  }
+  const segmente = baueSegmente(sortiert, verbinden);
+
+  // Zusaetzliche Linien (Serien) vorbereiten.
+  const serienGezeichnet = (serien ?? []).map((s) => {
+    const sort = [...s.punkte].sort(
+      (a, b) => tagNummer(a.datum) - tagNummer(b.datum),
+    );
+    return {
+      farbe: s.farbe,
+      sortiert: sort,
+      segmente: baueSegmente(sort, s.verbinden ?? false),
+    };
+  });
 
   const baseY = padT + innerH;
   const yTicks = [yMin, (yMin + yMax) / 2, yMax];
@@ -186,6 +219,36 @@ export function LinienChart({
           opacity={0.9}
         />
       )}
+
+      {/* Zusaetzliche Linien (Serien) – nur Linien + kleine Punkte. */}
+      {serienGezeichnet.map((s, si) => (
+        <g key={`serie-${si}`}>
+          {s.segmente.map((seg, i) =>
+            seg.length >= 2 ? (
+              <polyline
+                key={i}
+                points={seg.map((p) => `${x(p.datum)},${y(p.wert)}`).join(' ')}
+                fill="none"
+                stroke={s.farbe}
+                strokeWidth={2}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            ) : null,
+          )}
+          {s.sortiert.map((p) => (
+            <circle
+              key={p.datum}
+              cx={x(p.datum)}
+              cy={y(p.wert)}
+              r={2}
+              fill={s.farbe}
+            >
+              <title>{`${kurz(p.datum)}: ${formatWert(p.wert)}`}</title>
+            </circle>
+          ))}
+        </g>
+      ))}
 
       {/* Ein Linien-/Flaechensegment je zusammenhaengendem Tagesblock. */}
       {segmente.map((seg, i) =>

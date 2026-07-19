@@ -63,6 +63,7 @@ export function LinienChart({
   serien,
   flaeche = true,
   differenz,
+  punktLabel,
 }: {
   von: string;
   bis: string;
@@ -90,6 +91,11 @@ export function LinienChart({
    * ueberFarbe, wo die Hauptlinie oben liegt (Serie darunter), sonst unterFarbe.
    */
   differenz?: { serie: number; ueberFarbe: string; unterFarbe: string };
+  /**
+   * Kleines Text-Label je Hauptpunkt. Bekommt den Wert des Punkts und den Wert
+   * des ersten (fruehesten) Punkts (Basis) – z. B. fuer die Gewichtsreduktion.
+   */
+  punktLabel?: (wert: number, basis: number) => string;
 }) {
   if (punkte.length === 0) {
     return (
@@ -378,6 +384,21 @@ export function LinienChart({
           </circle>
         ),
       )}
+
+      {/* Kleines Label je Punkt (z. B. Gewichtsreduktion in kg). */}
+      {punktLabel &&
+        sortiert.map((p) => (
+          <text
+            key={`lbl-${p.datum}`}
+            x={x(p.datum)}
+            y={y(p.wert) - 7}
+            textAnchor="middle"
+            className="fill-text-muted"
+            fontSize={9}
+          >
+            {punktLabel(p.wert, sortiert[0].wert)}
+          </text>
+        ))}
 
       {xTicks.map((iso) => (
         <text

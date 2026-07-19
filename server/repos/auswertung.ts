@@ -8,26 +8,83 @@ import type {
   TagesZusammenfassung,
   Verlauf,
   VerlaufPunkt,
-  Vorgabe,
 } from '../../shared/types.ts';
 import { aktuellerMandant } from '../db/index.ts';
 import {
   benoetigtesDefizitKcal,
   bewerteZiel,
 } from '../../shared/naehrwerte.ts';
+import { gesamtumsatzBerechnet } from '../../shared/umsatz.ts';
 import { listEintraegeFuerTag } from './eintraege.ts';
 import { bewegungKcalProTag } from './bewegung.ts';
 import {
+  alleGewichteAsc,
   erstesGewichtAb,
   erstesGewichtGesamt,
   letztesGewichtBis,
 } from './gewicht.ts';
+import { getKoerperdaten, koerperdatenVollstaendig } from './koerperdaten.ts';
 import { aktivesAbnehmziel } from './abnehmziele.ts';
 import {
   getVorgabeFuerTag,
   ladeVersionenAsc,
   vorgabeFuerTag,
 } from './vorgaben.ts';
+
+/** Eine Funktion, die je Tag den geltenden Gesamtumsatz (kcal/Tag) liefert. */
+type UmsatzFuerTag = (datum: string) => number;
+
+/**
+ * Gewicht (Gramm), das an einem Tag „gilt": die letzte Messung ≤ Tag
+ * (Carry-forward). Vor der ersten Messung die frueheste. null, wenn keine.
+ */
+function gewichtFuerTag(
+  gewichteAsc: { datum: string; gramm: number }[],
+  datum: string,
+): number | null {
+  if (gewichteAsc.length === 0) return null;
+  let wert = gewichteAsc[0].gramm; // Fallback: fruehestes Gewicht
+  for (const g of gewichteAsc) {
+    if (g.datum <= datum) wert = g.gramm;
+    else break;
+  }
+  return wert;
+}
+
+/**
+ * Baut die Gesamtumsatz-Funktion: bei modus 'berechnet' + vollstaendigen
+ * Koerperdaten aus dem tagesgueltigen Gewicht (Mifflin-St Jeor × Aktivitaet),
+ * sonst der manuelle, versionierte Vorgabe-Wert. Ohne Gewicht an einem Tag faellt
+ * die Berechnung auf den manuellen Wert zurueck.
+ */
+function ladeUmsatzKontext(db: Database): UmsatzFuerTag {
+  const versionenAsc = ladeVersionenAsc(db);
+  const manuell: UmsatzFuerTag = (datum) =>
+    vorgabeFuerTag(versionenAsc, datum).gesamtumsatz;
+
+  const kd = getKoerperdaten(db);
+  if (kd.modus !== 'berechnet' || !koerperdatenVollstaendig(kd)) {
+    return manuell;
+  }
+  const gewichteAsc = alleGewichteAsc(db);
+  return (datum) => {
+    const gramm = gewichtFuerTag(gewichteAsc, datum);
+    if (gramm === null) return manuell(datum);
+    const alter = Number(datum.slice(0, 4)) - kd.geburtsjahr;
+    return gesamtumsatzBerechnet(
+      gramm,
+      kd.groesse_cm,
+      alter,
+      kd.geschlecht,
+      kd.aktivitaetsfaktor,
+    );
+  };
+}
+
+/** Der fuer `datum` geltende Gesamtumsatz (berechnet oder manuell). */
+export function gesamtumsatzFuerTag(db: Database, datum: string): number {
+  return ladeUmsatzKontext(db)(datum);
+}
 
 /**
  * Auswertungen: Tagesauswertung (mit Zielabweichung), Langzeit-Verlauf,
@@ -165,7 +222,7 @@ interface TagKcalRow {
  */
 function fenster(
   db: Database,
-  versionenAsc: Vorgabe[],
+  umsatz: UmsatzFuerTag,
   von: string | null,
   bis: string | null,
   heute: string,
@@ -189,36 +246,34 @@ function fenster(
   let defizit = 0;
   for (const r of rows) {
     // Gesamtverbrauch des Tages = Gesamtumsatz + Aktivitaetskalorien.
-    const umsatz =
-      vorgabeFuerTag(versionenAsc, r.datum).gesamtumsatz +
-      (bewegung.get(r.datum) ?? 0);
+    const verbrauch = umsatz(r.datum) + (bewegung.get(r.datum) ?? 0);
     tage += 1;
     kcal_aufnahme += r.kcal;
-    defizit += umsatz - r.kcal;
+    defizit += verbrauch - r.kcal;
   }
   return { tage, kcal_aufnahme, defizit };
 }
 
 /** Kaloriendefizit fuer heute, letzte 7 Tage, letzte 30 Tage und gesamt. */
 export function getDefizitReport(db: Database, heute: string): DefizitReport {
-  const versionenAsc = ladeVersionenAsc(db);
+  const umsatz = ladeUmsatzKontext(db);
   return {
-    // Zur Anzeige/Hinweis: der heute gueltige Gesamtumsatz.
-    gesamtumsatz: vorgabeFuerTag(versionenAsc, heute).gesamtumsatz,
-    tag: fenster(db, versionenAsc, heute, heute, heute),
-    woche: fenster(db, versionenAsc, verschiebeDatum(heute, -6), heute, heute),
-    monat: fenster(db, versionenAsc, verschiebeDatum(heute, -29), heute, heute),
-    gesamt: fenster(db, versionenAsc, null, null, heute),
+    // Zur Anzeige/Hinweis: der heute geltende Gesamtumsatz.
+    gesamtumsatz: umsatz(heute),
+    tag: fenster(db, umsatz, heute, heute, heute),
+    woche: fenster(db, umsatz, verschiebeDatum(heute, -6), heute, heute),
+    monat: fenster(db, umsatz, verschiebeDatum(heute, -29), heute, heute),
+    gesamt: fenster(db, umsatz, null, null, heute),
   };
 }
 
 /**
- * Tagesdefizit je Tag mit Eintraegen im Zeitraum (mit historischem Umsatz +
+ * Tagesdefizit je Tag mit Eintraegen im Zeitraum (Umsatz je Tag +
  * Aktivitaetskalorien), aufsteigend nach Datum. Zukunftstage sind ausgeschlossen.
  */
 function tagesDefiziteMitDatum(
   db: Database,
-  versionenAsc: Vorgabe[],
+  umsatz: UmsatzFuerTag,
   von: string,
   bis: string,
   heute: string,
@@ -238,22 +293,19 @@ function tagesDefiziteMitDatum(
   const bewegung = bewegungKcalProTag(db, von, bis);
   return rows.map((r) => ({
     datum: r.datum,
-    defizit:
-      vorgabeFuerTag(versionenAsc, r.datum).gesamtumsatz +
-      (bewegung.get(r.datum) ?? 0) -
-      r.kcal,
+    defizit: umsatz(r.datum) + (bewegung.get(r.datum) ?? 0) - r.kcal,
   }));
 }
 
 /** Nur die Defizitwerte (fuer Median/Summe der Fortschrittsrechnung). */
 function tagesDefizite(
   db: Database,
-  versionenAsc: Vorgabe[],
+  umsatz: UmsatzFuerTag,
   von: string,
   bis: string,
   heute: string,
 ): number[] {
-  return tagesDefiziteMitDatum(db, versionenAsc, von, bis, heute).map(
+  return tagesDefiziteMitDatum(db, umsatz, von, bis, heute).map(
     (t) => t.defizit,
   );
 }
@@ -265,7 +317,7 @@ export function getDefizitVerlauf(
   bis: string,
   heute: string,
 ): DefizitTag[] {
-  return tagesDefiziteMitDatum(db, ladeVersionenAsc(db), von, bis, heute);
+  return tagesDefiziteMitDatum(db, ladeUmsatzKontext(db), von, bis, heute);
 }
 
 /** Median einer nicht-leeren Zahlenliste. */
@@ -324,14 +376,8 @@ export function getAbnehmFortschritt(
       gewicht_prozent_gesamt: 0,
     };
   }
-  const versionenAsc = ladeVersionenAsc(db);
-  const defizite = tagesDefizite(
-    db,
-    versionenAsc,
-    ziel.gueltig_ab,
-    heute,
-    heute,
-  );
+  const umsatz = ladeUmsatzKontext(db);
+  const defizite = tagesDefizite(db, umsatz, ziel.gueltig_ab, heute, heute);
   const erreicht_kcal = defizite.reduce((a, b) => a + b, 0);
   const benoetigt_kcal = benoetigtesDefizitKcal(ziel.ziel_gramm);
   // Ungerundet zurueckgeben; die Anzeige formatiert auf zwei Nachkommastellen.
@@ -344,7 +390,7 @@ export function getAbnehmFortschritt(
 
   // Defizit des Vortags (heute − 1); null, wenn dort keine Eintraege liegen.
   const vortag = verschiebeDatum(heute, -1);
-  const vortagWin = fenster(db, versionenAsc, vortag, vortag, heute);
+  const vortagWin = fenster(db, umsatz, vortag, vortag, heute);
   const vortag_defizit = vortagWin.tage > 0 ? vortagWin.defizit : null;
 
   // Tatsaechliche Gewichtsabnahme seit Festlegung (nur nicht ausgeschlossene

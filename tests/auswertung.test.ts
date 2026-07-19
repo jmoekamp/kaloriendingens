@@ -4,6 +4,8 @@ import { openDb } from '../server/db/index.ts';
 import { createLebensmittel } from '../server/repos/lebensmittel.ts';
 import { createEintrag } from '../server/repos/eintraege.ts';
 import { upsertVorgabe } from '../server/repos/vorgaben.ts';
+import { updateKoerperdaten } from '../server/repos/koerperdaten.ts';
+import { upsertGewicht } from '../server/repos/gewicht.ts';
 import type { VorgabeInput } from '../shared/types.ts';
 import {
   getDefizitReport,
@@ -127,6 +129,38 @@ describe('Defizit', () => {
     const r = getDefizitReport(db, '2026-07-15');
     expect(r.gesamt.tage).toBe(1);
     expect(r.gesamt.defizit).toBe(2400 - 67);
+  });
+});
+
+describe('Berechneter Gesamtumsatz (Mifflin-St Jeor)', () => {
+  it('nutzt das tagesgueltige Gewicht statt des manuellen Werts', () => {
+    updateKoerperdaten(db, {
+      modus: 'berechnet',
+      groesse_cm: 180,
+      geschlecht: 'm',
+      geburtsjahr: 1985,
+      aktivitaetsfaktor: 1.55,
+    });
+    upsertGewicht(db, { datum: '2026-07-15', gramm: 90000, aus_trend: false });
+    iss('2026-07-15', 250); // 168 kcal
+    // BMR = 900 + 1125 − 5·41 + 5 = 1825; ×1,55 = 2828,75 → 2829.
+    const r = getDefizitReport(db, '2026-07-15');
+    expect(r.gesamtumsatz).toBe(2829);
+    expect(r.tag.defizit).toBe(2829 - 168);
+  });
+
+  it('faellt ohne Gewicht auf den manuellen Wert zurueck', () => {
+    updateKoerperdaten(db, {
+      modus: 'berechnet',
+      groesse_cm: 180,
+      geschlecht: 'm',
+      geburtsjahr: 1985,
+      aktivitaetsfaktor: 1.55,
+    });
+    vorgabe({ gesamtumsatz: 2400 });
+    iss('2026-07-15', 250);
+    const r = getDefizitReport(db, '2026-07-15');
+    expect(r.gesamtumsatz).toBe(2400); // kein Gewicht -> Fallback
   });
 });
 

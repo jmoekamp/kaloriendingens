@@ -287,6 +287,37 @@ export interface AbnehmFortschritt {
   gewicht_prozent_gesamt: number;
 }
 
+/** Geschlecht fuer die Grundumsatz-Formel. */
+export type Geschlecht = 'm' | 'w';
+
+/** Quelle des Gesamtumsatzes: manuell gesetzt oder aus Koerperdaten berechnet. */
+export type GesamtumsatzModus = 'manuell' | 'berechnet';
+
+/**
+ * Koerperdaten fuer die Gesamtumsatz-Berechnung (Mifflin-St Jeor). Nicht
+ * versioniert; das taegliche Gewicht kommt aus den Messungen. Bei modus =
+ * 'berechnet' und vollstaendigen Daten wird der Gesamtumsatz je Tag daraus
+ * berechnet, sonst gilt der manuelle (versionierte) Wert.
+ */
+export interface Koerperdaten {
+  groesse_cm: number; // 0 = nicht gesetzt
+  geschlecht: Geschlecht;
+  geburtsjahr: number; // 0 = nicht gesetzt
+  aktivitaetsfaktor: number; // z. B. 1.55
+  modus: GesamtumsatzModus;
+}
+
+/** Teilweise Aktualisierung der Koerperdaten. */
+export type KoerperdatenInput = Partial<Koerperdaten>;
+
+/** Koerperdaten samt abgeleiteter Anzeige-Werte (aktuelles Gewicht + heutiger Umsatz). */
+export interface KoerperdatenAnsicht extends Koerperdaten {
+  /** Letzte Gewichtsmessung bis heute (Gramm) oder null. */
+  aktuelles_gewicht_gramm: number | null;
+  /** Der fuer heute geltende Gesamtumsatz (berechnet oder manuell). */
+  gesamtumsatz_heute: number;
+}
+
 /** Standard-Fehlerantwort des Backends. */
 export interface ApiErrorBody {
   error: string;

@@ -22,6 +22,7 @@ import { eintraegeRouter } from './routes/eintraege.ts';
 import { bewegungRouter } from './routes/bewegung.ts';
 import { gewichtRouter } from './routes/gewicht.ts';
 import { vorgabenRouter } from './routes/vorgaben.ts';
+import { koerperdatenRouter } from './routes/koerperdaten.ts';
 import { abnehmzieleRouter } from './routes/abnehmziele.ts';
 import { auswertungRouter } from './routes/auswertung.ts';
 
@@ -54,6 +55,7 @@ app.use('/api/eintraege', requireDatenNutzer, eintraegeRouter);
 app.use('/api/bewegung', requireDatenNutzer, bewegungRouter);
 app.use('/api/gewicht', requireDatenNutzer, gewichtRouter);
 app.use('/api/vorgaben', requireDatenNutzer, vorgabenRouter);
+app.use('/api/koerperdaten', requireDatenNutzer, koerperdatenRouter);
 app.use('/api/abnehmziele', requireDatenNutzer, abnehmzieleRouter);
 app.use('/api/auswertung', requireDatenNutzer, auswertungRouter);
 

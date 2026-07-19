@@ -51,7 +51,13 @@ Port **3010**.
   Aktivität erhöht dann den Verbrauch dieses Tages.
 - **Ziele:** Kalorien- und Eiweißziel, je als Minimum ODER Maximum definierbar.
 - **Gesamtumsatz:** Täglicher Gesamtumsatz (kcal/Tag) als Grundlage für das
-  Kaloriendefizit.
+  Kaloriendefizit. Umschaltbar **manuell** (versionierter Wert je Vorgabe) oder
+  **berechnet**: aus Körperdaten (Größe, Geschlecht, Geburtsjahr, Aktivitätsfaktor)
+  und dem **an dem Tag gültigen Gewicht** (letzte Messung ≤ Tag) nach Mifflin‑St
+  Jeor × Aktivitätsfaktor. Der Gesamtumsatz sinkt so automatisch mit dem Gewicht.
+  Ohne Gewicht an einem Tag greift der manuelle Wert als Rückfall.
+  (`shared/umsatz.ts`, Körperdaten in der Key‑Value‑Tabelle, `gesamtumsatzFuerTag`
+  in `server/repos/auswertung.ts`.)
 - **Zeitversionierte Vorgaben:** Ziele und Gesamtumsatz werden je Stichtag
   (`gueltig_ab`) gespeichert. Eine neue Vorgabe ändert nur Tage ab ihrem Stichtag;
   frühere Tage behalten die davor gültige Vorgabe. So lässt sich der mit

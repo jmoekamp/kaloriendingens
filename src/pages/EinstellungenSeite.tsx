@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import type {
   Abnehmziel,
   AuthUser,
+  Geschlecht,
+  GesamtumsatzModus,
+  KoerperdatenAnsicht,
   Vorgabe,
   ZielTyp,
 } from '../../shared/types.ts';
@@ -22,8 +25,13 @@ import {
   parseGrammToDg,
   parseKgToGramm,
 } from '../../shared/naehrwerte.ts';
+import {
+  AKTIVITAETSSTUFEN,
+  gesamtumsatzBerechnet,
+} from '../../shared/umsatz.ts';
 import { formatDatum, heuteIso, vorMonaten } from '../lib/format.ts';
 import { vorgabenApi } from '../lib/vorgaben.ts';
+import { koerperdatenApi } from '../lib/koerperdaten.ts';
 import { abnehmzieleApi } from '../lib/abnehmziele.ts';
 import { authApi } from '../lib/auth.ts';
 
@@ -63,6 +71,7 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
   const istAdmin = aktiver.ist_admin;
   const [versionen, setVersionen] = useState<Vorgabe[]>([]);
   const [form, setForm] = useState<FormState | null>(null);
+  const [koerper, setKoerper] = useState<KoerperdatenAnsicht | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [gespeichert, setGespeichert] = useState(false);
   const [speichert, setSpeichert] = useState(false);
@@ -74,6 +83,10 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
         setVersionen(vs);
         setForm((f) => f ?? neuerForm(vs));
       })
+      .catch((e) => setFehler(meldung(e)));
+    koerperdatenApi
+      .get()
+      .then(setKoerper)
       .catch((e) => setFehler(meldung(e)));
   }
 
@@ -247,15 +260,23 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
                 </div>
               </div>
 
-              <Field label="Gesamtumsatz (kcal/Tag)">
-                <TextInput
-                  className="w-48 tabular"
-                  value={form.gesamtumsatz}
-                  onChange={(e) => set('gesamtumsatz', e.target.value)}
-                  inputMode="numeric"
-                  placeholder="z. B. 2400"
-                />
-              </Field>
+              {koerper?.modus === 'berechnet' ? (
+                <p className="text-sm text-text-muted">
+                  Gesamtumsatz wird aus den Körperdaten berechnet (siehe Karte
+                  „Körperdaten & Gesamtumsatz"). Das manuelle Feld ist deshalb
+                  ausgeblendet.
+                </p>
+              ) : (
+                <Field label="Gesamtumsatz (kcal/Tag)">
+                  <TextInput
+                    className="w-48 tabular"
+                    value={form.gesamtumsatz}
+                    onChange={(e) => set('gesamtumsatz', e.target.value)}
+                    inputMode="numeric"
+                    placeholder="z. B. 2400"
+                  />
+                </Field>
+              )}
 
               <div>
                 <Button type="submit" variant="primary" disabled={speichert}>
@@ -329,6 +350,10 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
         </>
       )}
 
+      {!istAdmin && koerper && (
+        <KoerperdatenKarte initial={koerper} onGespeichert={setKoerper} />
+      )}
+
       {!istAdmin && <AbnehmzielKarte />}
 
       <PasswortKarte />
@@ -349,6 +374,174 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
         </a>
       </Card>
     </div>
+  );
+}
+
+/** Karte für Körperdaten + Modus (manuell/berechnet) mit Live-Vorschau. */
+function KoerperdatenKarte({
+  initial,
+  onGespeichert,
+}: {
+  initial: KoerperdatenAnsicht;
+  onGespeichert: (k: KoerperdatenAnsicht) => void;
+}) {
+  const [modus, setModus] = useState<GesamtumsatzModus>(initial.modus);
+  const [groesse, setGroesse] = useState(
+    initial.groesse_cm === 0 ? '' : String(initial.groesse_cm),
+  );
+  const [geschlecht, setGeschlecht] = useState<Geschlecht>(initial.geschlecht);
+  const [geburtsjahr, setGeburtsjahr] = useState(
+    initial.geburtsjahr === 0 ? '' : String(initial.geburtsjahr),
+  );
+  const [faktor, setFaktor] = useState(String(initial.aktivitaetsfaktor));
+  const [fehler, setFehler] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+  const [speichert, setSpeichert] = useState(false);
+
+  const groesseNum = parseGanzzahl(groesse);
+  const jahrNum = parseGanzzahl(geburtsjahr);
+  const faktorNum = Number(faktor);
+  const gewicht = initial.aktuelles_gewicht_gramm;
+  const vollstaendig =
+    groesseNum !== null && groesseNum > 0 && jahrNum !== null && jahrNum > 0;
+  const vorschau =
+    vollstaendig && gewicht !== null && Number.isFinite(faktorNum)
+      ? gesamtumsatzBerechnet(
+          gewicht,
+          groesseNum as number,
+          new Date().getFullYear() - (jahrNum as number),
+          geschlecht,
+          faktorNum,
+        )
+      : null;
+
+  async function speichern(e: React.FormEvent) {
+    e.preventDefault();
+    setFehler(null);
+    setOk(false);
+    if (modus === 'berechnet') {
+      if (groesseNum === null || groesseNum <= 0) {
+        setFehler('Bitte Größe (cm) eingeben.');
+        return;
+      }
+      if (jahrNum === null || jahrNum <= 0) {
+        setFehler('Bitte Geburtsjahr eingeben.');
+        return;
+      }
+    }
+    setSpeichert(true);
+    try {
+      const k = await koerperdatenApi.update({
+        modus,
+        groesse_cm: groesseNum ?? 0,
+        geschlecht,
+        geburtsjahr: jahrNum ?? 0,
+        aktivitaetsfaktor: faktorNum,
+      });
+      onGespeichert(k);
+      setOk(true);
+    } catch (err) {
+      setFehler(meldung(err));
+    } finally {
+      setSpeichert(false);
+    }
+  }
+
+  return (
+    <Card title="Körperdaten & Gesamtumsatz">
+      <form onSubmit={speichern} className="flex flex-col gap-4">
+        {fehler && (
+          <Banner kind="error" onClose={() => setFehler(null)}>
+            {fehler}
+          </Banner>
+        )}
+        {ok && (
+          <Banner kind="success" onClose={() => setOk(false)}>
+            Körperdaten gespeichert.
+          </Banner>
+        )}
+        <Field label="Gesamtumsatz">
+          <Select
+            className="w-72"
+            value={modus}
+            onChange={(e) => setModus(e.target.value as GesamtumsatzModus)}
+          >
+            <option value="manuell">manuell (Wert je Vorgabe eintragen)</option>
+            <option value="berechnet">
+              berechnet (aus Körperdaten + Gewicht)
+            </option>
+          </Select>
+        </Field>
+
+        {modus === 'berechnet' && (
+          <>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="Größe (cm)">
+                <TextInput
+                  className="tabular"
+                  value={groesse}
+                  onChange={(e) => setGroesse(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="z. B. 180"
+                />
+              </Field>
+              <Field label="Geschlecht">
+                <Select
+                  value={geschlecht}
+                  onChange={(e) => setGeschlecht(e.target.value as Geschlecht)}
+                >
+                  <option value="m">männlich</option>
+                  <option value="w">weiblich</option>
+                </Select>
+              </Field>
+              <Field label="Geburtsjahr">
+                <TextInput
+                  className="tabular"
+                  value={geburtsjahr}
+                  onChange={(e) => setGeburtsjahr(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="z. B. 1985"
+                />
+              </Field>
+              <Field label="Aktivität">
+                <Select
+                  value={faktor}
+                  onChange={(e) => setFaktor(e.target.value)}
+                >
+                  {AKTIVITAETSSTUFEN.map((s) => (
+                    <option key={s.faktor} value={s.faktor}>
+                      {s.label} (×{s.faktor})
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+            <p className="text-sm text-text-muted">
+              {gewicht === null ? (
+                'Noch kein Gewicht erfasst – trage ein Tagesgewicht ein, damit der Gesamtumsatz berechnet werden kann.'
+              ) : vorschau !== null ? (
+                <>
+                  Aktuell berechneter Gesamtumsatz:{' '}
+                  <span className="font-bold text-text">
+                    {formatKcal(vorschau)} kcal/Tag
+                  </span>{' '}
+                  (bei {formatKg(gewicht)} kg). Für die Auswertung zählt je Tag
+                  das an dem Tag gültige Gewicht.
+                </>
+              ) : (
+                'Bitte Größe und Geburtsjahr ausfüllen.'
+              )}
+            </p>
+          </>
+        )}
+
+        <div>
+          <Button type="submit" variant="primary" disabled={speichert}>
+            {speichert ? 'Speichert …' : 'Speichern'}
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 }
 

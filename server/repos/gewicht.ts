@@ -100,6 +100,28 @@ export function erstesGewichtGesamt(db: Database, bis: string): Gewicht | null {
   return row ? toGewicht(row) : null;
 }
 
+/** Letzte Messung bis (inkl.) `bis`, UNABHAENGIG von aus_trend. null = keine. */
+export function letztesGewichtGesamt(
+  db: Database,
+  bis: string,
+): Gewicht | null {
+  const row = db
+    .prepare(`${SELECT} AND datum <= @bis ORDER BY datum DESC LIMIT 1`)
+    .get({ mandant: aktuellerMandant(), bis }) as GewichtRow | undefined;
+  return row ? toGewicht(row) : null;
+}
+
+/** Alle Messungen aufsteigend (inkl. aus_trend) – fuer die tagesgenaue Umsatzberechnung. */
+export function alleGewichteAsc(
+  db: Database,
+): { datum: string; gramm: number }[] {
+  return db
+    .prepare(
+      'SELECT datum, gramm FROM gewicht WHERE mandant_id = ? ORDER BY datum ASC',
+    )
+    .all(aktuellerMandant()) as { datum: string; gramm: number }[];
+}
+
 /** Letzte NICHT ausgeschlossene Messung bis (inkl.) `bis`. null, wenn keine. */
 export function letztesGewichtBis(db: Database, bis: string): Gewicht | null {
   const row = db

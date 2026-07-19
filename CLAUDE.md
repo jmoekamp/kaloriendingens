@@ -100,7 +100,9 @@ Port **3010**.
   LinienChart kann über `serien` mehrere Linien zeichnen). Die Bewegung zählt auf
   die Verbrauchsseite; die Fläche zwischen „Gesamtumsatz + Bewegung" und
   „Aufnahme" ist als **Tagesdefizit** farbig hervorgehoben (grün = Defizit, rot =
-  Überschuss; `differenz`-Prop des LinienChart). Das Gewicht wird
+  Überschuss; `differenz`-Prop des LinienChart). Ein fünftes Diagramm zeigt nur
+  das **Tagesdefizit** (Gesamtumsatz + Bewegung − Aufnahme, `defizit-verlauf`)
+  als Linie gegen eine Null-Linie, ebenfalls grün/rot geschattet. Das Gewicht wird
   zusätzlich mit
   einer gestrichelten **linearen
   Ausgleichsgeraden** (Regression, `regression`) versehen; die Trendrate wird als

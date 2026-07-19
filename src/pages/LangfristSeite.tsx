@@ -228,6 +228,15 @@ export default function LangfristSeite({
   const aufnahmePunkte: ChartPunkt[] = kalorien
     .filter((k) => k.aufnahme !== null)
     .map((k) => ({ datum: k.datum, wert: k.aufnahme as number }));
+  // Defizit-Diagramm: Tagesdefizit (Gesamtumsatz + Bewegung − Aufnahme) + Null-Linie.
+  const defizitPunkte: ChartPunkt[] = defizitTage.map((d) => ({
+    datum: d.datum,
+    wert: d.defizit,
+  }));
+  const nullPunkte: ChartPunkt[] = defizitTage.map((d) => ({
+    datum: d.datum,
+    wert: 0,
+  }));
   // Trend aus linearer Regression – nur ueber Messungen, die im Trend zaehlen.
   const trendMessungen = gewicht.filter((g) => !g.aus_trend);
   const gewichtReg = lineareRegression(
@@ -527,6 +536,32 @@ export default function LangfristSeite({
           ]}
           differenz={{
             serie: 1,
+            ueberFarbe: '#63b784',
+            unterFarbe: '#d0654f',
+          }}
+        />
+
+        <div className="mb-2 mt-6 flex flex-wrap items-baseline justify-between gap-2">
+          <span className="text-sm font-bold text-text-muted">
+            Tagesdefizit (kcal)
+          </span>
+          <span className="text-xs text-text-muted">
+            Gesamtumsatz + Bewegung − Aufnahme ·{' '}
+            <span className="text-[#63b784]">grün</span> = Defizit,{' '}
+            <span className="text-[#d0654f]">rot</span> = Überschuss
+          </span>
+        </div>
+        <LinienChart
+          von={von}
+          bis={bis}
+          punkte={defizitPunkte}
+          farbe="#dfe6ee"
+          formatWert={formatKcal}
+          nullbasis={false}
+          flaeche={false}
+          serien={[{ punkte: nullPunkte, farbe: '#6b7784', verbinden: true }]}
+          differenz={{
+            serie: 0,
             ueberFarbe: '#63b784',
             unterFarbe: '#d0654f',
           }}

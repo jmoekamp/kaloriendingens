@@ -139,6 +139,25 @@ describe('Abnehmfortschritt', () => {
     expect(f.gewicht_prozent_gesamt).toBeCloseTo((2000 / 6000) * 100, 6); // 33,3 %
   });
 
+  it('prognostiziert den Zieltermin aus dem Gewichtstrend', () => {
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 5000 });
+    // −1000 g in 14 Tagen -> −500 g/Woche; Zielgewicht 82000−5000=77000.
+    upsertGewicht(db, { datum: '2026-06-01', gramm: 82000, aus_trend: false });
+    upsertGewicht(db, { datum: '2026-06-15', gramm: 81000, aus_trend: false });
+    const f = getAbnehmFortschritt(db, '2026-06-30');
+    expect(f.trend_gramm_pro_woche).toBeCloseTo(-500, 6);
+    // Steigung −1000/14 g/Tag; 5000 g brauchen 70 Tage ab dem Startpunkt.
+    expect(f.prognose_gewichtstrend).toBe(verschiebeDatum('2026-06-01', 70));
+  });
+
+  it('gibt keine Trendprognose ohne Abnehmtrend', () => {
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 5000 });
+    upsertGewicht(db, { datum: '2026-06-01', gramm: 82000, aus_trend: false });
+    upsertGewicht(db, { datum: '2026-06-15', gramm: 82500, aus_trend: false }); // steigt
+    const f = getAbnehmFortschritt(db, '2026-06-30');
+    expect(f.prognose_gewichtstrend).toBeNull();
+  });
+
   it('liefert null-Gewichte, wenn seit Festlegung nichts gewogen wurde', () => {
     upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 5000 });
     const f = getAbnehmFortschritt(db, '2026-06-30');

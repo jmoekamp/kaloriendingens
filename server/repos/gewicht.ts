@@ -122,6 +122,23 @@ export function alleGewichteAsc(
     .all(aktuellerMandant()) as { datum: string; gramm: number }[];
 }
 
+/** Nicht ausgeschlossene Messungen bis heute, aufsteigend – fuer die Trend-Regression. */
+export function gewichteImTrendBis(
+  db: Database,
+  bis: string,
+): { datum: string; gramm: number }[] {
+  return db
+    .prepare(
+      `SELECT datum, gramm FROM gewicht
+        WHERE mandant_id = @mandant AND aus_trend = 0 AND datum <= @bis
+        ORDER BY datum ASC`,
+    )
+    .all({ mandant: aktuellerMandant(), bis }) as {
+    datum: string;
+    gramm: number;
+  }[];
+}
+
 /** Letzte NICHT ausgeschlossene Messung bis (inkl.) `bis`. null, wenn keine. */
 export function letztesGewichtBis(db: Database, bis: string): Gewicht | null {
   const row = db

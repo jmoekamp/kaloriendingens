@@ -70,7 +70,10 @@ Port **3010**.
   Das erste angelegte Abnehmziel bekommt als Startdatum standardmäßig „heute − 1
   Monat" (damit der bereits erfasste Vormonat einzahlt). Zusätzlich werden zwei
   Prognosen für das Erreichen des Restdefizits gezeigt: beim Median-Tagesdefizit
-  seit Festlegung und beim Defizit wie am Vortag (jeweils als Zieldatum).
+  seit Festlegung, beim Defizit wie am Vortag und – rein messbasiert – **aus dem
+  Gewichtstrend** (lineare Regression über die nicht ausgeschlossenen Messungen:
+  Wann trifft die Trendgerade das Zielgewicht? `prognose_gewichtstrend`,
+  `trend_gramm_pro_woche`). Jeweils als Zieldatum.
   Neben dem Defizit-Balken gibt es zwei Gewichtsbalken: (a) **seit Festlegung**
   (Startgewicht = erste NICHT ausgeschlossene Messung ab `gueltig_ab`, ohne
   Wasser-Tage) und (b) **ab der ersten Messung** (allererste Messung inkl.

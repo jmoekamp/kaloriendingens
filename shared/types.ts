@@ -303,6 +303,10 @@ export interface AbnehmFortschritt {
   ziel_gesamt_gramm: number;
   /** Anteil am (erweiterten) Ziel seit der ersten Messung in Prozent (ungerundet). */
   gewicht_prozent_gesamt: number;
+  /** Trendrate aus der Gewichts-Regression (Gramm/Woche); null = zu wenige Messungen. */
+  trend_gramm_pro_woche: number | null;
+  /** Prognose-Datum, an dem der Gewichtstrend das Zielgewicht erreicht; null wenn nicht absehbar. */
+  prognose_gewichtstrend: string | null;
 }
 
 /** Geschlecht fuer die Grundumsatz-Formel. */

@@ -14,6 +14,7 @@ import { aktuellerMandant } from '../db/index.ts';
 import {
   benoetigtesDefizitKcal,
   bewerteZiel,
+  lineareRegression,
 } from '../../shared/naehrwerte.ts';
 import { gesamtumsatzBerechnet } from '../../shared/umsatz.ts';
 import { listEintraegeFuerTag } from './eintraege.ts';
@@ -22,6 +23,7 @@ import {
   alleGewichteAsc,
   erstesGewichtAb,
   erstesGewichtGesamt,
+  gewichteImTrendBis,
   letztesGewichtBis,
 } from './gewicht.ts';
 import { getKoerperdaten, koerperdatenVollstaendig } from './koerperdaten.ts';
@@ -111,6 +113,17 @@ export function verschiebeDatum(iso: string, tage: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + tage);
   return d.toISOString().slice(0, 10);
+}
+
+/** Tagesnummer (Tage seit Epoche, UTC) fuer die Regression. */
+function tagNummer(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number);
+  return Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
+}
+
+/** Umkehrung: Tagesnummer -> YYYY-MM-DD. */
+function fromTag(n: number): string {
+  return new Date(n * 86_400_000).toISOString().slice(0, 10);
 }
 
 /** Tagesauswertung inkl. Zielbewertung fuer kcal und Eiweiss. */
@@ -427,6 +440,8 @@ export function getAbnehmFortschritt(
       abgenommen_gesamt_gramm: 0,
       ziel_gesamt_gramm: 0,
       gewicht_prozent_gesamt: 0,
+      trend_gramm_pro_woche: null,
+      prognose_gewichtstrend: null,
     };
   }
   const umsatz = ladeUmsatzKontext(db);
@@ -475,6 +490,22 @@ export function getAbnehmFortschritt(
       ? (abgenommen_gesamt_gramm / ziel_gesamt_gramm) * 100
       : 0;
 
+  // Zieltermin aus dem Gewichtstrend (Regression ueber nicht ausgeschlossene
+  // Messungen bis heute): Wann trifft die Trendgerade das Zielgewicht?
+  const trendW = gewichteImTrendBis(db, heute);
+  const reg = lineareRegression(
+    trendW.map((w) => tagNummer(w.datum)),
+    trendW.map((w) => w.gramm),
+  );
+  const trend_gramm_pro_woche = reg ? reg.steigung * 7 : null;
+  let prognose_gewichtstrend: string | null = null;
+  if (reg && reg.steigung < 0 && start_gewicht_gramm !== null) {
+    const zielgewicht = start_gewicht_gramm - ziel.ziel_gramm;
+    const xZiel = (zielgewicht - reg.achsenabschnitt) / reg.steigung;
+    if (Number.isFinite(xZiel))
+      prognose_gewichtstrend = fromTag(Math.round(xZiel));
+  }
+
   return {
     hat_ziel: true,
     gueltig_ab: ziel.gueltig_ab,
@@ -496,5 +527,7 @@ export function getAbnehmFortschritt(
     abgenommen_gesamt_gramm,
     ziel_gesamt_gramm,
     gewicht_prozent_gesamt,
+    trend_gramm_pro_woche,
+    prognose_gewichtstrend,
   };
 }

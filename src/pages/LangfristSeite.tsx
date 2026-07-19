@@ -349,8 +349,8 @@ export default function LangfristSeite({
                 leerHinweis="Noch keine Messung erfasst."
               />
 
-              {/* Prognosen: Median-Defizit seit Festlegung und Defizit wie am Vortag */}
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {/* Prognosen: Median-Defizit, Vortag, Gewichtstrend */}
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Prognose
                   titel="Ziel erreicht bei Median-Defizit seit Festlegung"
                   zielErreicht={abnehmen.ziel_erreicht}
@@ -366,6 +366,32 @@ export default function LangfristSeite({
                   rateText="Vortag"
                   keinWert="Am Vortag wurde nichts erfasst."
                 />
+                <div className="rounded-lg border border-border bg-surface-2 p-3">
+                  <div className="text-sm text-text-muted">
+                    Ziel erreicht laut Gewichtstrend
+                  </div>
+                  {abnehmen.start_gewicht_gramm !== null &&
+                  abnehmen.aktuell_gewicht_gramm !== null &&
+                  abnehmen.aktuell_gewicht_gramm <=
+                    abnehmen.start_gewicht_gramm - abnehmen.ziel_gramm ? (
+                    <div className="text-lg font-bold text-success">
+                      Ziel erreicht 🎉
+                    </div>
+                  ) : abnehmen.prognose_gewichtstrend ? (
+                    <div className="text-lg font-bold tabular">
+                      {formatDatum(abnehmen.prognose_gewichtstrend)}
+                    </div>
+                  ) : (
+                    <div className="text-text-muted">
+                      nicht absehbar (zu wenige Messungen oder kein Abnehmtrend)
+                    </div>
+                  )}
+                  {abnehmen.trend_gramm_pro_woche !== null && (
+                    <div className="mt-1 text-xs text-text-muted">
+                      Trend {formatKg(abnehmen.trend_gramm_pro_woche)} kg/Woche
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}

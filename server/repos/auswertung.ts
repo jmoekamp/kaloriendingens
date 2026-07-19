@@ -126,6 +126,9 @@ export function getTagesAuswertung(
   );
   // Die fuer diesen Tag gueltige Vorgabe (nicht die aktuelle) bewerten.
   const cfg = getVorgabeFuerTag(db, datum);
+  // Zusammenfassung: Leistungs-/Gesamtumsatz + Bewegung − Aufnahme = Defizit.
+  const gesamtumsatz = ladeUmsatzKontext(db)(datum);
+  const bewegung = bewegungKcalProTag(db, datum, datum).get(datum) ?? 0;
   return {
     datum,
     eintraege,
@@ -137,6 +140,9 @@ export function getTagesAuswertung(
       cfg.eiweiss_ziel_dg,
       cfg.eiweiss_ziel_typ,
     ),
+    gesamtumsatz,
+    bewegung,
+    defizit: gesamtumsatz + bewegung - summe_kcal,
   };
 }
 

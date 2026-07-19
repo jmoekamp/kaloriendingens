@@ -165,6 +165,12 @@ export interface TagesAuswertung {
   summe_eiweiss_dg: number;
   kcal: Zielbewertung;
   eiweiss: Zielbewertung;
+  /** Gesamtumsatz des Tages (berechnet oder vorgegeben, „Leistungsumsatz"). */
+  gesamtumsatz: number;
+  /** Summe der Bewegungskalorien des Tages. */
+  bewegung: number;
+  /** Tagesdefizit = gesamtumsatz + bewegung − summe_kcal. */
+  defizit: number;
 }
 
 /** Ein Punkt der Langzeit-Reihe (ein Tag mit Daten). */

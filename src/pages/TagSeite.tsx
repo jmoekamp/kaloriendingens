@@ -230,7 +230,7 @@ export default function TagSeite({
       </div>
 
       {/* Tagesgewicht */}
-      <GewichtAbschnitt datum={datum} />
+      <GewichtAbschnitt datum={datum} onAenderung={ladeTag} />
 
       {/* Erfassen */}
       <Card title="Gegessen erfassen">
@@ -305,6 +305,43 @@ export default function TagSeite({
             einheit="g"
           />
         </div>
+      )}
+
+      {/* Zusammenfassung: Leistungsumsatz + Bewegung − Aufnahme = Defizit */}
+      {auswertung && (
+        <Card title="Zusammenfassung">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 tabular">
+            <span>
+              <span className="text-text-muted">Leistungsumsatz</span>{' '}
+              <span className="font-bold">
+                {formatKcal(auswertung.gesamtumsatz)}
+              </span>
+            </span>
+            <span className="text-text-muted">+</span>
+            <span>
+              <span className="text-text-muted">Bewegung</span>{' '}
+              <span className="font-bold">
+                {formatKcal(auswertung.bewegung)}
+              </span>
+            </span>
+            <span className="text-text-muted">−</span>
+            <span>
+              <span className="text-text-muted">Aufnahme</span>{' '}
+              <span className="font-bold">
+                {formatKcal(auswertung.summe_kcal)}
+              </span>
+            </span>
+            <span className="text-text-muted">=</span>
+            <span
+              className={`text-lg font-bold ${
+                auswertung.defizit >= 0 ? 'text-success' : 'text-danger'
+              }`}
+            >
+              {auswertung.defizit >= 0 ? 'Defizit' : 'Überschuss'}{' '}
+              {formatKcal(auswertung.defizit)} kcal
+            </span>
+          </div>
+        </Card>
       )}
 
       {/* Eintraege des Tages */}
@@ -415,13 +452,19 @@ export default function TagSeite({
       </Card>
 
       {/* Bewegung des Tages */}
-      <BewegungAbschnitt datum={datum} />
+      <BewegungAbschnitt datum={datum} onAenderung={ladeTag} />
     </div>
   );
 }
 
 /** Tagesgewicht (eine Waage-Eingabe je Tag); wird im Report als Kurve gezeigt. */
-function GewichtAbschnitt({ datum }: { datum: string }) {
+function GewichtAbschnitt({
+  datum,
+  onAenderung,
+}: {
+  datum: string;
+  onAenderung?: () => void;
+}) {
   const [kg, setKg] = useState('');
   const [ausTrend, setAusTrend] = useState(false);
   const [vorhanden, setVorhanden] = useState(false);
@@ -456,6 +499,7 @@ function GewichtAbschnitt({ datum }: { datum: string }) {
       await gewichtApi.save(datum, gramm, ausTrend);
       setVorhanden(true);
       setOk(true);
+      onAenderung?.();
     } catch (err) {
       setFehler(meldung(err));
     } finally {
@@ -470,6 +514,7 @@ function GewichtAbschnitt({ datum }: { datum: string }) {
       setKg('');
       setVorhanden(false);
       setOk(false);
+      onAenderung?.();
     } catch (err) {
       setFehler(meldung(err));
     }
@@ -525,7 +570,13 @@ function GewichtAbschnitt({ datum }: { datum: string }) {
  * werden fuer den Tag zum Gesamtverbrauch hinzugezaehlt (wirkt aufs Defizit in
  * der Auswertung). In sich geschlossen: laedt und verwaltet den eigenen Tag.
  */
-function BewegungAbschnitt({ datum }: { datum: string }) {
+function BewegungAbschnitt({
+  datum,
+  onAenderung,
+}: {
+  datum: string;
+  onAenderung?: () => void;
+}) {
   const [liste, setListe] = useState<Bewegung[]>([]);
   const [uhrzeit, setUhrzeit] = useState(jetztUhrzeit());
   const [beschreibung, setBeschreibung] = useState('');
@@ -565,6 +616,7 @@ function BewegungAbschnitt({ datum }: { datum: string }) {
       setKcal('');
       setUhrzeit(jetztUhrzeit());
       laden();
+      onAenderung?.();
     } catch (err) {
       setFehler(meldung(err));
     } finally {
@@ -577,6 +629,7 @@ function BewegungAbschnitt({ datum }: { datum: string }) {
     try {
       await bewegungApi.remove(b.id);
       laden();
+      onAenderung?.();
     } catch (err) {
       setFehler(meldung(err));
     }

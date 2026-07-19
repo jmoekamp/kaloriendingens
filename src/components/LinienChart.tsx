@@ -391,8 +391,8 @@ export function LinienChart({
         sortiert.map((p, i) => (
           <text
             key={`lbl-${p.datum}`}
-            x={x(p.datum) - 4}
-            y={y(p.wert) + 12}
+            x={x(p.datum) - 8}
+            y={y(p.wert) + 18}
             textAnchor="end"
             className="fill-text-muted"
             fontSize={9}

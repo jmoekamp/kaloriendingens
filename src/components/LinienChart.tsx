@@ -93,9 +93,10 @@ export function LinienChart({
   differenz?: { serie: number; ueberFarbe: string; unterFarbe: string };
   /**
    * Kleines Text-Label je Hauptpunkt. Bekommt den Wert des Punkts und den Wert
-   * des ersten (fruehesten) Punkts (Basis) – z. B. fuer die Gewichtsreduktion.
+   * des vorherigen Punkts (null beim ersten) – z. B. fuer die Gewichtsreduktion
+   * gegenueber der vorherigen Messung.
    */
-  punktLabel?: (wert: number, basis: number) => string;
+  punktLabel?: (wert: number, vorher: number | null) => string;
 }) {
   if (punkte.length === 0) {
     return (
@@ -385,9 +386,9 @@ export function LinienChart({
         ),
       )}
 
-      {/* Kleines Label je Punkt (z. B. Gewichtsreduktion in kg). */}
+      {/* Kleines Label je Punkt (z. B. Gewichtsreduktion in kg zum Vorpunkt). */}
       {punktLabel &&
-        sortiert.map((p) => (
+        sortiert.map((p, i) => (
           <text
             key={`lbl-${p.datum}`}
             x={x(p.datum)}
@@ -396,7 +397,7 @@ export function LinienChart({
             className="fill-text-muted"
             fontSize={9}
           >
-            {punktLabel(p.wert, sortiert[0].wert)}
+            {punktLabel(p.wert, i === 0 ? null : sortiert[i - 1].wert)}
           </text>
         ))}
 

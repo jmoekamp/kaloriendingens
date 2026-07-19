@@ -560,8 +560,8 @@ export default function LangfristSeite({
           punkte={gewichtPunkte}
           farbe="#d0a35a"
           formatWert={(g) => formatKg(g)}
-          punktLabel={(g, basis) =>
-            g === basis ? '' : `${formatKg(g - basis)} kg`
+          punktLabel={(g, vorher) =>
+            vorher === null ? '' : `${formatKg(g - vorher)} kg`
           }
           nullbasis={false}
           verbinden

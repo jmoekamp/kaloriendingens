@@ -113,8 +113,8 @@ Port **3010**.
   das **Tagesdefizit** (Gesamtumsatz + Bewegung − Aufnahme, `defizit-verlauf`)
   als Linie gegen eine Null-Linie, ebenfalls grün/rot geschattet. Am
   Gewichtsdiagramm zeigt jeder Messpunkt zusätzlich ein kleines Label der
-  **Gewichtsreduktion in kg** gegenüber der ersten Messung im Zeitraum
-  (`punktLabel`-Prop des LinienChart). Das Gewicht wird zusätzlich mit
+  **Gewichtsreduktion in kg** gegenüber der vorherigen Messung
+  (`punktLabel`-Prop des LinienChart, bekommt Wert + Vorpunkt). Das Gewicht wird zusätzlich mit
   einer gestrichelten **linearen
   Ausgleichsgeraden** (Regression, `regression`) versehen; die Trendrate wird als
   kg/Woche angezeigt (`lineareRegression` in shared/naehrwerte). Eine zweite Linie

@@ -3,6 +3,7 @@ import {
   benoetigtesDefizitKcal,
   bewerteZiel,
   eiweissProKcal,
+  eiweissProKgKoerper,
   formatGramm,
   formatKcal,
   formatKg,
@@ -149,5 +150,12 @@ describe('Lineare Regression', () => {
     expect(grammProKcal(0)).toBeNull();
     expect(grammProGrammEiweiss(0)).toBeNull();
     expect(eiweissProKcal(67, 0)).toBe(0); // kein Eiweiss -> 0 je kcal
+  });
+
+  it('rechnet Eiweiss je kg Koerpergewicht', () => {
+    // 1200 dg (120 g) bei 80 kg -> 1,5 g/kg
+    expect(eiweissProKgKoerper(1200, 80000)).toBeCloseTo(1.5, 9);
+    expect(eiweissProKgKoerper(1200, null)).toBeNull();
+    expect(eiweissProKgKoerper(1200, 0)).toBeNull();
   });
 });

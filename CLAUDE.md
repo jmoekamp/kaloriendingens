@@ -89,7 +89,11 @@ Port **3010**.
   Abweichung vom Ziel. Default ist heute; jeder Tag ist anwählbar (Datumsnavigation).
   Eine **Zusammenfassungs-Karte** zeigt „Gesamtumsatz + Bewegung − Aufnahme =
   Defizit" für den Tag (`getTagesAuswertung` liefert `gesamtumsatz`, `bewegung`,
-  `defizit`; Gewicht/Bewegung-Änderungen laden den Tag neu).
+  `defizit`; Gewicht/Bewegung-Änderungen laden den Tag neu). Die Eiweiß-Zielkarte
+  zeigt zusätzlich das **Eiweiß je kg Körpergewicht** des Tages (g/kg, Richtwert
+  1,6–2,0 g/kg) auf Basis des tagesgültigen (Carry-forward-)Gewichts; ohne Gewicht
+  entfällt der Wert. `getTagesAuswertung` liefert dafür `gewicht_gramm` und
+  `eiweiss_pro_kg` (`eiweissProKgKoerper` in `shared/naehrwerte.ts`).
 - **Tagesgewicht:** Pro Tag lässt sich ein Gewicht (kg) eingeben (eine Waage-
   Eingabe je Tag, Upsert). Wird auf der Auswertungsseite als Liniendiagramm über
   den gewählten Zeitraum gezeigt (y-Achse skaliert auf den Datenbereich, nicht ab 0).

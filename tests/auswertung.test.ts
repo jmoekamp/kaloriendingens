@@ -134,6 +134,22 @@ describe('Defizit', () => {
   });
 });
 
+describe('Eiweiss pro kg (Tagesauswertung)', () => {
+  it('rechnet Eiweiss je kg mit dem tagesgueltigen Gewicht', () => {
+    upsertGewicht(db, { datum: '2026-07-15', gramm: 80000, aus_trend: false });
+    iss('2026-07-15', 1000); // 1000 g Quark -> 1200 dg = 120 g Eiweiss
+    const a = getTagesAuswertung(db, '2026-07-15');
+    expect(a.gewicht_gramm).toBe(80000);
+    expect(a.summe_eiweiss_dg).toBe(1200);
+    expect(a.eiweiss_pro_kg).toBeCloseTo(1.5, 6); // 120 g / 80 kg
+  });
+
+  it('liefert null ohne Gewicht', () => {
+    iss('2026-07-15', 250);
+    expect(getTagesAuswertung(db, '2026-07-15').eiweiss_pro_kg).toBeNull();
+  });
+});
+
 describe('Berechneter Gesamtumsatz (Mifflin-St Jeor)', () => {
   it('nutzt das tagesgueltige Gewicht statt des manuellen Werts', () => {
     updateKoerperdaten(db, {

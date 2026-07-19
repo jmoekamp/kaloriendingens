@@ -171,6 +171,10 @@ export interface TagesAuswertung {
   bewegung: number;
   /** Tagesdefizit = gesamtumsatz + bewegung − summe_kcal. */
   defizit: number;
+  /** Am Tag gueltiges Gewicht (Gramm, Carry-forward) oder null. */
+  gewicht_gramm: number | null;
+  /** Eiweiss je kg Koerpergewicht (g/kg) an dem Tag; null ohne Gewicht. */
+  eiweiss_pro_kg: number | null;
 }
 
 /** Ein Punkt der Langzeit-Reihe (ein Tag mit Daten). */

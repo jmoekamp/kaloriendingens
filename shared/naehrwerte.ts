@@ -103,6 +103,18 @@ export function grammProGrammEiweiss(eiweissDgPro100g: number): number | null {
 }
 
 /**
+ * Eiweiss (g) je kg Koerpergewicht: eiweissDg (Dezigramm) und gewichtGramm.
+ * null, wenn kein Gewicht vorliegt. Formel: (eiweissDg/10) / (gewichtGramm/1000).
+ */
+export function eiweissProKgKoerper(
+  eiweissDg: number,
+  gewichtGramm: number | null,
+): number | null {
+  if (gewichtGramm === null || gewichtGramm <= 0) return null;
+  return (eiweissDg * 100) / gewichtGramm;
+}
+
+/**
  * Lineare Regression (kleinste Quadrate) ueber Wertepaare (xs, ys). Liefert
  * Steigung und Achsenabschnitt der Ausgleichsgeraden y = steigung·x + abschnitt,
  * oder null, wenn zu wenige Punkte oder die x-Werte alle gleich sind.

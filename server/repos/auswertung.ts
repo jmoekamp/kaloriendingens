@@ -15,6 +15,7 @@ import { aktuellerMandant } from '../db/index.ts';
 import {
   benoetigtesDefizitKcal,
   bewerteZiel,
+  eiweissProKgKoerper,
   lineareRegression,
 } from '../../shared/naehrwerte.ts';
 import { gesamtumsatzBerechnet } from '../../shared/umsatz.ts';
@@ -143,6 +144,8 @@ export function getTagesAuswertung(
   // Zusammenfassung: Leistungs-/Gesamtumsatz + Bewegung − Aufnahme = Defizit.
   const gesamtumsatz = ladeUmsatzKontext(db)(datum);
   const bewegung = bewegungKcalProTag(db, datum, datum).get(datum) ?? 0;
+  // Am Tag gueltiges Gewicht (Carry-forward) fuer Eiweiss je kg Koerpergewicht.
+  const gewicht_gramm = gewichtFuerTag(alleGewichteAsc(db), datum);
   return {
     datum,
     eintraege,
@@ -157,6 +160,8 @@ export function getTagesAuswertung(
     gesamtumsatz,
     bewegung,
     defizit: gesamtumsatz + bewegung - summe_kcal,
+    gewicht_gramm,
+    eiweiss_pro_kg: eiweissProKgKoerper(summe_eiweiss_dg, gewicht_gramm),
   };
 }
 

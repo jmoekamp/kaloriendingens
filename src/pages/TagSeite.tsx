@@ -16,6 +16,7 @@ import {
   TextInput,
 } from '../components/ui.tsx';
 import {
+  formatDezimal,
   formatGramm,
   formatKcal,
   formatKg,
@@ -43,11 +44,13 @@ function Zielanzeige({
   bewertung,
   format,
   einheit,
+  zusatz,
 }: {
   titel: string;
   bewertung: Zielbewertung;
   format: (n: number) => string;
   einheit: string;
+  zusatz?: string;
 }) {
   const { summe, ziel, typ, abweichung, erfuellt, hat_ziel } = bewertung;
   const farbe = !hat_ziel
@@ -74,6 +77,7 @@ function Zielanzeige({
       ) : (
         <div className="mt-1 text-sm text-text-muted">Kein Ziel gesetzt.</div>
       )}
+      {zusatz && <div className="mt-1 text-sm text-text-muted">{zusatz}</div>}
     </div>
   );
 }
@@ -303,6 +307,11 @@ export default function TagSeite({
             bewertung={auswertung.eiweiss}
             format={formatGramm}
             einheit="g"
+            zusatz={
+              auswertung.eiweiss_pro_kg !== null
+                ? `${formatDezimal(auswertung.eiweiss_pro_kg)} g/kg Körpergewicht`
+                : undefined
+            }
           />
         </div>
       )}

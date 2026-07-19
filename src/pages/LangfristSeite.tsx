@@ -23,6 +23,7 @@ import {
   formatKcal,
   formatKg,
   formatProzent,
+  kumulierteAbnahme,
   lineareRegression,
 } from '../../shared/naehrwerte.ts';
 import {
@@ -269,6 +270,19 @@ export default function LangfristSeite({
       });
     }
   }
+
+  // Kumulierter Gewichtsverlust: erwartet (aus Defizit / 7000 kcal/kg) vs.
+  // gemessen (Anker − Messung), beide als Abnahme in Gramm ab dem gemeinsamen
+  // Startpunkt (erste nicht ausgeschlossene Messung).
+  const abnahme = kumulierteAbnahme(gewicht, defizitTage);
+  const erwartetVerlustPunkte: ChartPunkt[] = abnahme.erwartet.map((p) => ({
+    datum: p.datum,
+    wert: p.verlust_gramm,
+  }));
+  const gemessenVerlustPunkte: ChartPunkt[] = abnahme.gemessen.map((p) => ({
+    datum: p.datum,
+    wert: p.verlust_gramm,
+  }));
 
   // Trend-Zugehoerigkeit einer Messung direkt vom Report aus umschalten.
   async function trendUmschalten(g: GewichtPunkt, imTrend: boolean) {
@@ -657,6 +671,33 @@ export default function LangfristSeite({
             ueberFarbe: '#63b784',
             unterFarbe: '#d0654f',
           }}
+        />
+
+        <div className="mb-2 mt-6 flex flex-wrap items-baseline justify-between gap-2">
+          <span className="text-sm font-bold text-text-muted">
+            Kumulierter Gewichtsverlust (kg)
+          </span>
+          <span className="text-xs text-text-muted">
+            <span className="text-[#5aa0d8]">erwartet aus Defizit</span>{' '}
+            (7000&nbsp;kcal/kg) ·{' '}
+            <span className="text-[#d0a35a]">gemessen</span> · ab der ersten
+            nicht ausgeschlossenen Messung
+          </span>
+        </div>
+        <LinienChart
+          von={von}
+          bis={bis}
+          punkte={erwartetVerlustPunkte}
+          farbe="#5aa0d8"
+          formatWert={(g) => formatKg(g)}
+          verbinden
+          serien={[
+            {
+              punkte: gemessenVerlustPunkte,
+              farbe: '#d0a35a',
+              verbinden: true,
+            },
+          ]}
         />
       </Card>
 

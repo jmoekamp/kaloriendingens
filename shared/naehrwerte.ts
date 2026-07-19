@@ -114,6 +114,51 @@ export function eiweissProKgKoerper(
   return (eiweissDg * 100) / gewichtGramm;
 }
 
+/** Ein kumulierter Abnahme-Wert (Gramm Verlust ab dem Startpunkt) an einem Tag. */
+export interface AbnahmePunkt {
+  datum: string;
+  /** Kumulierter Gewichtsverlust in Gramm (positiv = abgenommen). */
+  verlust_gramm: number;
+}
+
+/**
+ * Kumulierter Gewichtsverlust – erwartet (aus dem Defizit) vs. gemessen.
+ *
+ * Ausgangspunkt ist die erste NICHT ausgeschlossene Messung (Anker); dort ist
+ * der Verlust in beiden Reihen 0. `erwartet` addiert ab dem Tag nach dem Anker
+ * je Tag das Tagesdefizit auf und rechnet es ueber 7000 kcal/kg in Gramm um
+ * (Gramm = Defizit_kcal / 7). `gemessen` ist je nicht ausgeschlossener Messung
+ * ab dem Anker die Differenz Anker − Messung. So lassen sich beide Reihen direkt
+ * vergleichen (voraus/hinterher gegenueber dem 7000-kcal/kg-Modell). Ohne
+ * verwertbare Messung sind beide Reihen leer.
+ */
+export function kumulierteAbnahme(
+  gewichte: { datum: string; gramm: number; aus_trend: boolean }[],
+  defizitTage: { datum: string; defizit: number }[],
+): { erwartet: AbnahmePunkt[]; gemessen: AbnahmePunkt[] } {
+  const messungen = gewichte
+    .filter((g) => !g.aus_trend)
+    .sort((a, b) => (a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0));
+  if (messungen.length === 0) return { erwartet: [], gemessen: [] };
+
+  const anker = messungen[0];
+  const gemessen: AbnahmePunkt[] = messungen.map((m) => ({
+    datum: m.datum,
+    verlust_gramm: anker.gramm - m.gramm,
+  }));
+
+  const erwartet: AbnahmePunkt[] = [{ datum: anker.datum, verlust_gramm: 0 }];
+  let kumDefizit = 0;
+  for (const d of [...defizitTage].sort((a, b) =>
+    a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0,
+  )) {
+    if (d.datum <= anker.datum) continue; // erst ab dem Tag NACH dem Anker
+    kumDefizit += d.defizit;
+    erwartet.push({ datum: d.datum, verlust_gramm: kumDefizit / 7 });
+  }
+  return { erwartet, gemessen };
+}
+
 /**
  * Lineare Regression (kleinste Quadrate) ueber Wertepaare (xs, ys). Liefert
  * Steigung und Achsenabschnitt der Ausgleichsgeraden y = steigung·x + abschnitt,

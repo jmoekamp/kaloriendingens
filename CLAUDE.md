@@ -115,7 +115,14 @@ Port **3010**.
   „Aufnahme" ist als **Tagesdefizit** farbig hervorgehoben (grün = Defizit, rot =
   Überschuss; `differenz`-Prop des LinienChart). Ein fünftes Diagramm zeigt nur
   das **Tagesdefizit** (Gesamtumsatz + Bewegung − Aufnahme, `defizit-verlauf`)
-  als Linie gegen eine Null-Linie, ebenfalls grün/rot geschattet. Am
+  als Linie gegen eine Null-Linie, ebenfalls grün/rot geschattet. Ein sechstes
+  Diagramm **„Kumulierter Gewichtsverlust"** stellt den aus dem kumulierten
+  Defizit **erwarteten** Verlust (Defizit ÷ 7000 kcal/kg, also Gramm =
+  kum. Defizit_kcal / 7) dem **gemessenen** Verlust (Anker − Messung) gegenüber –
+  beide als Abnahme in kg ab der ersten nicht ausgeschlossenen Messung (dort 0).
+  So sieht man, ob man dem 7000-kcal/kg-Modell voraus- oder hinterherläuft
+  (`kumulierteAbnahme` in `shared/naehrwerte.ts`; Frontend nutzt die schon
+  geladenen Gewichts- und Defizit-Verläufe). Am
   Gewichtsdiagramm zeigt jeder Messpunkt zusätzlich ein kleines Label der
   **Gewichtsreduktion in kg** gegenüber der vorherigen Messung
   (`punktLabel`-Prop des LinienChart, bekommt Wert + Vorpunkt). Das Gewicht wird zusätzlich mit

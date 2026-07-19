@@ -10,6 +10,7 @@ import {
   formatProzent,
   grammProGrammEiweiss,
   grammProKcal,
+  kumulierteAbnahme,
   lineareRegression,
   parseGanzzahl,
   parseGrammToDg,
@@ -157,5 +158,51 @@ describe('Lineare Regression', () => {
     expect(eiweissProKgKoerper(1200, 80000)).toBeCloseTo(1.5, 9);
     expect(eiweissProKgKoerper(1200, null)).toBeNull();
     expect(eiweissProKgKoerper(1200, 0)).toBeNull();
+  });
+});
+
+describe('Kumulierte Abnahme (erwartet vs. gemessen)', () => {
+  const gewichte = [
+    { datum: '2026-07-10', gramm: 82000, aus_trend: true }, // Wasser-Tag: raus
+    { datum: '2026-07-11', gramm: 80000, aus_trend: false }, // Anker
+    { datum: '2026-07-13', gramm: 79300, aus_trend: false },
+  ];
+  const defizite = [
+    { datum: '2026-07-11', defizit: 7000 }, // = Ankertag, zaehlt NICHT
+    { datum: '2026-07-12', defizit: 3500 }, // -> 500 g erwartet
+    { datum: '2026-07-13', defizit: 3500 }, // kumuliert 7000 -> 1000 g erwartet
+  ];
+
+  it('ankert am ersten nicht ausgeschlossenen Gewicht (Verlust 0)', () => {
+    const { erwartet, gemessen } = kumulierteAbnahme(gewichte, defizite);
+    expect(erwartet[0]).toEqual({ datum: '2026-07-11', verlust_gramm: 0 });
+    expect(gemessen[0]).toEqual({ datum: '2026-07-11', verlust_gramm: 0 });
+  });
+
+  it('summiert das Defizit ab dem Tag nach dem Anker (Gramm = kcal/7)', () => {
+    const { erwartet } = kumulierteAbnahme(gewichte, defizite);
+    expect(erwartet.map((p) => p.datum)).toEqual([
+      '2026-07-11',
+      '2026-07-12',
+      '2026-07-13',
+    ]);
+    expect(erwartet[1].verlust_gramm).toBeCloseTo(500, 6); // 3500/7
+    expect(erwartet[2].verlust_gramm).toBeCloseTo(1000, 6); // 7000/7
+  });
+
+  it('misst den Verlust als Anker − Messung, ohne ausgeschlossene Tage', () => {
+    const { gemessen } = kumulierteAbnahme(gewichte, defizite);
+    expect(gemessen).toEqual([
+      { datum: '2026-07-11', verlust_gramm: 0 },
+      { datum: '2026-07-13', verlust_gramm: 700 },
+    ]);
+  });
+
+  it('liefert leere Reihen ohne verwertbare Messung', () => {
+    const nurAus = [{ datum: '2026-07-10', gramm: 82000, aus_trend: true }];
+    expect(kumulierteAbnahme(nurAus, defizite)).toEqual({
+      erwartet: [],
+      gemessen: [],
+    });
   });
 });

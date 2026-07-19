@@ -81,7 +81,7 @@ Port **3010**.
   Balken beim selben Zielgewicht 100 % erreichen.
 - **Tagesauswertung:** Lebensmittel eines Tages mit kcal/Eiweiß, Summen und
   Abweichung vom Ziel. Default ist heute; jeder Tag ist anwählbar (Datumsnavigation).
-  Eine **Zusammenfassungs-Karte** zeigt „Leistungsumsatz + Bewegung − Aufnahme =
+  Eine **Zusammenfassungs-Karte** zeigt „Gesamtumsatz + Bewegung − Aufnahme =
   Defizit" für den Tag (`getTagesAuswertung` liefert `gesamtumsatz`, `bewegung`,
   `defizit`; Gewicht/Bewegung-Änderungen laden den Tag neu).
 - **Tagesgewicht:** Pro Tag lässt sich ein Gewicht (kg) eingeben (eine Waage-

@@ -312,7 +312,7 @@ export default function TagSeite({
         <Card title="Zusammenfassung">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 tabular">
             <span>
-              <span className="text-text-muted">Leistungsumsatz</span>{' '}
+              <span className="text-text-muted">Gesamtumsatz</span>{' '}
               <span className="font-bold">
                 {formatKcal(auswertung.gesamtumsatz)}
               </span>

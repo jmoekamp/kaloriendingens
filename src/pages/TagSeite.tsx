@@ -239,6 +239,8 @@ export default function TagSeite({
   const geplantKcal = geplant.reduce((s, e) => s + (e.kcal ?? 0), 0);
   const geplantEiweissDg = geplant.reduce((s, e) => s + (e.eiweiss_dg ?? 0), 0);
   const geplantMenge = geplant.reduce((s, e) => s + e.menge_gramm, 0);
+  // Defizit, wenn auch die geplante Aufnahme mitgezaehlt wird (gegessen+geplant).
+  const gesamtDefizit = auswertung ? auswertung.defizit - geplantKcal : 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -391,6 +393,7 @@ export default function TagSeite({
       {auswertung && (
         <Card title="Zusammenfassung">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 tabular">
+            <span className="text-text-muted">gegessen:</span>
             <span>
               <span className="text-text-muted">Gesamtumsatz</span>{' '}
               <span className="font-bold">
@@ -421,22 +424,36 @@ export default function TagSeite({
               {formatKcal(auswertung.defizit)} kcal
             </span>
           </div>
-          <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm tabular text-text-muted">
-            <span>Aufnahme:</span>
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 tabular">
+            <span className="text-text-muted">inkl. geplant:</span>
             <span>
-              gegessen{' '}
-              <span className="font-bold text-text">
-                {formatKcal(auswertung.summe_kcal)}
-              </span>{' '}
-              kcal
+              <span className="text-text-muted">Gesamtumsatz</span>{' '}
+              <span className="font-bold">
+                {formatKcal(auswertung.gesamtumsatz)}
+              </span>
             </span>
-            <span>·</span>
+            <span className="text-text-muted">+</span>
             <span>
-              geplant{' '}
-              <span className="font-bold text-text">
-                {formatKcal(geplantKcal)}
-              </span>{' '}
-              kcal
+              <span className="text-text-muted">Bewegung</span>{' '}
+              <span className="font-bold">
+                {formatKcal(auswertung.bewegung)}
+              </span>
+            </span>
+            <span className="text-text-muted">−</span>
+            <span>
+              <span className="text-text-muted">Aufnahme</span>{' '}
+              <span className="font-bold">
+                {formatKcal(auswertung.summe_kcal + geplantKcal)}
+              </span>
+            </span>
+            <span className="text-text-muted">=</span>
+            <span
+              className={`text-lg font-bold ${
+                gesamtDefizit >= 0 ? 'text-success' : 'text-danger'
+              }`}
+            >
+              {gesamtDefizit >= 0 ? 'Defizit' : 'Überschuss'}{' '}
+              {formatKcal(gesamtDefizit)} kcal
             </span>
           </div>
         </Card>

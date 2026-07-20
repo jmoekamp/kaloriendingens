@@ -151,7 +151,10 @@ Port **3010**.
   (`prognose`, blau) zeigt den **auf Defizitbasis prognostizierten Gewichtsverlust**:
   ab dem ersten Gewichtspunkt wird je Tag das Tagesdefizit als Gewicht abgezogen
   (7000 kcal/kg, also Gramm = Defizit_kcal / 7). Grundlage ist das Tagesdefizit je
-  Tag (`/api/auswertung/defizit-verlauf`). Zusätzlich: Liste der letzten 7 Tage mit
+  Tag (`/api/auswertung/defizit-verlauf`). Eine dritte Linie (grün, als `serien`)
+  zeigt dieselbe Prognose, aber mit dem **gleitenden 7-Tage-Median des Defizits**
+  als tagesweiser Abnahmerate (`gleitenderMedian` in shared/naehrwerte) – so wird
+  die Prognose gegenüber einzelnen Ausreißertagen geglättet. Zusätzlich: Liste der letzten 7 Tage mit
   Sprung
   zur jeweiligen Tagesseite sowie das Kaloriendefizit für Tag, letzte 7 Tage,
   letzte 30 Tage und den gesamten Erfassungszeitraum (kumuliert). Das Defizit zählt

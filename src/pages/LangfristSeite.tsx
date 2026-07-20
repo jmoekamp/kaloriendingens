@@ -23,6 +23,7 @@ import {
   formatKcal,
   formatKg,
   formatProzent,
+  gleitenderMedian,
   kumulierteAbnahme,
   lineareRegression,
 } from '../../shared/naehrwerte.ts';
@@ -253,15 +254,16 @@ export default function LangfristSeite({
   const gewichtSortiert = [...gewicht]
     .filter((g) => !g.aus_trend)
     .sort((a, b) => tagNummer(a.datum) - tagNummer(b.datum));
+  const defizitSortiert = [...defizitTage].sort(
+    (a, b) => tagNummer(a.datum) - tagNummer(b.datum),
+  );
   const prognosePunkte: ChartPunkt[] = [];
   if (gewichtSortiert.length > 0) {
     const anker = gewichtSortiert[0];
     const ankerTag = tagNummer(anker.datum);
     prognosePunkte.push({ datum: anker.datum, wert: anker.gramm });
     let kumDefizit = 0;
-    for (const d of [...defizitTage].sort(
-      (a, b) => tagNummer(a.datum) - tagNummer(b.datum),
-    )) {
+    for (const d of defizitSortiert) {
       if (tagNummer(d.datum) <= ankerTag) continue; // ab dem Tag NACH dem Anker
       kumDefizit += d.defizit;
       prognosePunkte.push({
@@ -269,6 +271,30 @@ export default function LangfristSeite({
         wert: anker.gramm - kumDefizit / 7,
       });
     }
+  }
+
+  // Zweite Gewichtsprognose: wie oben, aber die tagesweise Abnahmerate ist der
+  // gleitende 7-Tage-Median des Defizits (geglaettet, unempfindlich gegen
+  // Ausreisser). Gramm = Median_kcal / 7 (7000 kcal/kg).
+  const MEDIAN_FENSTER = 7;
+  const medianDefizite = gleitenderMedian(
+    defizitSortiert.map((d) => d.defizit),
+    MEDIAN_FENSTER,
+  );
+  const medianPrognosePunkte: ChartPunkt[] = [];
+  if (gewichtSortiert.length > 0) {
+    const anker = gewichtSortiert[0];
+    const ankerTag = tagNummer(anker.datum);
+    medianPrognosePunkte.push({ datum: anker.datum, wert: anker.gramm });
+    let kumMedian = 0;
+    defizitSortiert.forEach((d, i) => {
+      if (tagNummer(d.datum) <= ankerTag) return; // ab dem Tag NACH dem Anker
+      kumMedian += medianDefizite[i] / 7;
+      medianPrognosePunkte.push({
+        datum: d.datum,
+        wert: anker.gramm - kumMedian,
+      });
+    });
   }
 
   // Kumulierter Gewichtsverlust: erwartet (aus Defizit / 7000 kcal/kg) vs.
@@ -565,7 +591,10 @@ export default function LangfristSeite({
             {trendProWoche !== null && (
               <> ({formatKg(trendProWoche)} kg/Woche)</>
             )}{' '}
-            · <span className="text-[#5aa0d8]">Prognose aus Defizit</span>
+            · <span className="text-[#5aa0d8]">Prognose aus Defizit</span> ·{' '}
+            <span className="text-[#63b784]">
+              Prognose aus Defizit-Median (7 Tage)
+            </span>
           </span>
         </div>
         <LinienChart
@@ -582,6 +611,13 @@ export default function LangfristSeite({
           regression
           prognose={prognosePunkte}
           prognoseFarbe="#5aa0d8"
+          serien={[
+            {
+              punkte: medianPrognosePunkte,
+              farbe: '#63b784',
+              verbinden: true,
+            },
+          ]}
         />
 
         {gewicht.length > 0 && (

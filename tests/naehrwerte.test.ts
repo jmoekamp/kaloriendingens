@@ -8,6 +8,7 @@ import {
   formatKcal,
   formatKg,
   formatProzent,
+  gleitenderMedian,
   grammProGrammEiweiss,
   grammProKcal,
   kumulierteAbnahme,
@@ -158,6 +159,23 @@ describe('Lineare Regression', () => {
     expect(eiweissProKgKoerper(1200, 80000)).toBeCloseTo(1.5, 9);
     expect(eiweissProKgKoerper(1200, null)).toBeNull();
     expect(eiweissProKgKoerper(1200, 0)).toBeNull();
+  });
+});
+
+describe('Gleitender Median', () => {
+  it('rechnet den nachlaufenden Median je Fenster', () => {
+    // Fenster 3: [1],[1,2],[1,2,3],[2,3,4],[3,4,5]
+    expect(gleitenderMedian([1, 2, 3, 4, 5], 3)).toEqual([1, 1.5, 2, 3, 4]);
+  });
+
+  it('mittelt bei gerader Fenstergroesse die beiden mittleren Werte', () => {
+    // Fenster 2: [10],[10,20],[20,40] -> 10, 15, 30
+    expect(gleitenderMedian([10, 20, 40], 2)).toEqual([10, 15, 30]);
+  });
+
+  it('begrenzt das Fenster auf mindestens 1 und behandelt Leereingabe', () => {
+    expect(gleitenderMedian([5, 7, 9], 0)).toEqual([5, 7, 9]);
+    expect(gleitenderMedian([], 5)).toEqual([]);
   });
 });
 

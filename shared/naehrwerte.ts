@@ -114,6 +114,25 @@ export function eiweissProKgKoerper(
   return (eiweissDg * 100) / gewichtGramm;
 }
 
+/** Median einer nicht-leeren Zahlenreihe (Kopie wird sortiert). */
+function medianVon(xs: number[]): number {
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+/**
+ * Gleitender (nachlaufender) Median: fuer jeden Index i der Median der Werte im
+ * Fenster [i-fenster+1 .. i] (am Anfang entsprechend kuerzer). `fenster` wird auf
+ * mindestens 1 begrenzt. Leere Eingabe liefert eine leere Ausgabe.
+ */
+export function gleitenderMedian(werte: number[], fenster: number): number[] {
+  const w = Math.max(1, Math.floor(fenster));
+  return werte.map((_, i) =>
+    medianVon(werte.slice(Math.max(0, i - w + 1), i + 1)),
+  );
+}
+
 /** Ein kumulierter Abnahme-Wert (Gramm Verlust ab dem Startpunkt) an einem Tag. */
 export interface AbnahmePunkt {
   datum: string;

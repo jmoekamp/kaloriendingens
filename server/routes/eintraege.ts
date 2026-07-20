@@ -78,12 +78,17 @@ eintraegeRouter.put('/:id', (req, res) => {
   res.json(updateEintrag(getDb(), id, input));
 });
 
-/** PATCH /api/eintraege/:id/gegessen – „gegessen"-Flag setzen ({ gegessen }). */
+/**
+ * PATCH /api/eintraege/:id/gegessen – „gegessen"-Flag setzen ({ gegessen });
+ * optional zugleich die Uhrzeit ({ uhrzeit }, z. B. „jetzt" beim Ankreuzen).
+ */
 eintraegeRouter.patch('/:id/gegessen', (req, res) => {
   const id = parseId(req.params.id);
   const body = (req.body ?? {}) as Record<string, unknown>;
   const gegessen = optionalBoolean(body, 'gegessen', true);
-  res.json(setEintragGegessen(getDb(), id, gegessen));
+  const uhrzeit =
+    body.uhrzeit === undefined ? undefined : requireString(body, 'uhrzeit');
+  res.json(setEintragGegessen(getDb(), id, gegessen, uhrzeit));
 });
 
 eintraegeRouter.delete('/:id', (req, res) => {

@@ -115,21 +115,33 @@ export function createEintrag(db: Database, input: EintragInput): Eintrag {
   return getEintrag(db, Number(info.lastInsertRowid)) as Eintrag;
 }
 
-/** Setzt das „gegessen"-Flag eines Eintrags (steuert die Statistik-Zaehlung). */
+/**
+ * Setzt das „gegessen"-Flag eines Eintrags (steuert die Statistik-Zaehlung).
+ * Optional wird zugleich die Uhrzeit gesetzt (z. B. auf „jetzt", wenn eine
+ * geplante Mahlzeit beim Ankreuzen zur tatsaechlichen Essenszeit wird).
+ */
 export function setEintragGegessen(
   db: Database,
   id: number,
   gegessen: boolean,
+  uhrzeit?: string,
 ): Eintrag {
   const vorhanden = getEintrag(db, id);
   if (!vorhanden) throw notFound('Eintrag nicht gefunden.');
+  if (uhrzeit !== undefined && !UHRZEIT_RE.test(uhrzeit)) {
+    throw badRequest('Uhrzeit muss im Format HH:MM sein.');
+  }
   db.prepare(
-    `UPDATE eintraege SET gegessen = @gegessen, geaendert_am = @jetzt
+    `UPDATE eintraege
+        SET gegessen = @gegessen,
+            uhrzeit = COALESCE(@uhrzeit, uhrzeit),
+            geaendert_am = @jetzt
       WHERE id = @id AND mandant_id = @mandant`,
   ).run({
     id,
     mandant: aktuellerMandant(),
     gegessen: gegessen ? 1 : 0,
+    uhrzeit: uhrzeit ?? null,
     jetzt: new Date().toISOString(),
   });
   return getEintrag(db, id) as Eintrag;

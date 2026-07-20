@@ -112,6 +112,23 @@ describe('Eintraege', () => {
     expect(setEintragGegessen(db, a.id, false).gegessen).toBe(false);
   });
 
+  it('setzt beim Ankreuzen optional die Uhrzeit mit', () => {
+    const e = createEintrag(db, {
+      datum: '2026-07-15',
+      uhrzeit: '08:00',
+      lebensmittel_id: quarkId,
+      menge_gramm: 100,
+      gegessen: false,
+    });
+    const g = setEintragGegessen(db, e.id, true, '13:37');
+    expect(g.gegessen).toBe(true);
+    expect(g.uhrzeit).toBe('13:37');
+    // Ohne Uhrzeit-Angabe bleibt die vorhandene Uhrzeit erhalten.
+    expect(setEintragGegessen(db, e.id, false).uhrzeit).toBe('13:37');
+    // Ungueltige Uhrzeit wird abgewiesen.
+    expect(() => setEintragGegessen(db, e.id, true, '25:99')).toThrow(AppError);
+  });
+
   it('markiert per Migration alle Eintraege bis zu einem Datum als gegessen', () => {
     const mk = (datum: string) =>
       createEintrag(db, {

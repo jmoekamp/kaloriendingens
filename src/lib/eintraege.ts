@@ -10,9 +10,15 @@ export const eintraegeApi = {
   create: (input: EintragInput) => api.post<Eintrag>('/eintraege', input),
   update: (id: number, input: EintragInput) =>
     api.put<Eintrag>(`/eintraege/${id}`, input),
-  /** „gegessen"-Flag eines Eintrags setzen (steuert die Statistik-Zaehlung). */
-  setGegessen: (id: number, gegessen: boolean) =>
-    api.patch<Eintrag>(`/eintraege/${id}/gegessen`, { gegessen }),
+  /**
+   * „gegessen"-Flag eines Eintrags setzen (steuert die Statistik-Zaehlung).
+   * Optional zugleich die Uhrzeit setzen (z. B. „jetzt" beim Ankreuzen).
+   */
+  setGegessen: (id: number, gegessen: boolean, uhrzeit?: string) =>
+    api.patch<Eintrag>(
+      `/eintraege/${id}/gegessen`,
+      uhrzeit === undefined ? { gegessen } : { gegessen, uhrzeit },
+    ),
   /** Migration: alle Eintraege bis einschliesslich gestern als gegessen zaehlen. */
   migriereGegessen: () =>
     api.post<{ anzahl: number; bis: string }>(

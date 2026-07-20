@@ -82,6 +82,31 @@ function Zielanzeige({
   );
 }
 
+/** Schlichte Wertkachel (gleicher Look wie Zielanzeige, ohne Zielbewertung). */
+function WertAnzeige({
+  titel,
+  wert,
+  einheit,
+  hinweis,
+}: {
+  titel: string;
+  wert: string;
+  einheit: string;
+  hinweis?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-surface-2 p-4">
+      <div className="text-sm text-text-muted">{titel}</div>
+      <div className="text-2xl font-bold tabular text-text">
+        {wert} {einheit}
+      </div>
+      <div className="mt-1 text-sm text-text-muted">
+        {hinweis ?? 'geplant (noch nicht gegessen)'}
+      </div>
+    </div>
+  );
+}
+
 export default function TagSeite({
   datum,
   setDatum,
@@ -164,7 +189,13 @@ export default function TagSeite({
   async function gegessenUmschalten(eintrag: Eintrag, wert: boolean) {
     setFehler(null);
     try {
-      await eintraegeApi.setGegessen(eintrag.id, wert);
+      // Beim Ankreuzen die Uhrzeit auf jetzt setzen (tatsaechliche Essenszeit);
+      // beim Abwaehlen bleibt die Uhrzeit unveraendert.
+      await eintraegeApi.setGegessen(
+        eintrag.id,
+        wert,
+        wert ? jetztUhrzeit() : undefined,
+      );
       ladeTag();
     } catch (err) {
       setFehler(meldung(err));
@@ -202,6 +233,12 @@ export default function TagSeite({
   const istHeute = datum === heuteIso();
   const istZukunft = datum > heuteIso();
   const gewaehltesLm = lebensmittel.find((l) => String(l.id) === lmId);
+
+  // Geplante (noch nicht gegessene) Eintraege: Summen fuer Anzeige und Footer.
+  const geplant = (auswertung?.eintraege ?? []).filter((e) => !e.gegessen);
+  const geplantKcal = geplant.reduce((s, e) => s + (e.kcal ?? 0), 0);
+  const geplantEiweissDg = geplant.reduce((s, e) => s + (e.eiweiss_dg ?? 0), 0);
+  const geplantMenge = geplant.reduce((s, e) => s + e.menge_gramm, 0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -317,17 +354,17 @@ export default function TagSeite({
         )}
       </Card>
 
-      {/* Tagessummen + Ziel */}
+      {/* Tagessummen + Ziel (gegessen) sowie geplante Summen */}
       {auswertung && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Zielanzeige
-            titel="Kalorien"
+            titel="Kalorien (gegessen)"
             bewertung={auswertung.kcal}
             format={formatKcal}
             einheit="kcal"
           />
           <Zielanzeige
-            titel="Eiweiß"
+            titel="Eiweiß (gegessen)"
             bewertung={auswertung.eiweiss}
             format={formatGramm}
             einheit="g"
@@ -336,6 +373,16 @@ export default function TagSeite({
                 ? `${formatDezimal(auswertung.eiweiss_pro_kg)} g/kg Körpergewicht`
                 : undefined
             }
+          />
+          <WertAnzeige
+            titel="Kalorien (geplant)"
+            wert={formatKcal(geplantKcal)}
+            einheit="kcal"
+          />
+          <WertAnzeige
+            titel="Eiweiß (geplant)"
+            wert={formatGramm(geplantEiweissDg)}
+            einheit="g"
           />
         </div>
       )}
@@ -492,6 +539,21 @@ export default function TagSeite({
                 </td>
                 <td className="py-2 pr-3 text-right tabular">
                   {formatGramm(auswertung.summe_eiweiss_dg)} g
+                </td>
+                <td></td>
+              </tr>
+              <tr className="font-bold text-text-muted">
+                <td className="py-2 pr-3" colSpan={3}>
+                  Summe (geplant)
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {geplantMenge} g
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {formatKcal(geplantKcal)}
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {formatGramm(geplantEiweissDg)} g
                 </td>
                 <td></td>
               </tr>

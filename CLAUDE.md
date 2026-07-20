@@ -46,7 +46,10 @@ Port **3010**.
   Planung. Neu angelegte Einträge sind per UI zunächst **nicht** gegessen (Häkchen
   in der Erfassungsmaske); das Repo (`createEintrag`) nimmt ohne Angabe hingegen
   „gegessen" an (programmatischer Standard). Umschalten per
-  `PATCH /api/eintraege/:id/gegessen`. Für Bestandsdaten gibt es unter
+  `PATCH /api/eintraege/:id/gegessen`; **beim Ankreuzen** wird zugleich die
+  Uhrzeit des Eintrags auf die aktuelle Zeit gesetzt (tatsächliche Essenszeit; der
+  Endpunkt akzeptiert dafür optional `{ uhrzeit }`, beim Abwählen unverändert).
+  Für Bestandsdaten gibt es unter
   „Einstellungen" einen Button, der einmalig alle bis **einschließlich gestern**
   erfassten Mahlzeiten als gegessen markiert (`POST /api/eintraege/migriere-gegessen`,
   Repo `markiereGegessenBis`).
@@ -98,6 +101,11 @@ Port **3010**.
   Balken beim selben Zielgewicht 100 % erreichen.
 - **Tagesauswertung:** Lebensmittel eines Tages mit kcal/Eiweiß, Summen und
   Abweichung vom Ziel. Default ist heute; jeder Tag ist anwählbar (Datumsnavigation).
+  Über der Zusammenfassung stehen vier Kacheln: **Kalorien (gegessen)** und
+  **Eiweiß (gegessen)** mit Zielbewertung sowie **Kalorien (geplant)** und
+  **Eiweiß (geplant)** als reine Summen der noch nicht gegessenen Einträge. Die
+  Mahlzeiten-Tabelle zeigt im Fuß zwei Summenzeilen: **Summe (gegessen)** und
+  **Summe (geplant)**.
   Eine **Zusammenfassungs-Karte** zeigt „Gesamtumsatz + Bewegung − Aufnahme =
   Defizit" für den Tag (`getTagesAuswertung` liefert `gesamtumsatz`, `bewegung`,
   `defizit`; Gewicht/Bewegung-Änderungen laden den Tag neu). Die Eiweiß-Zielkarte

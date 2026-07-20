@@ -33,6 +33,7 @@ import { formatDatum, heuteIso, vorMonaten } from '../lib/format.ts';
 import { vorgabenApi } from '../lib/vorgaben.ts';
 import { koerperdatenApi } from '../lib/koerperdaten.ts';
 import { abnehmzieleApi } from '../lib/abnehmziele.ts';
+import { eintraegeApi } from '../lib/eintraege.ts';
 import { authApi } from '../lib/auth.ts';
 
 function meldung(e: unknown): string {
@@ -355,6 +356,8 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
       )}
 
       {!istAdmin && <AbnehmzielKarte />}
+
+      {!istAdmin && <GegessenMigrationsKarte />}
 
       <PasswortKarte />
 
@@ -689,6 +692,68 @@ function AbnehmzielKarte() {
           </tbody>
         </table>
       )}
+    </Card>
+  );
+}
+
+/**
+ * Karte für die einmalige „gegessen"-Migration: markiert alle Mahlzeiten bis
+ * einschließlich gestern als gegessen, damit Bestandsdaten weiter in der
+ * Statistik zählen (neu ist die Zählung an das „gegessen"-Häkchen gebunden).
+ */
+function GegessenMigrationsKarte() {
+  const [fehler, setFehler] = useState<string | null>(null);
+  const [ergebnis, setErgebnis] = useState<string | null>(null);
+  const [laeuft, setLaeuft] = useState(false);
+
+  async function migrieren() {
+    if (
+      !confirm(
+        'Alle bis einschließlich gestern erfassten Mahlzeiten als „gegessen" markieren?',
+      )
+    )
+      return;
+    setFehler(null);
+    setErgebnis(null);
+    setLaeuft(true);
+    try {
+      const r = await eintraegeApi.migriereGegessen();
+      setErgebnis(
+        `${r.anzahl} Mahlzeit(en) bis ${formatDatum(r.bis)} als gegessen markiert.`,
+      );
+    } catch (e) {
+      setFehler(meldung(e));
+    } finally {
+      setLaeuft(false);
+    }
+  }
+
+  return (
+    <Card title="Mahlzeiten als gegessen markieren">
+      <p className="mb-3 text-sm text-text-muted">
+        Neu zählen nur als <strong>gegessen</strong> markierte Mahlzeiten in
+        Summen, Ziele und das Defizit. Dieser Knopf markiert einmalig alle bis
+        einschließlich <strong>gestern</strong> erfassten Mahlzeiten als
+        gegessen, sodass bestehende Daten weiterhin gezählt werden. Der heutige
+        Tag bleibt unberührt.
+      </p>
+      {fehler && (
+        <div className="mb-3">
+          <Banner kind="error" onClose={() => setFehler(null)}>
+            {fehler}
+          </Banner>
+        </div>
+      )}
+      {ergebnis && (
+        <div className="mb-3">
+          <Banner kind="success" onClose={() => setErgebnis(null)}>
+            {ergebnis}
+          </Banner>
+        </div>
+      )}
+      <Button variant="primary" onClick={migrieren} disabled={laeuft}>
+        {laeuft ? 'Markiert …' : 'Alle bis gestern als gegessen markieren'}
+      </Button>
     </Card>
   );
 }

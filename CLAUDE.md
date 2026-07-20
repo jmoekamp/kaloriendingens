@@ -34,11 +34,22 @@ Port **3010**.
   Spaltenköpfe sortierbar (erneuter Klick dreht die Richtung; leere Werte ans
   Ende). Ein Lebensmittel, das noch in Einträgen verwendet wird, kann NICHT
   gelöscht werden (strikter Löschschutz).
-- **Tageserfassung:** Je Eintrag Uhrzeit, Lebensmittel (Auswahl) und Menge in g.
-  kcal und Eiweiß eines Eintrags werden LIVE aus dem Lebensmittel und der Menge
-  berechnet, nicht gespeichert (ändert man die Nährwerte, ändern sich vergangene
-  Auswertungen entsprechend mit). Hat das gewählte Lebensmittel eine
-  Packungsgröße, füllt ein Button „ganze Packung" die Menge damit.
+- **Tageserfassung:** Je Eintrag Uhrzeit, Lebensmittel (Auswahl), Menge in g und
+  ein **„gegessen"-Häkchen**. kcal und Eiweiß eines Eintrags werden LIVE aus dem
+  Lebensmittel und der Menge berechnet, nicht gespeichert (ändert man die
+  Nährwerte, ändern sich vergangene Auswertungen entsprechend mit). Hat das
+  gewählte Lebensmittel eine Packungsgröße, füllt ein Button „ganze Packung" die
+  Menge damit. **Nur als „gegessen" markierte Einträge zählen in die Statistik**
+  (Tages-Summen, Ziele, Zusammenfassung/Defizit, alle Verläufe und
+  Langfrist-Auswertungen); nicht gegessene Einträge bleiben in der
+  Mahlzeiten-Liste sichtbar (ausgegraut, mit Häkchen umschaltbar) und dienen der
+  Planung. Neu angelegte Einträge sind per UI zunächst **nicht** gegessen (Häkchen
+  in der Erfassungsmaske); das Repo (`createEintrag`) nimmt ohne Angabe hingegen
+  „gegessen" an (programmatischer Standard). Umschalten per
+  `PATCH /api/eintraege/:id/gegessen`. Für Bestandsdaten gibt es unter
+  „Einstellungen" einen Button, der einmalig alle bis **einschließlich gestern**
+  erfassten Mahlzeiten als gegessen markiert (`POST /api/eintraege/migriere-gegessen`,
+  Repo `markiereGegessenBis`).
 - **Planung / Zukunftsdaten:** Zu jedem Tag – auch in der Zukunft – lassen sich
   Daten erfassen (Planung). Tage mit Datum > heute fließen in KEINE Statistik ein
   (Defizit, Prognosen, Verläufe, Diagramme, „letzte Tage"). Nur die Tagesansicht
@@ -186,7 +197,8 @@ kein Zugriff auf Fachdaten). Erst-Accounts beim ersten Start: `admin/admin`
 - `lebensmittel`: id, mandant_id, name (eindeutig/Mandant), kcal_pro_100g,
   eiweiss_dg_pro_100g, packung_gramm (optional, für „ganze Packung"), Zeitstempel.
 - `eintraege`: id, mandant_id, datum, uhrzeit, lebensmittel_id (FK), menge_gramm,
-  Zeitstempel. kcal/Eiweiß werden live berechnet.
+  gegessen (0/1: zählt nur bei 1 in die Statistik), Zeitstempel. kcal/Eiweiß
+  werden live berechnet.
 - `vorgaben`: zeitversionierte Ziele + Gesamtumsatz. Spalten: id, mandant_id,
   gueltig_ab, kcal_ziel, kcal_ziel_typ, eiweiss_ziel_dg, eiweiss_ziel_typ,
   gesamtumsatz. Für einen Tag gilt die jüngste Vorgabe mit `gueltig_ab ≤ Tag`;

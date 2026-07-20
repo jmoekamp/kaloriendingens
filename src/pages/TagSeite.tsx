@@ -97,6 +97,7 @@ export default function TagSeite({
   const [uhrzeit, setUhrzeit] = useState(jetztUhrzeit());
   const [lmId, setLmId] = useState('');
   const [menge, setMenge] = useState('');
+  const [gegessen, setGegessen] = useState(false);
   const [speichert, setSpeichert] = useState(false);
 
   // Inline-Bearbeitung einer Mahlzeit (Uhrzeit + Menge)
@@ -138,6 +139,7 @@ export default function TagSeite({
         uhrzeit,
         lebensmittel_id: Number(lmId),
         menge_gramm: mengeZahl,
+        gegessen,
       });
       setMenge('');
       setUhrzeit(jetztUhrzeit());
@@ -153,6 +155,16 @@ export default function TagSeite({
     setFehler(null);
     try {
       await eintraegeApi.remove(eintrag.id);
+      ladeTag();
+    } catch (err) {
+      setFehler(meldung(err));
+    }
+  }
+
+  async function gegessenUmschalten(eintrag: Eintrag, wert: boolean) {
+    setFehler(null);
+    try {
+      await eintraegeApi.setGegessen(eintrag.id, wert);
       ladeTag();
     } catch (err) {
       setFehler(meldung(err));
@@ -281,10 +293,22 @@ export default function TagSeite({
               )}
             </div>
           </Field>
-          <Button type="submit" variant="primary" disabled={speichert}>
-            {speichert ? 'Fügt hinzu …' : 'Hinzufügen'}
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Checkbox
+              label="gegessen"
+              checked={gegessen}
+              onChange={setGegessen}
+            />
+            <Button type="submit" variant="primary" disabled={speichert}>
+              {speichert ? 'Fügt hinzu …' : 'Hinzufügen'}
+            </Button>
+          </div>
         </form>
+        <p className="mt-3 text-xs text-text-muted">
+          Nur als „gegessen" markierte Mahlzeiten zählen in Summen, Ziele und
+          das Defizit. So lassen sich Tage vorausplanen, ohne die Statistik zu
+          verfälschen.
+        </p>
         {lebensmittel.length === 0 && (
           <p className="mt-3 text-sm text-text-muted">
             Noch keine Lebensmittel angelegt – lege sie zuerst unter
@@ -361,6 +385,7 @@ export default function TagSeite({
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left text-text-muted">
+                <th className="py-2 pr-3 text-center font-normal">gegessen</th>
                 <th className="py-2 pr-3 font-normal">Uhrzeit</th>
                 <th className="py-2 pr-3 font-normal">Lebensmittel</th>
                 <th className="py-2 pr-3 text-right font-normal">Menge</th>
@@ -373,7 +398,20 @@ export default function TagSeite({
               {auswertung.eintraege.map((e) => {
                 const imEdit = bearbeiteId === e.id;
                 return (
-                  <tr key={e.id} className="border-b border-border/50">
+                  <tr
+                    key={e.id}
+                    className={`border-b border-border/50 ${
+                      e.gegessen ? '' : 'text-text-muted'
+                    }`}
+                  >
+                    <td className="py-2 pr-3 text-center">
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={e.gegessen}
+                          onChange={(c) => gegessenUmschalten(e, c)}
+                        />
+                      </div>
+                    </td>
                     <td className="py-2 pr-3 tabular">
                       {imEdit ? (
                         <TextInput
@@ -440,11 +478,13 @@ export default function TagSeite({
             </tbody>
             <tfoot>
               <tr className="border-t border-border font-bold">
-                <td className="py-2 pr-3" colSpan={2}>
-                  Summe
+                <td className="py-2 pr-3" colSpan={3}>
+                  Summe (gegessen)
                 </td>
                 <td className="py-2 pr-3 text-right tabular">
-                  {auswertung.eintraege.reduce((s, e) => s + e.menge_gramm, 0)}{' '}
+                  {auswertung.eintraege
+                    .filter((e) => e.gegessen)
+                    .reduce((s, e) => s + e.menge_gramm, 0)}{' '}
                   g
                 </td>
                 <td className="py-2 pr-3 text-right tabular">

@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS eintraege (
   uhrzeit         TEXT    NOT NULL,
   lebensmittel_id INTEGER NOT NULL REFERENCES lebensmittel (id),
   menge_gramm     INTEGER NOT NULL DEFAULT 0,
+  gegessen        INTEGER NOT NULL DEFAULT 0,
   erstellt_am     TEXT    NOT NULL,
   geaendert_am    TEXT    NOT NULL
 );
@@ -221,5 +222,9 @@ export function applySchema(db: Database): void {
   ensureColumn(db, 'lebensmittel', 'packung_gramm', 'INTEGER');
   // Trend-Ausschluss-Flag am Gewicht nachziehen.
   ensureColumn(db, 'gewicht', 'aus_trend', 'INTEGER NOT NULL DEFAULT 0');
+  // „gegessen"-Flag an Eintraegen nachziehen: nur gegessene Eintraege zaehlen in
+  // die Statistik. Bestandsdaten sind zunaechst 0 (per Migrations-Button in den
+  // Einstellungen nachtraeglich markierbar).
+  ensureColumn(db, 'eintraege', 'gegessen', 'INTEGER NOT NULL DEFAULT 0');
   migriereEinstellungenZuVorgaben(db);
 }

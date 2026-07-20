@@ -16,6 +16,7 @@ interface EintragRow {
   uhrzeit: string;
   lebensmittel_id: number;
   menge_gramm: number;
+  gegessen: number;
   lebensmittel_name: string;
   kcal_pro_100g: number;
   eiweiss_dg_pro_100g: number;
@@ -30,6 +31,7 @@ function toEintrag(row: EintragRow): Eintrag {
     uhrzeit: row.uhrzeit,
     lebensmittel_id: row.lebensmittel_id,
     menge_gramm: row.menge_gramm,
+    gegessen: row.gegessen === 1,
     lebensmittel_name: row.lebensmittel_name,
     kcal: portionKcal(row.kcal_pro_100g, row.menge_gramm),
     eiweiss_dg: portionEiweissDg(row.eiweiss_dg_pro_100g, row.menge_gramm),
@@ -39,7 +41,7 @@ function toEintrag(row: EintragRow): Eintrag {
 }
 
 const SELECT = `
-  SELECT e.id, e.datum, e.uhrzeit, e.lebensmittel_id, e.menge_gramm,
+  SELECT e.id, e.datum, e.uhrzeit, e.lebensmittel_id, e.menge_gramm, e.gegessen,
          l.name AS lebensmittel_name, l.kcal_pro_100g, l.eiweiss_dg_pro_100g,
          e.erstellt_am, e.geaendert_am
     FROM eintraege e
@@ -90,12 +92,16 @@ function pruefeEingabe(db: Database, input: EintragInput): void {
 export function createEintrag(db: Database, input: EintragInput): Eintrag {
   pruefeEingabe(db, input);
   const jetzt = new Date().toISOString();
+  // Ohne Angabe gilt ein Eintrag als gegessen (programmatischer Standard); die
+  // API/UI setzt beim Anlegen bewusst false, sodass neue Mahlzeiten erst nach
+  // dem Ankreuzen von „gegessen" in die Statistik zaehlen.
+  const gegessen = (input.gegessen ?? true) ? 1 : 0;
   const info = db
     .prepare(
       `INSERT INTO eintraege
-         (mandant_id, datum, uhrzeit, lebensmittel_id, menge_gramm,
+         (mandant_id, datum, uhrzeit, lebensmittel_id, menge_gramm, gegessen,
           erstellt_am, geaendert_am)
-       VALUES (@mandant, @datum, @uhrzeit, @lm, @menge, @jetzt, @jetzt)`,
+       VALUES (@mandant, @datum, @uhrzeit, @lm, @menge, @gegessen, @jetzt, @jetzt)`,
     )
     .run({
       mandant: aktuellerMandant(),
@@ -103,9 +109,48 @@ export function createEintrag(db: Database, input: EintragInput): Eintrag {
       uhrzeit: input.uhrzeit,
       lm: input.lebensmittel_id,
       menge: input.menge_gramm,
+      gegessen,
       jetzt,
     });
   return getEintrag(db, Number(info.lastInsertRowid)) as Eintrag;
+}
+
+/** Setzt das „gegessen"-Flag eines Eintrags (steuert die Statistik-Zaehlung). */
+export function setEintragGegessen(
+  db: Database,
+  id: number,
+  gegessen: boolean,
+): Eintrag {
+  const vorhanden = getEintrag(db, id);
+  if (!vorhanden) throw notFound('Eintrag nicht gefunden.');
+  db.prepare(
+    `UPDATE eintraege SET gegessen = @gegessen, geaendert_am = @jetzt
+      WHERE id = @id AND mandant_id = @mandant`,
+  ).run({
+    id,
+    mandant: aktuellerMandant(),
+    gegessen: gegessen ? 1 : 0,
+    jetzt: new Date().toISOString(),
+  });
+  return getEintrag(db, id) as Eintrag;
+}
+
+/**
+ * Migration: markiert alle noch nicht als gegessen erfassten Eintraege bis
+ * einschliesslich `bisDatum` als gegessen. Liefert die Anzahl geaenderter Zeilen.
+ */
+export function markiereGegessenBis(db: Database, bisDatum: string): number {
+  const info = db
+    .prepare(
+      `UPDATE eintraege SET gegessen = 1, geaendert_am = @jetzt
+        WHERE mandant_id = @mandant AND datum <= @bis AND gegessen = 0`,
+    )
+    .run({
+      mandant: aktuellerMandant(),
+      bis: bisDatum,
+      jetzt: new Date().toISOString(),
+    });
+  return info.changes;
 }
 
 export function updateEintrag(

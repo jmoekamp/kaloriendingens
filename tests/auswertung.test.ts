@@ -134,6 +134,50 @@ describe('Defizit', () => {
   });
 });
 
+describe('Nur gegessene Eintraege zaehlen in die Statistik', () => {
+  it('summiert in der Tagesauswertung nur gegessene Eintraege', () => {
+    vorgabe({ gesamtumsatz: 2400 });
+    createEintrag(db, {
+      datum: '2026-07-15',
+      uhrzeit: '08:00',
+      lebensmittel_id: quarkId,
+      menge_gramm: 250, // 168 kcal, 300 dg – gegessen
+      gegessen: true,
+    });
+    createEintrag(db, {
+      datum: '2026-07-15',
+      uhrzeit: '12:00',
+      lebensmittel_id: quarkId,
+      menge_gramm: 100, // 67 kcal – NICHT gegessen (Planung)
+      gegessen: false,
+    });
+    const a = getTagesAuswertung(db, '2026-07-15');
+    expect(a.eintraege).toHaveLength(2); // Liste zeigt beide
+    expect(a.summe_kcal).toBe(168); // nur der gegessene
+    expect(a.summe_eiweiss_dg).toBe(300);
+    expect(a.defizit).toBe(2400 - 168);
+  });
+
+  it('ignoriert nicht gegessene Eintraege in Verlauf und Defizit', () => {
+    vorgabe({ gesamtumsatz: 2400 });
+    createEintrag(db, {
+      datum: '2026-07-14',
+      uhrzeit: '08:00',
+      lebensmittel_id: quarkId,
+      menge_gramm: 100, // geplant, nicht gegessen
+      gegessen: false,
+    });
+    iss('2026-07-15', 250); // gegessen (Standard true), 168 kcal
+    // Verlauf enthaelt nur den gegessenen Tag.
+    const v = getVerlauf(db, '2026-07-01', '2026-07-15', '2026-07-15');
+    expect(v.punkte.map((p) => p.datum)).toEqual(['2026-07-15']);
+    // Defizit-Report zaehlt nur den gegessenen Tag.
+    const r = getDefizitReport(db, '2026-07-15');
+    expect(r.gesamt.tage).toBe(1);
+    expect(r.gesamt.defizit).toBe(2400 - 168);
+  });
+});
+
 describe('Eiweiss pro kg (Tagesauswertung)', () => {
   it('rechnet Eiweiss je kg mit dem tagesgueltigen Gewicht', () => {
     upsertGewicht(db, { datum: '2026-07-15', gramm: 80000, aus_trend: false });

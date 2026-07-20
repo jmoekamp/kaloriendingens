@@ -6,6 +6,7 @@ import {
   requireInteger,
   requireIsoDate,
   requireString,
+  optionalBoolean,
   parseId,
 } from '../validation.ts';
 import {
@@ -13,10 +14,22 @@ import {
   deleteEintrag,
   listEintraegeFuerTag,
   listTageMitDaten,
+  markiereGegessenBis,
+  setEintragGegessen,
   updateEintrag,
 } from '../repos/eintraege.ts';
+import { verschiebeDatum } from '../repos/auswertung.ts';
 
 export const eintraegeRouter = Router();
+
+/** Lokales Kalenderdatum (Server) im Format YYYY-MM-DD. */
+function heuteIso(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const t = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${t}`;
+}
 
 function leseInput(body: Record<string, unknown>): EintragInput {
   return {
@@ -42,14 +55,35 @@ eintraegeRouter.get('/tage', (_req, res) => {
 });
 
 eintraegeRouter.post('/', (req, res) => {
-  const input = leseInput((req.body ?? {}) as Record<string, unknown>);
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const input = leseInput(body);
+  // Neue Eintraege gelten per API/UI erst nach dem Ankreuzen als gegessen.
+  input.gegessen = optionalBoolean(body, 'gegessen', false);
   res.status(201).json(createEintrag(getDb(), input));
+});
+
+/**
+ * POST /api/eintraege/migriere-gegessen – markiert alle Eintraege bis
+ * einschliesslich gestern als gegessen (einmalige Migration fuer Bestandsdaten).
+ */
+eintraegeRouter.post('/migriere-gegessen', (_req, res) => {
+  const gestern = verschiebeDatum(heuteIso(), -1);
+  const anzahl = markiereGegessenBis(getDb(), gestern);
+  res.json({ anzahl, bis: gestern });
 });
 
 eintraegeRouter.put('/:id', (req, res) => {
   const id = parseId(req.params.id);
   const input = leseInput((req.body ?? {}) as Record<string, unknown>);
   res.json(updateEintrag(getDb(), id, input));
+});
+
+/** PATCH /api/eintraege/:id/gegessen – „gegessen"-Flag setzen ({ gegessen }). */
+eintraegeRouter.patch('/:id/gegessen', (req, res) => {
+  const id = parseId(req.params.id);
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const gegessen = optionalBoolean(body, 'gegessen', true);
+  res.json(setEintragGegessen(getDb(), id, gegessen));
 });
 
 eintraegeRouter.delete('/:id', (req, res) => {

@@ -58,7 +58,7 @@ export function Checkbox({
   checked,
   onChange,
 }: {
-  label: string;
+  label?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
 }) {
@@ -70,7 +70,7 @@ export function Checkbox({
         onChange={(e) => onChange(e.target.checked)}
         className="h-4 w-4 accent-accent"
       />
-      <span>{label}</span>
+      {label && <span>{label}</span>}
     </label>
   );
 }

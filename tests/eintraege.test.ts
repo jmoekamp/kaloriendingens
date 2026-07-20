@@ -8,6 +8,8 @@ import {
   deleteEintrag,
   listEintraegeFuerTag,
   listTageMitDaten,
+  markiereGegessenBis,
+  setEintragGegessen,
   updateEintrag,
 } from '../server/repos/eintraege.ts';
 
@@ -86,6 +88,49 @@ describe('Eintraege', () => {
     expect(u.kcal).toBe(134);
     deleteEintrag(db, e.id);
     expect(listEintraegeFuerTag(db, '2026-07-15')).toHaveLength(0);
+  });
+
+  it('setzt und schaltet das gegessen-Flag', () => {
+    // Ohne Angabe gilt ein Eintrag als gegessen (programmatischer Standard).
+    const a = createEintrag(db, {
+      datum: '2026-07-15',
+      uhrzeit: '08:00',
+      lebensmittel_id: quarkId,
+      menge_gramm: 100,
+    });
+    expect(a.gegessen).toBe(true);
+    // Explizit als nicht gegessen anlegbar (so legt die API neue Eintraege an).
+    const b = createEintrag(db, {
+      datum: '2026-07-15',
+      uhrzeit: '09:00',
+      lebensmittel_id: quarkId,
+      menge_gramm: 100,
+      gegessen: false,
+    });
+    expect(b.gegessen).toBe(false);
+    expect(setEintragGegessen(db, b.id, true).gegessen).toBe(true);
+    expect(setEintragGegessen(db, a.id, false).gegessen).toBe(false);
+  });
+
+  it('markiert per Migration alle Eintraege bis zu einem Datum als gegessen', () => {
+    const mk = (datum: string) =>
+      createEintrag(db, {
+        datum,
+        uhrzeit: '08:00',
+        lebensmittel_id: quarkId,
+        menge_gramm: 100,
+        gegessen: false,
+      });
+    mk('2026-07-13');
+    mk('2026-07-14');
+    mk('2026-07-15');
+    const anzahl = markiereGegessenBis(db, '2026-07-14');
+    expect(anzahl).toBe(2); // 13. + 14., nicht der 15.
+    expect(listEintraegeFuerTag(db, '2026-07-13')[0].gegessen).toBe(true);
+    expect(listEintraegeFuerTag(db, '2026-07-14')[0].gegessen).toBe(true);
+    expect(listEintraegeFuerTag(db, '2026-07-15')[0].gegessen).toBe(false);
+    // Erneuter Lauf aendert nichts mehr (idempotent, nur gegessen=0 wird gesetzt).
+    expect(markiereGegessenBis(db, '2026-07-14')).toBe(0);
   });
 
   it('weist ungueltige Eingaben ab', () => {

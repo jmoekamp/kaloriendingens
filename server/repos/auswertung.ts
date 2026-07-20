@@ -134,8 +134,11 @@ export function getTagesAuswertung(
   datum: string,
 ): TagesAuswertung {
   const eintraege = listEintraegeFuerTag(db, datum);
-  const summe_kcal = eintraege.reduce((s, e) => s + (e.kcal ?? 0), 0);
-  const summe_eiweiss_dg = eintraege.reduce(
+  // Nur gegessene Eintraege zaehlen in Summen/Ziele/Defizit; die Liste selbst
+  // zeigt weiterhin alle Eintraege des Tages (auch noch nicht gegessene).
+  const gegessene = eintraege.filter((e) => e.gegessen);
+  const summe_kcal = gegessene.reduce((s, e) => s + (e.kcal ?? 0), 0);
+  const summe_eiweiss_dg = gegessene.reduce(
     (s, e) => s + (e.eiweiss_dg ?? 0),
     0,
   );
@@ -184,6 +187,7 @@ export function getVerlauf(
          FROM eintraege e
          JOIN lebensmittel l ON l.id = e.lebensmittel_id
         WHERE e.mandant_id = @mandant
+          AND e.gegessen = 1
           AND e.datum BETWEEN @von AND @bis
           AND e.datum <= @heute
         GROUP BY e.datum
@@ -213,7 +217,8 @@ export function getLetzteTage(
               SUM(${TAG_EIW})  AS eiweiss_dg
          FROM eintraege e
          JOIN lebensmittel l ON l.id = e.lebensmittel_id
-        WHERE e.mandant_id = @mandant AND e.datum BETWEEN @von AND @bis
+        WHERE e.mandant_id = @mandant AND e.gegessen = 1
+          AND e.datum BETWEEN @von AND @bis
         GROUP BY e.datum`,
     )
     .all({ mandant: aktuellerMandant(), von, bis: heute }) as TagAggRow[]) {
@@ -261,7 +266,8 @@ function fenster(
       `SELECT e.datum AS datum, SUM(${TAG_KCAL}) AS kcal
          FROM eintraege e
          JOIN lebensmittel l ON l.id = e.lebensmittel_id
-        WHERE e.mandant_id = @mandant AND e.datum <= @heute ${bereich}
+        WHERE e.mandant_id = @mandant AND e.gegessen = 1
+          AND e.datum <= @heute ${bereich}
         GROUP BY e.datum`,
     )
     .all({ mandant: aktuellerMandant(), von, bis, heute }) as TagKcalRow[];
@@ -310,6 +316,7 @@ function tagesDefiziteMitDatum(
          FROM eintraege e
          JOIN lebensmittel l ON l.id = e.lebensmittel_id
         WHERE e.mandant_id = @mandant
+          AND e.gegessen = 1
           AND e.datum BETWEEN @von AND @bis
           AND e.datum <= @heute
         GROUP BY e.datum
@@ -367,7 +374,8 @@ export function getKalorienVerlauf(
       `SELECT e.datum AS datum, SUM(${TAG_KCAL}) AS kcal
          FROM eintraege e
          JOIN lebensmittel l ON l.id = e.lebensmittel_id
-        WHERE e.mandant_id = @mandant AND e.datum BETWEEN @von AND @bis
+        WHERE e.mandant_id = @mandant AND e.gegessen = 1
+          AND e.datum BETWEEN @von AND @bis
         GROUP BY e.datum`,
     )
     .all({

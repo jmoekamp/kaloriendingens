@@ -48,6 +48,8 @@ export interface Eintrag {
   uhrzeit: string; // HH:MM
   lebensmittel_id: number;
   menge_gramm: number;
+  /** true = gegessen; nur gegessene Eintraege zaehlen in die Statistik. */
+  gegessen: boolean;
   /** Nur lesend (Join). */
   lebensmittel_name?: string;
   /** Nur lesend (berechnet): kcal dieser Portion. */
@@ -64,6 +66,8 @@ export interface EintragInput {
   uhrzeit: string;
   lebensmittel_id: number;
   menge_gramm: number;
+  /** Ob der Eintrag als gegessen zaehlt. Ohne Angabe: gegessen (true). */
+  gegessen?: boolean;
 }
 
 /**

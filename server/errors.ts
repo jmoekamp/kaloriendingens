@@ -43,6 +43,11 @@ export function tooManyRequests(message: string): AppError {
   return new AppError(429, message);
 }
 
+/** 502 – ein vorgelagerter externer Dienst hat versagt (z. B. Open Food Facts). */
+export function badGateway(message: string): AppError {
+  return new AppError(502, message);
+}
+
 /** Erkennt eine UNIQUE-Verletzung von better-sqlite3. */
 export function isUniqueViolation(e: unknown): boolean {
   return (

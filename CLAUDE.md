@@ -18,8 +18,13 @@ Port **3010**.
 ## Datenschutz (höchste Priorität)
 
 - Alles läuft und bleibt lokal im eigenen Netzwerk. KEINE Cloud, keine Telemetrie,
-  keine externen Tracker oder CDNs. Es gibt hier auch KEINE Ausnahme für externe
-  Dienste – die App kommt vollständig ohne Außenkontakt aus.
+  keine externen Tracker oder CDNs. Standardmäßig kommt die App vollständig ohne
+  Außenkontakt aus.
+- **Einzige, bewusst freigegebene Ausnahme:** der **Open-Food-Facts-Import** unter
+  „Lebensmittel". Er ist rein **opt-in** (nur bei expliziter Namenssuche), läuft
+  **lesend** und **per Server-Proxy** (der Browser spricht nur mit der App, der
+  Server ruft OFF ab). Kein Import-Vorgang ⇒ kein Außenkontakt. Sonst gilt die
+  „alles bleibt lokal"-Regel unverändert – keine weiteren externen Dienste.
 - Alle Abhängigkeiten (inkl. Schrift Atkinson Hyperlegible) werden lokal gebündelt.
 - Die Datenbank liegt als lokale Datei vor und lässt sich einfach sichern.
 
@@ -33,7 +38,13 @@ Port **3010**.
   Packung, „—" ohne Packungsgröße). Die Tabelle ist per Klick auf die
   Spaltenköpfe sortierbar (erneuter Klick dreht die Richtung; leere Werte ans
   Ende). Ein Lebensmittel, das noch in Einträgen verwendet wird, kann NICHT
-  gelöscht werden (strikter Löschschutz).
+  gelöscht werden (strikter Löschschutz). Zusätzlich gibt es einen **Import aus
+  Open Food Facts** (Namenssuche): Der Server ruft OFF ab
+  (`GET /api/lebensmittel/off-suche?q=`, `server/off.ts`, `sucheOpenFoodFacts`/
+  `mapOffProdukt`), liefert bis zu 20 Treffer mit Name, kcal/100 g, Eiweiß/100 g
+  (kJ→kcal-Fallback) und Packungsgröße (g/kg; ml/l werden verworfen). Ein Treffer
+  wird per „Übernehmen" ins Anlege-Formular gereicht und dort vor dem Speichern
+  geprüft/ergänzt. Das ist der einzige Außenkontakt der App (siehe Datenschutz).
 - **Tageserfassung:** Je Eintrag Uhrzeit, Lebensmittel (Auswahl), Menge in g und
   ein **„gegessen"-Häkchen**. kcal und Eiweiß eines Eintrags werden LIVE aus dem
   Lebensmittel und der Menge berechnet, nicht gespeichert (ändert man die
@@ -254,7 +265,9 @@ kein Zugriff auf Fachdaten). Erst-Accounts beim ersten Start: `admin/admin`
 ## Was Claude NICHT tun soll
 
 - KEINE externen Dienste, Cloud-APIs, CDNs, Telemetrie oder extern geladene
-  Schriften einbauen – die App bleibt vollständig lokal.
+  Schriften einbauen – die App bleibt vollständig lokal. Einzige, ausdrücklich
+  vom Nutzer freigegebene Ausnahme: der lesende Open-Food-Facts-Import per
+  Server-Proxy (opt-in). Keine weiteren Außenkontakte ohne erneute Rücksprache.
 - Keine Abhängigkeiten hinzufügen, ohne kurz zu begründen warum.
 - Keine bestehenden Tests löschen oder durch Auskommentieren „grün machen".
 - Keine Secrets, Passwörter oder echten Gesundheitsdaten in Commits ablegen.

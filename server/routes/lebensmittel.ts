@@ -13,8 +13,20 @@ import {
   listLebensmittel,
   updateLebensmittel,
 } from '../repos/lebensmittel.ts';
+import { sucheOpenFoodFacts } from '../off.ts';
 
 export const lebensmittelRouter = Router();
+
+/**
+ * GET /api/lebensmittel/off-suche?q= – Namenssuche bei Open Food Facts
+ * (externer Dienst, per Server-Proxy). Muss VOR „/:id" stehen.
+ */
+lebensmittelRouter.get('/off-suche', (req, res, next) => {
+  const q = typeof req.query.q === 'string' ? req.query.q : '';
+  sucheOpenFoodFacts(q)
+    .then((treffer) => res.json(treffer))
+    .catch(next);
+});
 
 function leseInput(body: Record<string, unknown>): LebensmittelInput {
   return {

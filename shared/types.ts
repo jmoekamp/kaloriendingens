@@ -37,6 +37,24 @@ export interface LebensmittelInput {
 }
 
 /**
+ * Ein Treffer der Open-Food-Facts-Namenssuche (externer Dienst, per Server-Proxy).
+ * Fehlende Naehrwerte sind null; die Werte werden ins Anlege-Formular uebernommen
+ * und dort vor dem Speichern geprueft/ergaenzt.
+ */
+export interface OffTreffer {
+  /** Barcode/EAN des Produkts (nur zur Anzeige/Referenz). */
+  code: string;
+  /** Produktname (ggf. mit Marke). */
+  name: string;
+  /** kcal je 100 g (ganz) oder null, wenn bei OFF nicht hinterlegt. */
+  kcal_pro_100g: number | null;
+  /** Eiweiss je 100 g in Dezigramm oder null. */
+  eiweiss_dg_pro_100g: number | null;
+  /** Packungsgroesse in Gramm oder null. */
+  packung_gramm: number | null;
+}
+
+/**
  * Ein Tages-Eintrag: was und wieviel zu einer Uhrzeit gegessen wurde. kcal und
  * Eiweiss werden LIVE aus dem verknuepften Lebensmittel und der Menge berechnet
  * (nicht gespeichert) – aendert man die Naehrwerte des Lebensmittels, aendern

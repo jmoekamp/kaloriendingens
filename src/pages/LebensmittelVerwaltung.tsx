@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Lebensmittel } from '../../shared/types.ts';
+import type { Lebensmittel, OffTreffer } from '../../shared/types.ts';
 import { Banner, Button, Card, Field, TextInput } from '../components/ui.tsx';
 import {
   eiweissProKcal,
@@ -76,6 +76,113 @@ function sortWert(l: Lebensmittel, key: SortKey): number | string | null {
   }
 }
 
+/**
+ * Import aus Open Food Facts (Namenssuche, externer Dienst per Server-Proxy).
+ * In sich geschlossen: haelt Suchbegriff, Treffer und Ladezustand selbst; ein
+ * Treffer wird per „Übernehmen" ins Anlege-Formular gereicht.
+ */
+function OffImport({
+  onUebernehmen,
+}: {
+  onUebernehmen: (t: OffTreffer) => void;
+}) {
+  const [q, setQ] = useState('');
+  const [treffer, setTreffer] = useState<OffTreffer[]>([]);
+  const [sucht, setSucht] = useState(false);
+  const [fehler, setFehler] = useState<string | null>(null);
+  const [gesucht, setGesucht] = useState(false);
+
+  async function suchen(e: React.FormEvent) {
+    e.preventDefault();
+    setFehler(null);
+    if (q.trim() === '') return;
+    setSucht(true);
+    setGesucht(true);
+    try {
+      setTreffer(await lebensmittelApi.offSuche(q.trim()));
+    } catch (err) {
+      setTreffer([]);
+      setFehler(meldung(err));
+    } finally {
+      setSucht(false);
+    }
+  }
+
+  return (
+    <Card title="Aus Open Food Facts importieren (Namenssuche)">
+      <p className="mb-3 text-sm text-text-muted">
+        Sucht Nährwerte online bei Open Food Facts. Hinweis: Dies ist der
+        einzige Vorgang, bei dem die App nach außen kommuniziert (nur bei der
+        Suche, nur lesend). Übernommene Werte lassen sich vor dem Speichern
+        prüfen und anpassen.
+      </p>
+      <form onSubmit={suchen} className="mb-3 flex flex-wrap items-end gap-3">
+        <Field label="Produktname / Suchbegriff">
+          <TextInput
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="z. B. Magerquark"
+            className="w-72"
+          />
+        </Field>
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={sucht || q.trim() === ''}
+        >
+          {sucht ? 'Sucht …' : 'Suchen'}
+        </Button>
+      </form>
+      {fehler && (
+        <div className="mb-3">
+          <Banner kind="error" onClose={() => setFehler(null)}>
+            {fehler}
+          </Banner>
+        </div>
+      )}
+      {gesucht && !sucht && !fehler && treffer.length === 0 && (
+        <p className="text-sm text-text-muted">Keine Treffer gefunden.</p>
+      )}
+      {treffer.length > 0 && (
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-text-muted">
+              <th className="py-2 pr-3 font-normal">Name</th>
+              <th className="py-2 pr-3 text-right font-normal">kcal / 100 g</th>
+              <th className="py-2 pr-3 text-right font-normal">
+                Eiweiß / 100 g
+              </th>
+              <th className="py-2 pr-3 text-right font-normal">Packung</th>
+              <th className="py-2 font-normal"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {treffer.map((t, i) => (
+              <tr key={`${t.code}-${i}`} className="border-b border-border/50">
+                <td className="py-2 pr-3">{t.name}</td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {t.kcal_pro_100g === null ? '—' : formatKcal(t.kcal_pro_100g)}
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {t.eiweiss_dg_pro_100g === null
+                    ? '—'
+                    : `${formatGramm(t.eiweiss_dg_pro_100g)} g`}
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {t.packung_gramm === null ? '—' : `${t.packung_gramm} g`}
+                </td>
+                <td className="py-2 text-right">
+                  <Button onClick={() => onUebernehmen(t)}>Übernehmen</Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Card>
+  );
+}
+
 /** Stammdaten: Lebensmittel anlegen, bearbeiten und loeschen (Werte je 100 g). */
 export default function LebensmittelVerwaltung() {
   const [liste, setListe] = useState<Lebensmittel[]>([]);
@@ -136,6 +243,24 @@ export default function LebensmittelVerwaltung() {
     });
     setHinweis(null);
     setFehler(null);
+  }
+
+  /** Werte eines OFF-Treffers ins Anlege-Formular uebernehmen (zum Pruefen). */
+  function offUebernehmen(t: OffTreffer) {
+    setBearbeitetId(null);
+    setForm({
+      name: t.name,
+      kcal: t.kcal_pro_100g === null ? '' : String(t.kcal_pro_100g),
+      eiweiss:
+        t.eiweiss_dg_pro_100g === null
+          ? ''
+          : formatGramm(t.eiweiss_dg_pro_100g),
+      packung: t.packung_gramm === null ? '' : String(t.packung_gramm),
+    });
+    setFehler(null);
+    setHinweis(
+      `„${t.name}" aus Open Food Facts übernommen – bitte prüfen und speichern.`,
+    );
   }
 
   async function speichern(e: React.FormEvent) {
@@ -211,6 +336,8 @@ export default function LebensmittelVerwaltung() {
           {hinweis}
         </Banner>
       )}
+
+      <OffImport onUebernehmen={offUebernehmen} />
 
       <Card
         title={

@@ -8,7 +8,9 @@
 import type { OffTreffer } from '../shared/types.ts';
 import { badGateway } from './errors.ts';
 
-const OFF_SUCHE_URL = 'https://world.openfoodfacts.org/cgi/search.pl';
+// Neuer Search-a-licious-Dienst von OFF. Der alte cgi/search.pl-Endpunkt ist
+// stark rate-limitiert und liefert oft HTTP 503; dieser Dienst ist robuster.
+const OFF_SUCHE_URL = 'https://search.openfoodfacts.org/search';
 // OFF bittet um einen identifizierenden User-Agent.
 const USER_AGENT = 'cal-o-matic/1.0 (self-hosted; lokale Naehrwertverwaltung)';
 const TIMEOUT_MS = 10_000;
@@ -18,7 +20,9 @@ const MAX_TREFFER = 20;
 interface OffProdukt {
   code?: string | number;
   product_name?: string;
-  brands?: string;
+  // Der alte CGI-Endpunkt liefert einen kommaseparierten String, Search-a-licious
+  // ein Array.
+  brands?: string | string[];
   quantity?: string;
   product_quantity?: string | number;
   nutriments?: Record<string, unknown>;
@@ -35,7 +39,8 @@ function zahlOderNull(wert: unknown): number | null {
 function kcalPro100g(n: Record<string, unknown>): number | null {
   const kcal = zahlOderNull(n['energy-kcal_100g']);
   if (kcal !== null) return Math.round(kcal);
-  const kj = zahlOderNull(n['energy_100g']);
+  const kj =
+    zahlOderNull(n['energy-kj_100g']) ?? zahlOderNull(n['energy_100g']);
   return kj !== null ? Math.round(kj / 4.184) : null;
 }
 
@@ -55,10 +60,17 @@ function packungGramm(p: OffProdukt): number | null {
   return Math.round(m[2] === 'kg' ? zahl * 1000 : zahl);
 }
 
+/** Erste Marke aus String (CGI, kommasepariert) oder Array (Search-a-licious). */
+function ersteMarke(brands: string | string[] | undefined): string {
+  if (Array.isArray(brands)) return (brands[0] ?? '').toString().trim();
+  if (typeof brands === 'string') return brands.split(',')[0]?.trim() ?? '';
+  return '';
+}
+
 /** Baut einen Anzeigenamen aus Produktname und (erster) Marke. */
 function baueName(p: OffProdukt): string {
   const name = (p.product_name ?? '').trim();
-  const marke = (p.brands ?? '').split(',')[0]?.trim();
+  const marke = ersteMarke(p.brands);
   if (name === '') return '';
   return marke && !name.toLowerCase().includes(marke.toLowerCase())
     ? `${name} – ${marke}`
@@ -88,10 +100,7 @@ export async function sucheOpenFoodFacts(query: string): Promise<OffTreffer[]> {
   if (q === '') return [];
 
   const params = new URLSearchParams({
-    search_terms: q,
-    search_simple: '1',
-    action: 'process',
-    json: '1',
+    q,
     page_size: String(MAX_TREFFER),
     fields: 'code,product_name,brands,nutriments,quantity,product_quantity',
   });
@@ -112,15 +121,29 @@ export async function sucheOpenFoodFacts(query: string): Promise<OffTreffer[]> {
     clearTimeout(timer);
   }
   if (!res.ok) {
-    throw badGateway(`Open Food Facts antwortete mit HTTP ${res.status}.`);
+    const hinweis =
+      res.status === 503
+        ? ' (Dienst überlastet – bitte später erneut versuchen)'
+        : '';
+    throw badGateway(
+      `Open Food Facts antwortete mit HTTP ${res.status}${hinweis}.`,
+    );
   }
 
-  let data: { products?: OffProdukt[] };
+  let data: { hits?: OffProdukt[]; products?: OffProdukt[] };
   try {
-    data = (await res.json()) as { products?: OffProdukt[] };
+    data = (await res.json()) as {
+      hits?: OffProdukt[];
+      products?: OffProdukt[];
+    };
   } catch {
     throw badGateway('Open Food Facts lieferte keine gültige Antwort.');
   }
-  const produkte = Array.isArray(data.products) ? data.products : [];
+  // Search-a-licious liefert `hits`; der alte CGI-Endpunkt `products`.
+  const produkte = Array.isArray(data.hits)
+    ? data.hits
+    : Array.isArray(data.products)
+      ? data.products
+      : [];
   return produkte.map(mapOffProdukt).filter((t) => t.name !== '');
 }

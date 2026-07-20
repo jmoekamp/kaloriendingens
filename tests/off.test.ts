@@ -40,6 +40,19 @@ describe('Open-Food-Facts-Mapping', () => {
     ).toBeNull();
   });
 
+  it('verarbeitet Search-a-licious-Treffer (brands als Array, energy-kj)', () => {
+    const t = mapOffProdukt({
+      code: '7613404824306',
+      product_name: 'Magerquark',
+      brands: ['Migros Bio', 'Migros'],
+      nutriments: { 'energy-kj_100g': 280, proteins_100g: 9.5 },
+    });
+    expect(t.name).toBe('Magerquark – Migros Bio'); // erste Marke aus dem Array
+    expect(t.kcal_pro_100g).toBe(67); // 280 kJ -> 67 kcal
+    expect(t.eiweiss_dg_pro_100g).toBe(95);
+    expect(t.packung_gramm).toBeNull();
+  });
+
   it('liefert null-Werte, wenn Naehrwerte fehlen, und haengt Marke nicht doppelt an', () => {
     const t = mapOffProdukt({
       product_name: 'Marke A Joghurt',

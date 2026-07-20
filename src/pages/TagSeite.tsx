@@ -592,6 +592,23 @@ export default function TagSeite({
                 </td>
                 <td></td>
               </tr>
+              <tr className="border-t border-border font-bold">
+                <td className="py-2 pr-3" colSpan={3}>
+                  Summe (gegessen + geplant)
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {auswertung.eintraege.reduce((s, e) => s + e.menge_gramm, 0)}{' '}
+                  g
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {formatKcal(auswertung.summe_kcal + geplantKcal)}
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {formatGramm(auswertung.summe_eiweiss_dg + geplantEiweissDg)}{' '}
+                  g
+                </td>
+                <td></td>
+              </tr>
             </tfoot>
           </table>
         )}

@@ -16,6 +16,7 @@ import {
   benoetigtesDefizitKcal,
   bewerteZiel,
   eiweissProKgKoerper,
+  gleitenderMedian,
   lineareRegression,
 } from '../../shared/naehrwerte.ts';
 import { gesamtumsatzBerechnet } from '../../shared/umsatz.ts';
@@ -457,6 +458,10 @@ export function getAbnehmFortschritt(
       trend_gramm_pro_woche: null,
       prognose_gewichtstrend: null,
       meilensteine: [],
+      defizit_median_kcal: null,
+      defizit_median_gramm_pro_woche: null,
+      prognose_defizit_median: null,
+      meilensteine_defizit_median: [],
     };
   }
   const umsatz = ladeUmsatzKontext(db);
@@ -552,6 +557,72 @@ export function getAbnehmFortschritt(
     }
   }
 
+  // Prognose auf Basis des gleitenden 7-Tage-Medians des Tagesdefizits: die
+  // tagesweise Abnahmerate ist Median_kcal / 7 (7000 kcal/kg). Vergangene Tage
+  // werden aufsummiert, fuer die Zukunft wird mit der aktuellen Medianrate
+  // linear extrapoliert.
+  const MEDIAN_FENSTER = 7;
+  let defizit_median_kcal: number | null = null;
+  let prognose_defizit_median: string | null = null;
+  const meilensteine_defizit_median: GewichtsMeilenstein[] = [];
+  if (startG) {
+    const anker = startG;
+    const defz = tagesDefiziteMitDatum(db, umsatz, anker.datum, heute, heute);
+    const medians = gleitenderMedian(
+      defz.map((d) => d.defizit),
+      MEDIAN_FENSTER,
+    );
+    defizit_median_kcal = medians.length ? medians[medians.length - 1] : null;
+    // Kumulierter projizierter Verlust (Gramm) je Tag nach dem Anker.
+    const kum: { datum: string; verlust: number }[] = [];
+    let acc = 0;
+    defz.forEach((d, i) => {
+      if (d.datum <= anker.datum) return; // ab dem Tag NACH dem Anker
+      acc += medians[i] / 7;
+      kum.push({ datum: d.datum, verlust: acc });
+    });
+    const lossHeute = acc;
+    const rateProTag =
+      defizit_median_kcal !== null ? defizit_median_kcal / 7 : 0;
+    // Datum, an dem die Median-Projektion ein Zielgewicht (Gramm) erreicht.
+    const medianDatumFuer = (zielgewicht: number): string | null => {
+      const noetig = anker.gramm - zielgewicht; // noch abzunehmende Gramm
+      if (noetig <= 0) return anker.datum;
+      const treffer = kum.find((k) => k.verlust >= noetig);
+      if (treffer) return treffer.datum; // in der Vergangenheit erreicht
+      if (rateProTag <= 0) return null; // ohne Abnahmerate nicht absehbar
+      return verschiebeDatum(
+        heute,
+        Math.ceil((noetig - lossHeute) / rateProTag),
+      );
+    };
+    prognose_defizit_median = medianDatumFuer(anker.gramm - ziel.ziel_gramm);
+    const zielgewicht = anker.gramm - ziel.ziel_gramm;
+    for (
+      let m = Math.floor(anker.gramm / 5000) * 5000;
+      m >= zielgewicht;
+      m -= 5000
+    ) {
+      if (m >= anker.gramm) continue;
+      const treffer = trendW.find((w) => w.gramm <= m);
+      const erreicht_am = treffer ? treffer.datum : null;
+      const prognose = medianDatumFuer(m);
+      const differenz_tage =
+        erreicht_am && prognose
+          ? tagNummer(erreicht_am) - tagNummer(prognose)
+          : null;
+      meilensteine_defizit_median.push({
+        gramm: m,
+        erreicht: erreicht_am !== null,
+        erreicht_am,
+        prognose,
+        differenz_tage,
+      });
+    }
+  }
+  const defizit_median_gramm_pro_woche =
+    defizit_median_kcal !== null ? -defizit_median_kcal : null;
+
   return {
     hat_ziel: true,
     gueltig_ab: ziel.gueltig_ab,
@@ -576,5 +647,9 @@ export function getAbnehmFortschritt(
     trend_gramm_pro_woche,
     prognose_gewichtstrend,
     meilensteine,
+    defizit_median_kcal,
+    defizit_median_gramm_pro_woche,
+    prognose_defizit_median,
+    meilensteine_defizit_median,
   };
 }

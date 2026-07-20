@@ -317,6 +317,14 @@ export interface AbnehmFortschritt {
   prognose_gewichtstrend: string | null;
   /** Meilensteine bei durch 5 teilbaren ganzen Kilo bis zum Ziel (schwer -> leicht). */
   meilensteine: GewichtsMeilenstein[];
+  /** Aktueller gleitender 7-Tage-Median des Tagesdefizits (kcal); null = keine Tage. */
+  defizit_median_kcal: number | null;
+  /** Aus dem Defizit-Median folgende woechentliche Gewichtsaenderung (Gramm/Woche, negativ = Abnahme); null = keine Tage. */
+  defizit_median_gramm_pro_woche: number | null;
+  /** Prognose-Datum fuers Zielgewicht aus dem gleitenden Defizit-Median; null wenn nicht absehbar. */
+  prognose_defizit_median: string | null;
+  /** Meilensteine (5 kg) mit Prognose aus dem gleitenden Defizit-Median. */
+  meilensteine_defizit_median: GewichtsMeilenstein[];
 }
 
 /** Ein 5-kg-Meilenstein auf dem Weg zum Abnehmziel. */

@@ -5,6 +5,7 @@ import type {
   DefizitReport,
   DefizitTag,
   GewichtPunkt,
+  GewichtsMeilenstein,
   KalorienTag,
   TagesZusammenfassung,
   Verlauf,
@@ -23,7 +24,6 @@ import {
   formatKcal,
   formatKg,
   formatProzent,
-  gleitenderMedian,
   kumulierteAbnahme,
   lineareRegression,
 } from '../../shared/naehrwerte.ts';
@@ -156,6 +156,75 @@ function Prognose({
   );
 }
 
+/** Tabelle der 5-kg-Meilensteine (Gewicht · Status · früher/später). */
+function MeilensteinTabelle({
+  meilensteine,
+  gleichText,
+}: {
+  meilensteine: GewichtsMeilenstein[];
+  gleichText: string;
+}) {
+  if (meilensteine.length === 0) {
+    return (
+      <p className="text-sm text-text-muted">
+        Keine 5-kg-Meilensteine im Zielbereich.
+      </p>
+    );
+  }
+  return (
+    <table className="w-full border-collapse text-sm">
+      <thead>
+        <tr className="border-b border-border text-left text-text-muted">
+          <th className="py-2 pr-3 font-normal">Gewicht</th>
+          <th className="py-2 pr-3 font-normal">Status</th>
+          <th className="py-2 pr-3 text-right font-normal">früher / später</th>
+        </tr>
+      </thead>
+      <tbody>
+        {meilensteine.map((m) => (
+          <tr key={m.gramm} className="border-b border-border/50">
+            <td className="py-2 pr-3 tabular font-bold">
+              {formatKg(m.gramm)} kg
+            </td>
+            <td className="py-2 pr-3">
+              {m.erreicht ? (
+                <span className="text-success">
+                  erreicht am {formatDatum(m.erreicht_am ?? '')}
+                </span>
+              ) : m.prognose ? (
+                <span className="text-text-muted">
+                  voraussichtlich {formatDatum(m.prognose)}
+                </span>
+              ) : (
+                <span className="text-text-muted">nicht absehbar</span>
+              )}
+            </td>
+            <td className="py-2 pr-3 text-right tabular">
+              {m.erreicht && m.differenz_tage !== null ? (
+                m.differenz_tage === 0 ? (
+                  <span className="text-text-muted">{gleichText}</span>
+                ) : (
+                  <span
+                    className={
+                      m.differenz_tage < 0 ? 'text-success' : 'text-danger'
+                    }
+                  >
+                    {m.differenz_tage < 0
+                      ? `${-m.differenz_tage} Tage früher`
+                      : `${m.differenz_tage} Tage später`}
+                  </span>
+                )
+              ) : (
+                '—'
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export default function LangfristSeite({
   oeffneTag,
 }: {
@@ -254,16 +323,15 @@ export default function LangfristSeite({
   const gewichtSortiert = [...gewicht]
     .filter((g) => !g.aus_trend)
     .sort((a, b) => tagNummer(a.datum) - tagNummer(b.datum));
-  const defizitSortiert = [...defizitTage].sort(
-    (a, b) => tagNummer(a.datum) - tagNummer(b.datum),
-  );
   const prognosePunkte: ChartPunkt[] = [];
   if (gewichtSortiert.length > 0) {
     const anker = gewichtSortiert[0];
     const ankerTag = tagNummer(anker.datum);
     prognosePunkte.push({ datum: anker.datum, wert: anker.gramm });
     let kumDefizit = 0;
-    for (const d of defizitSortiert) {
+    for (const d of [...defizitTage].sort(
+      (a, b) => tagNummer(a.datum) - tagNummer(b.datum),
+    )) {
       if (tagNummer(d.datum) <= ankerTag) continue; // ab dem Tag NACH dem Anker
       kumDefizit += d.defizit;
       prognosePunkte.push({
@@ -271,30 +339,6 @@ export default function LangfristSeite({
         wert: anker.gramm - kumDefizit / 7,
       });
     }
-  }
-
-  // Zweite Gewichtsprognose: wie oben, aber die tagesweise Abnahmerate ist der
-  // gleitende 7-Tage-Median des Defizits (geglaettet, unempfindlich gegen
-  // Ausreisser). Gramm = Median_kcal / 7 (7000 kcal/kg).
-  const MEDIAN_FENSTER = 7;
-  const medianDefizite = gleitenderMedian(
-    defizitSortiert.map((d) => d.defizit),
-    MEDIAN_FENSTER,
-  );
-  const medianPrognosePunkte: ChartPunkt[] = [];
-  if (gewichtSortiert.length > 0) {
-    const anker = gewichtSortiert[0];
-    const ankerTag = tagNummer(anker.datum);
-    medianPrognosePunkte.push({ datum: anker.datum, wert: anker.gramm });
-    let kumMedian = 0;
-    defizitSortiert.forEach((d, i) => {
-      if (tagNummer(d.datum) <= ankerTag) return; // ab dem Tag NACH dem Anker
-      kumMedian += medianDefizite[i] / 7;
-      medianPrognosePunkte.push({
-        datum: d.datum,
-        wert: anker.gramm - kumMedian,
-      });
-    });
   }
 
   // Kumulierter Gewichtsverlust: erwartet (aus Defizit / 7000 kcal/kg) vs.
@@ -438,66 +482,48 @@ export default function LangfristSeite({
             )}
           </p>
 
-          {abnehmen.meilensteine.length === 0 ? (
-            <p className="text-sm text-text-muted">
-              Keine 5-kg-Meilensteine im Zielbereich.
-            </p>
-          ) : (
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-text-muted">
-                  <th className="py-2 pr-3 font-normal">Gewicht</th>
-                  <th className="py-2 pr-3 font-normal">Status</th>
-                  <th className="py-2 pr-3 text-right font-normal">
-                    früher / später
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {abnehmen.meilensteine.map((m) => (
-                  <tr key={m.gramm} className="border-b border-border/50">
-                    <td className="py-2 pr-3 tabular font-bold">
-                      {formatKg(m.gramm)} kg
-                    </td>
-                    <td className="py-2 pr-3">
-                      {m.erreicht ? (
-                        <span className="text-success">
-                          erreicht am {formatDatum(m.erreicht_am ?? '')}
-                        </span>
-                      ) : m.prognose ? (
-                        <span className="text-text-muted">
-                          voraussichtlich {formatDatum(m.prognose)}
-                        </span>
-                      ) : (
-                        <span className="text-text-muted">nicht absehbar</span>
-                      )}
-                    </td>
-                    <td className="py-2 pr-3 text-right tabular">
-                      {m.erreicht && m.differenz_tage !== null ? (
-                        m.differenz_tage === 0 ? (
-                          <span className="text-text-muted">wie im Trend</span>
-                        ) : (
-                          <span
-                            className={
-                              m.differenz_tage < 0
-                                ? 'text-success'
-                                : 'text-danger'
-                            }
-                          >
-                            {m.differenz_tage < 0
-                              ? `${-m.differenz_tage} Tage früher`
-                              : `${m.differenz_tage} Tage später`}
-                          </span>
-                        )
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <MeilensteinTabelle
+            meilensteine={abnehmen.meilensteine}
+            gleichText="wie im Trend"
+          />
+        </Card>
+      )}
+
+      {/* Eigene Karte: Prognose aus gleitendem Defizit-Median + 5-kg-Meilensteine */}
+      {abnehmen?.hat_ziel && (
+        <Card title="Defizit-Median (gleitend, 7 Tage)">
+          <p className="mb-3 text-sm text-text-muted">
+            Prognose aus dem gleitenden 7-Tage-Median des Tagesdefizits (7000
+            kcal/kg). Ziel erreicht:{' '}
+            {abnehmen.start_gewicht_gramm !== null &&
+            abnehmen.aktuell_gewicht_gramm !== null &&
+            abnehmen.aktuell_gewicht_gramm <=
+              abnehmen.start_gewicht_gramm - abnehmen.ziel_gramm ? (
+              <span className="font-bold text-success">
+                bereits erreicht 🎉
+              </span>
+            ) : abnehmen.prognose_defizit_median ? (
+              <span className="font-bold text-text">
+                {formatDatum(abnehmen.prognose_defizit_median)}
+              </span>
+            ) : (
+              <span>nicht absehbar (keine Tagesdaten oder kein Defizit)</span>
+            )}
+            {abnehmen.defizit_median_kcal !== null && (
+              <> · Median {formatKcal(abnehmen.defizit_median_kcal)} kcal/Tag</>
+            )}
+            {abnehmen.defizit_median_gramm_pro_woche !== null && (
+              <>
+                {' '}
+                ({formatKg(abnehmen.defizit_median_gramm_pro_woche)} kg/Woche)
+              </>
+            )}
+          </p>
+
+          <MeilensteinTabelle
+            meilensteine={abnehmen.meilensteine_defizit_median}
+            gleichText="wie prognostiziert"
+          />
         </Card>
       )}
 
@@ -591,10 +617,7 @@ export default function LangfristSeite({
             {trendProWoche !== null && (
               <> ({formatKg(trendProWoche)} kg/Woche)</>
             )}{' '}
-            · <span className="text-[#5aa0d8]">Prognose aus Defizit</span> ·{' '}
-            <span className="text-[#63b784]">
-              Prognose aus Defizit-Median (7 Tage)
-            </span>
+            · <span className="text-[#5aa0d8]">Prognose aus Defizit</span>
           </span>
         </div>
         <LinienChart
@@ -611,13 +634,6 @@ export default function LangfristSeite({
           regression
           prognose={prognosePunkte}
           prognoseFarbe="#5aa0d8"
-          serien={[
-            {
-              punkte: medianPrognosePunkte,
-              farbe: '#63b784',
-              verbinden: true,
-            },
-          ]}
         />
 
         {gewicht.length > 0 && (

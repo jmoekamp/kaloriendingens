@@ -91,6 +91,16 @@ Port **3010**.
   eigenen Karte samt **5-kg-Meilenstein-Übersicht** (`meilensteine`): je durch 5
   teilbarem ganzen Kilo bis zum Ziel die Trend-Prognose bzw. – wenn erreicht – das
   tatsächliche Datum plus „X Tage früher/später" gegenüber der Trend-Prognose.
+  Eine **zweite Karte „Defizit-Median (gleitend, 7 Tage)"** zeigt dieselbe
+  5-kg-Meilenstein-Tabelle (gemeinsame Komponente `MeilensteinTabelle`), aber die
+  Prognose stammt aus dem **gleitenden 7-Tage-Median des Tagesdefizits**: die
+  tagesweise Abnahmerate ist Median_kcal / 7 (7000 kcal/kg); vergangene Tage werden
+  aufsummiert, für die Zukunft wird mit der aktuellen Medianrate linear
+  extrapoliert. Der erreichte Zeitpunkt („erreicht am") stammt weiterhin aus den
+  echten Messungen; „früher/später" bezieht sich hier auf diese Median-Prognose.
+  Felder: `defizit_median_kcal`, `defizit_median_gramm_pro_woche`,
+  `prognose_defizit_median`, `meilensteine_defizit_median` (`gleitenderMedian` in
+  shared/naehrwerte; Berechnung in `getAbnehmFortschritt`).
   Neben dem Defizit-Balken gibt es zwei Gewichtsbalken: (a) **seit Festlegung**
   (Startgewicht = erste NICHT ausgeschlossene Messung ab `gueltig_ab`, ohne
   Wasser-Tage) und (b) **ab der ersten Messung** (allererste Messung inkl.
@@ -151,10 +161,7 @@ Port **3010**.
   (`prognose`, blau) zeigt den **auf Defizitbasis prognostizierten Gewichtsverlust**:
   ab dem ersten Gewichtspunkt wird je Tag das Tagesdefizit als Gewicht abgezogen
   (7000 kcal/kg, also Gramm = Defizit_kcal / 7). Grundlage ist das Tagesdefizit je
-  Tag (`/api/auswertung/defizit-verlauf`). Eine dritte Linie (grün, als `serien`)
-  zeigt dieselbe Prognose, aber mit dem **gleitenden 7-Tage-Median des Defizits**
-  als tagesweiser Abnahmerate (`gleitenderMedian` in shared/naehrwerte) – so wird
-  die Prognose gegenüber einzelnen Ausreißertagen geglättet. Zusätzlich: Liste der letzten 7 Tage mit
+  Tag (`/api/auswertung/defizit-verlauf`). Zusätzlich: Liste der letzten 7 Tage mit
   Sprung
   zur jeweiligen Tagesseite sowie das Kaloriendefizit für Tag, letzte 7 Tage,
   letzte 30 Tage und den gesamten Erfassungszeitraum (kumuliert). Das Defizit zählt

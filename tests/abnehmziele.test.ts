@@ -281,4 +281,54 @@ describe('Abnehmfortschritt', () => {
     expect(f2.median_defizit).toBe(2333);
     expect(f2.prognose_median).not.toBeNull();
   });
+
+  it('prognostiziert Meilensteine aus dem gleitenden Defizit-Median', () => {
+    upsertVorgabe(db, {
+      gueltig_ab: '2000-01-01',
+      kcal_ziel: 0,
+      kcal_ziel_typ: 'max',
+      eiweiss_ziel_dg: 0,
+      eiweiss_ziel_typ: 'min',
+      gesamtumsatz: 2000,
+    });
+    // Lebensmittel mit 100 kcal/100 g -> menge_gramm entspricht kcal.
+    const kcal100 = createLebensmittel(db, {
+      name: 'Testfutter',
+      kcal_pro_100g: 100,
+      eiweiss_dg_pro_100g: 0,
+      packung_gramm: null,
+    }).id;
+    upsertAbnehmziel(db, { gueltig_ab: '2026-07-01', ziel_gramm: 10000 }); // 90 kg -> 80 kg
+    upsertGewicht(db, { datum: '2026-07-01', gramm: 90000, aus_trend: false });
+    // 10 Tage je 1300 kcal -> Tagesdefizit konstant 700; gleitender Median 700.
+    for (let i = 6; i <= 15; i++) {
+      createEintrag(db, {
+        datum: `2026-07-${String(i).padStart(2, '0')}`,
+        uhrzeit: '08:00',
+        lebensmittel_id: kcal100,
+        menge_gramm: 1300,
+      });
+    }
+    const f = getAbnehmFortschritt(db, '2026-07-15');
+    expect(f.defizit_median_kcal).toBe(700);
+    expect(f.defizit_median_gramm_pro_woche).toBe(-700);
+    expect(f.meilensteine_defizit_median.map((m) => m.gramm)).toEqual([
+      85000, 80000,
+    ]);
+    // Rate 700/7 = 100 g/Tag; bis heute bereits 10 × 100 = 1000 g projiziert.
+    const m85 = f.meilensteine_defizit_median[0];
+    expect(m85.erreicht).toBe(false);
+    expect(m85.prognose).toBe(verschiebeDatum('2026-07-15', 40)); // (5000−1000)/100
+    // Zielgewicht 80 kg: (10000−1000)/100 = 90 Tage.
+    expect(f.prognose_defizit_median).toBe(verschiebeDatum('2026-07-15', 90));
+  });
+
+  it('liefert keinen Defizit-Median ohne Tagesdaten', () => {
+    upsertAbnehmziel(db, { gueltig_ab: '2026-07-01', ziel_gramm: 5000 });
+    upsertGewicht(db, { datum: '2026-07-01', gramm: 90000, aus_trend: false });
+    const f = getAbnehmFortschritt(db, '2026-07-15');
+    expect(f.defizit_median_kcal).toBeNull();
+    expect(f.defizit_median_gramm_pro_woche).toBeNull();
+    expect(f.prognose_defizit_median).toBeNull();
+  });
 });

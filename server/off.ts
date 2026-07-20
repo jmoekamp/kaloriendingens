@@ -67,13 +67,13 @@ function ersteMarke(brands: string | string[] | undefined): string {
   return '';
 }
 
-/** Baut einen Anzeigenamen aus Produktname und (erster) Marke. */
+/** Baut einen Anzeigenamen: erst die (erste) Marke, dann der Produktname. */
 function baueName(p: OffProdukt): string {
   const name = (p.product_name ?? '').trim();
   const marke = ersteMarke(p.brands);
   if (name === '') return '';
   return marke && !name.toLowerCase().includes(marke.toLowerCase())
-    ? `${name} – ${marke}`
+    ? `${marke} ${name}`
     : name;
 }
 

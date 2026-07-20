@@ -11,7 +11,7 @@ describe('Open-Food-Facts-Mapping', () => {
       nutriments: { 'energy-kcal_100g': 67, proteins_100g: 12 },
     });
     expect(t.code).toBe('4000000000000');
-    expect(t.name).toBe('Magerquark – Marke A'); // erste Marke angehaengt
+    expect(t.name).toBe('Marke A Magerquark'); // Marke zuerst, dann Produkt
     expect(t.kcal_pro_100g).toBe(67);
     expect(t.eiweiss_dg_pro_100g).toBe(120); // 12 g -> 120 dg
     expect(t.packung_gramm).toBe(500);
@@ -47,7 +47,7 @@ describe('Open-Food-Facts-Mapping', () => {
       brands: ['Migros Bio', 'Migros'],
       nutriments: { 'energy-kj_100g': 280, proteins_100g: 9.5 },
     });
-    expect(t.name).toBe('Magerquark – Migros Bio'); // erste Marke aus dem Array
+    expect(t.name).toBe('Migros Bio Magerquark'); // erste Marke aus dem Array, zuerst
     expect(t.kcal_pro_100g).toBe(67); // 280 kJ -> 67 kcal
     expect(t.eiweiss_dg_pro_100g).toBe(95);
     expect(t.packung_gramm).toBeNull();

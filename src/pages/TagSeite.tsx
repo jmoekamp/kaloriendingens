@@ -421,6 +421,24 @@ export default function TagSeite({
               {formatKcal(auswertung.defizit)} kcal
             </span>
           </div>
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm tabular text-text-muted">
+            <span>Aufnahme:</span>
+            <span>
+              gegessen{' '}
+              <span className="font-bold text-text">
+                {formatKcal(auswertung.summe_kcal)}
+              </span>{' '}
+              kcal
+            </span>
+            <span>·</span>
+            <span>
+              geplant{' '}
+              <span className="font-bold text-text">
+                {formatKcal(geplantKcal)}
+              </span>{' '}
+              kcal
+            </span>
+          </div>
         </Card>
       )}
 

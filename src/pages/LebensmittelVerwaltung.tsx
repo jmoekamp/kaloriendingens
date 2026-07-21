@@ -23,7 +23,7 @@ function meldung(e: unknown): string {
   return e instanceof Error ? e.message : 'Unbekannter Fehler';
 }
 
-const LEER = { name: '', kcal: '', eiweiss: '', packung: '' };
+const LEER = { name: '', kcal: '', eiweiss: '', packung: '', bestand: '' };
 
 type SortKey =
   | 'name'
@@ -33,7 +33,8 @@ type SortKey =
   | 'g_kcal'
   | 'g_eiweiss'
   | 'packung'
-  | 'kcal_packung';
+  | 'kcal_packung'
+  | 'bestand';
 
 /** kcal der ganzen Packung (null, wenn keine Packungsgroesse hinterlegt). */
 function kcalGanzePackung(l: Lebensmittel): number | null {
@@ -52,6 +53,7 @@ const SPALTEN: { key: SortKey; label: string; rechts: boolean }[] = [
   { key: 'g_eiweiss', label: 'g / g Eiweiß', rechts: true },
   { key: 'packung', label: 'Packung', rechts: true },
   { key: 'kcal_packung', label: 'kcal / Packung', rechts: true },
+  { key: 'bestand', label: 'Bestand', rechts: true },
 ];
 
 /** Sortierwert einer Zeile fuer eine Spalte (null = ans Ende). */
@@ -73,6 +75,8 @@ function sortWert(l: Lebensmittel, key: SortKey): number | string | null {
       return l.packung_gramm;
     case 'kcal_packung':
       return kcalGanzePackung(l);
+    case 'bestand':
+      return l.bestand_gramm;
   }
 }
 
@@ -233,6 +237,7 @@ export default function LebensmittelVerwaltung() {
   const [fehler, setFehler] = useState<string | null>(null);
   const [hinweis, setHinweis] = useState<string | null>(null);
   const [form, setForm] = useState(LEER);
+  const [packAnzahl, setPackAnzahl] = useState('');
   const [bearbeitetId, setBearbeitetId] = useState<number | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('name');
@@ -272,6 +277,22 @@ export default function LebensmittelVerwaltung() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  /** Eingabehilfe: Bestand = Anzahl Packungen × Packungsgroesse (g). */
+  function bestandAusPackungen() {
+    setFehler(null);
+    const anzahl = parseGanzzahl(packAnzahl);
+    const packung = parseGanzzahl(form.packung);
+    if (anzahl === null || anzahl <= 0) {
+      setFehler('Bitte eine Packungsanzahl > 0 eingeben.');
+      return;
+    }
+    if (packung === null || packung <= 0) {
+      setFehler('Für die Eingabehilfe zuerst die Packungsgröße (g) ausfüllen.');
+      return;
+    }
+    set('bestand', String(anzahl * packung));
+  }
+
   function abbrechen() {
     setForm(LEER);
     setBearbeitetId(null);
@@ -284,6 +305,7 @@ export default function LebensmittelVerwaltung() {
       kcal: String(l.kcal_pro_100g),
       eiweiss: formatGramm(l.eiweiss_dg_pro_100g),
       packung: l.packung_gramm == null ? '' : String(l.packung_gramm),
+      bestand: l.bestand_gramm == null ? '' : String(l.bestand_gramm),
     });
     setHinweis(null);
     setFehler(null);
@@ -300,6 +322,7 @@ export default function LebensmittelVerwaltung() {
           ? ''
           : formatGramm(t.eiweiss_dg_pro_100g),
       packung: t.packung_gramm === null ? '' : String(t.packung_gramm),
+      bestand: '',
     });
     setFehler(null);
     setHinweis(
@@ -331,11 +354,21 @@ export default function LebensmittelVerwaltung() {
       setFehler('Packungsgröße muss eine ganze Zahl > 0 sein (oder leer).');
       return;
     }
+    // Bestand: leer = wird nicht gefuehrt. Ein durch Essen negativ gewordener
+    // Wert darf unveraendert wieder gespeichert werden (Number statt
+    // parseGanzzahl), neue negative Eingaben weist das Backend ab.
+    const bestand =
+      form.bestand.trim() === '' ? null : Number(form.bestand.trim());
+    if (bestand !== null && !Number.isInteger(bestand)) {
+      setFehler('Bestand muss eine ganze Zahl (g) sein – oder leer.');
+      return;
+    }
     const input = {
       name: form.name.trim(),
       kcal_pro_100g: kcal,
       eiweiss_dg_pro_100g: eiweissDg,
       packung_gramm: packung,
+      bestand_gramm: bestand,
     };
     setSpeichert(true);
     try {
@@ -428,6 +461,39 @@ export default function LebensmittelVerwaltung() {
               placeholder="z. B. 500"
             />
           </Field>
+          <div className="flex flex-col gap-1">
+            <Field label="Bestand (g, optional)">
+              <TextInput
+                className="tabular"
+                value={form.bestand}
+                onChange={(e) => set('bestand', e.target.value)}
+                inputMode="numeric"
+                placeholder="z. B. 1500"
+              />
+            </Field>
+            <div className="flex items-center gap-1 text-xs text-text-muted">
+              <TextInput
+                className="w-14 tabular"
+                value={packAnzahl}
+                onChange={(e) => setPackAnzahl(e.target.value)}
+                inputMode="numeric"
+                placeholder="3"
+                title="Anzahl Packungen"
+              />
+              <span>×</span>
+              <span className="tabular">
+                {form.packung.trim() === '' ? 'Packung?' : `${form.packung} g`}
+              </span>
+              <button
+                type="button"
+                onClick={bestandAusPackungen}
+                className="text-accent hover:underline"
+                title="Bestand = Anzahl × Packungsgröße übernehmen"
+              >
+                = übernehmen
+              </button>
+            </div>
+          </div>
           <div className="flex gap-2">
             <Button type="submit" variant="primary" disabled={speichert}>
               {speichert
@@ -443,6 +509,10 @@ export default function LebensmittelVerwaltung() {
             )}
           </div>
         </form>
+        <p className="mt-3 text-xs text-text-muted">
+          Wird ein Bestand geführt, zieht das Ankreuzen von „gegessen" die Menge
+          automatisch ab (Abwählen/Löschen bucht zurück). Leer = kein Bestand.
+        </p>
       </Card>
 
       <Card title="Lebensmittel">
@@ -503,6 +573,22 @@ export default function LebensmittelVerwaltung() {
                     {kcalGanzePackung(l) === null
                       ? '—'
                       : formatKcal(kcalGanzePackung(l) as number)}
+                  </td>
+                  <td
+                    className={`py-2 pr-3 text-right tabular ${
+                      l.bestand_gramm !== null && l.bestand_gramm < 0
+                        ? 'text-danger'
+                        : ''
+                    }`}
+                    title={
+                      l.bestand_gramm !== null &&
+                      l.packung_gramm != null &&
+                      l.packung_gramm > 0
+                        ? `≈ ${formatDezimal(l.bestand_gramm / l.packung_gramm, 1)} Packung(en)`
+                        : undefined
+                    }
+                  >
+                    {l.bestand_gramm === null ? '—' : `${l.bestand_gramm} g`}
                   </td>
                   <td className="py-2">
                     <div className="flex justify-end gap-2">

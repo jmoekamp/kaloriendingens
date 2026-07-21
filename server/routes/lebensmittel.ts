@@ -53,6 +53,7 @@ function leseInput(body: Record<string, unknown>): LebensmittelInput {
     kcal_pro_100g: requireInteger(body, 'kcal_pro_100g'),
     eiweiss_dg_pro_100g: requireInteger(body, 'eiweiss_dg_pro_100g'),
     packung_gramm: optionalIntegerOrNull(body, 'packung_gramm'),
+    bestand_gramm: optionalIntegerOrNull(body, 'bestand_gramm'),
   };
 }
 

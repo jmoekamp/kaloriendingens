@@ -31,7 +31,16 @@ Port **3010**.
 ## Was die App können soll
 
 - **Lebensmittel (Stammdaten):** Anlegen/Bearbeiten/Löschen mit kcal und Eiweiß,
-  jeweils bezogen auf 100 g, plus optionaler **Packungsgröße** (g). Die Liste
+  jeweils bezogen auf 100 g, plus optionaler **Packungsgröße** (g) und optionalem
+  **Bestand** (g, `bestand_gramm`; leer = Bestand wird nicht geführt). Der
+  Bestand ist der Vorrat des Produkts: Beim Ankreuzen von „gegessen" wird die
+  Menge des Eintrags abgezogen; Abwählen, Löschen oder Mengen-Änderung eines
+  gegessenen Eintrags buchen symmetrisch zurück bzw. um (`passeBestandAn` in
+  `server/repos/eintraege.ts`). Der Bestand darf dadurch negativ werden (rote
+  Anzeige statt stillem Deckel); die „gegessen"-Migration (alle bis gestern)
+  lässt den Bestand bewusst unberührt. Im Formular gibt es eine **Eingabehilfe**
+  „Anzahl × Packungsgröße = übernehmen", die den Bestand aus der Packungsanzahl
+  errechnet; die Tabelle zeigt den Bestand (Tooltip: ≈ Packungen). Die Liste
   zeigt je Zeile zusätzlich abgeleitete (nicht editierbare) Kennzahlen:
   **Eiweiß/kcal** (g Eiweiß je kcal), **g/kcal** (Gramm je kcal) und
   **g/g Eiweiß** (Gramm je Gramm Eiweiß) sowie **kcal/Packung** (kcal der ganzen
@@ -227,7 +236,8 @@ kein Zugriff auf Fachdaten). Erst-Accounts beim ersten Start: `admin/admin`
 ## Datenmodell (Kurzform)
 
 - `lebensmittel`: id, mandant_id, name (eindeutig/Mandant), kcal_pro_100g,
-  eiweiss_dg_pro_100g, packung_gramm (optional, für „ganze Packung"), Zeitstempel.
+  eiweiss_dg_pro_100g, packung_gramm (optional, für „ganze Packung"),
+  bestand_gramm (optional; Vorrat, wird durch „gegessen" reduziert), Zeitstempel.
 - `eintraege`: id, mandant_id, datum, uhrzeit, lebensmittel_id (FK), menge_gramm,
   gegessen (0/1: zählt nur bei 1 in die Statistik), Zeitstempel. kcal/Eiweiß
   werden live berechnet.

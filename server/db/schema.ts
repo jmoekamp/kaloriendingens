@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS lebensmittel (
   kcal_pro_100g       INTEGER NOT NULL DEFAULT 0,
   eiweiss_dg_pro_100g INTEGER NOT NULL DEFAULT 0,
   packung_gramm       INTEGER,
+  bestand_gramm       INTEGER,
   erstellt_am         TEXT    NOT NULL,
   geaendert_am        TEXT    NOT NULL
 );
@@ -220,6 +221,8 @@ export function applySchema(db: Database): void {
   db.exec(SCHEMA_SQL);
   // Optionale Packungsgroesse fuer bestehende Datenbanken nachziehen.
   ensureColumn(db, 'lebensmittel', 'packung_gramm', 'INTEGER');
+  // Optionaler Bestand (Gramm): wird beim Ankreuzen von „gegessen" reduziert.
+  ensureColumn(db, 'lebensmittel', 'bestand_gramm', 'INTEGER');
   // Trend-Ausschluss-Flag am Gewicht nachziehen.
   ensureColumn(db, 'gewicht', 'aus_trend', 'INTEGER NOT NULL DEFAULT 0');
   // „gegessen"-Flag an Eintraegen nachziehen: nur gegessene Eintraege zaehlen in

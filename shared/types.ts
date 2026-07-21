@@ -22,6 +22,12 @@ export interface Lebensmittel {
   eiweiss_dg_pro_100g: number;
   /** Optionale Packungsgroesse in Gramm (null = keine); fuer „ganze Packung". */
   packung_gramm: number | null;
+  /**
+   * Optionaler Bestand in Gramm (null = Bestand wird nicht gefuehrt). Wird beim
+   * Ankreuzen von „gegessen" um die Menge reduziert (Abwaehlen/Loeschen/Aendern
+   * korrigiert entsprechend); kann dadurch negativ werden.
+   */
+  bestand_gramm: number | null;
   erstellt_am: string;
   geaendert_am: string;
   /** Nur lesend: Anzahl Eintraege, die dieses Lebensmittel verwenden (Loeschschutz). */
@@ -34,6 +40,8 @@ export interface LebensmittelInput {
   kcal_pro_100g: number;
   eiweiss_dg_pro_100g: number;
   packung_gramm: number | null;
+  /** Bestand in Gramm; null/weggelassen = Bestand wird nicht gefuehrt. */
+  bestand_gramm?: number | null;
 }
 
 /**

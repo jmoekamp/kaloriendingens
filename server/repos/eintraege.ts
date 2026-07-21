@@ -76,6 +76,19 @@ export function listTageMitDaten(db: Database): string[] {
 
 const UHRZEIT_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/**
+ * Passt den optionalen Bestand eines Lebensmittels an (delta in Gramm, negativ
+ * = Verbrauch). Wirkt nur, wenn ein Bestand gefuehrt wird (bestand_gramm nicht
+ * NULL); er darf dabei negativ werden (ehrliche Anzeige statt stillem Deckel).
+ */
+function passeBestandAn(db: Database, lebensmittelId: number, delta: number) {
+  if (delta === 0) return;
+  db.prepare(
+    `UPDATE lebensmittel SET bestand_gramm = bestand_gramm + @delta
+      WHERE id = @id AND mandant_id = @mandant AND bestand_gramm IS NOT NULL`,
+  ).run({ id: lebensmittelId, mandant: aktuellerMandant(), delta });
+}
+
 function pruefeEingabe(db: Database, input: EintragInput): void {
   if (!UHRZEIT_RE.test(input.uhrzeit)) {
     throw badRequest('Uhrzeit muss im Format HH:MM sein.');
@@ -112,6 +125,10 @@ export function createEintrag(db: Database, input: EintragInput): Eintrag {
       gegessen,
       jetzt,
     });
+  // Direkt als gegessen angelegt -> Bestand sofort reduzieren.
+  if (gegessen === 1) {
+    passeBestandAn(db, input.lebensmittel_id, -input.menge_gramm);
+  }
   return getEintrag(db, Number(info.lastInsertRowid)) as Eintrag;
 }
 
@@ -144,12 +161,23 @@ export function setEintragGegessen(
     uhrzeit: uhrzeit ?? null,
     jetzt: new Date().toISOString(),
   });
+  // Bestand nur bei echtem Zustandswechsel anpassen (kein Doppelabzug):
+  // ankreuzen -> Verbrauch, abwaehlen -> zurueckbuchen.
+  if (gegessen !== vorhanden.gegessen) {
+    passeBestandAn(
+      db,
+      vorhanden.lebensmittel_id,
+      gegessen ? -vorhanden.menge_gramm : vorhanden.menge_gramm,
+    );
+  }
   return getEintrag(db, id) as Eintrag;
 }
 
 /**
  * Migration: markiert alle noch nicht als gegessen erfassten Eintraege bis
  * einschliesslich `bisDatum` als gegessen. Liefert die Anzahl geaenderter Zeilen.
+ * Der Bestand bleibt hierbei bewusst UNBERUEHRT: die Migration betrifft
+ * historische Mahlzeiten, der Bestand beschreibt den heutigen Vorrat.
  */
 export function markiereGegessenBis(db: Database, bisDatum: string): number {
   const info = db
@@ -187,6 +215,12 @@ export function updateEintrag(
     menge: input.menge_gramm,
     jetzt: new Date().toISOString(),
   });
+  // Bei einem gegessenen Eintrag den Bestand umbuchen: alte Menge zurueck ans
+  // alte Lebensmittel, neue Menge vom (ggf. anderen) neuen abziehen.
+  if (vorhanden.gegessen) {
+    passeBestandAn(db, vorhanden.lebensmittel_id, vorhanden.menge_gramm);
+    passeBestandAn(db, input.lebensmittel_id, -input.menge_gramm);
+  }
   return getEintrag(db, id) as Eintrag;
 }
 
@@ -197,4 +231,8 @@ export function deleteEintrag(db: Database, id: number): void {
     id,
     aktuellerMandant(),
   );
+  // Geloeschter gegessener Eintrag: Verbrauch zurueckbuchen.
+  if (vorhanden.gegessen) {
+    passeBestandAn(db, vorhanden.lebensmittel_id, vorhanden.menge_gramm);
+  }
 }

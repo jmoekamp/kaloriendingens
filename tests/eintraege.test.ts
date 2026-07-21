@@ -2,7 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { Database } from 'better-sqlite3';
 import { openDb } from '../server/db/index.ts';
 import { AppError } from '../server/errors.ts';
-import { createLebensmittel } from '../server/repos/lebensmittel.ts';
+import {
+  createLebensmittel,
+  getLebensmittel,
+} from '../server/repos/lebensmittel.ts';
 import {
   createEintrag,
   deleteEintrag,
@@ -175,5 +178,102 @@ describe('Eintraege', () => {
         menge_gramm: 100,
       }),
     ).toThrow(AppError);
+  });
+});
+
+describe('Bestand (Vorrat je Lebensmittel)', () => {
+  let vorratId: number;
+  beforeEach(() => {
+    vorratId = createLebensmittel(db, {
+      name: 'Skyr',
+      kcal_pro_100g: 63,
+      eiweiss_dg_pro_100g: 110,
+      packung_gramm: 500,
+      bestand_gramm: 1000,
+    }).id;
+  });
+
+  const bestand = () => getLebensmittel(db, vorratId)?.bestand_gramm;
+
+  function plane(menge: number, datum = '2026-07-15') {
+    return createEintrag(db, {
+      datum,
+      uhrzeit: '08:00',
+      lebensmittel_id: vorratId,
+      menge_gramm: menge,
+      gegessen: false,
+    });
+  }
+
+  it('zieht beim Ankreuzen ab und bucht beim Abwaehlen zurueck', () => {
+    const e = plane(300);
+    expect(bestand()).toBe(1000); // geplant aendert nichts
+    setEintragGegessen(db, e.id, true);
+    expect(bestand()).toBe(700);
+    // Erneutes true ist kein Doppelabzug.
+    setEintragGegessen(db, e.id, true);
+    expect(bestand()).toBe(700);
+    setEintragGegessen(db, e.id, false);
+    expect(bestand()).toBe(1000);
+  });
+
+  it('zieht bei direkt als gegessen angelegten Eintraegen sofort ab', () => {
+    createEintrag(db, {
+      datum: '2026-07-15',
+      uhrzeit: '08:00',
+      lebensmittel_id: vorratId,
+      menge_gramm: 250, // gegessen (programmatischer Standard)
+    });
+    expect(bestand()).toBe(750);
+  });
+
+  it('bucht beim Loeschen eines gegessenen Eintrags zurueck', () => {
+    const e = plane(400);
+    setEintragGegessen(db, e.id, true);
+    expect(bestand()).toBe(600);
+    deleteEintrag(db, e.id);
+    expect(bestand()).toBe(1000);
+    // Geplante (nicht gegessene) Eintraege loeschen aendert nichts.
+    const p = plane(100);
+    deleteEintrag(db, p.id);
+    expect(bestand()).toBe(1000);
+  });
+
+  it('bucht bei Mengenaenderung eines gegessenen Eintrags die Differenz um', () => {
+    const e = plane(300);
+    setEintragGegessen(db, e.id, true); // 700
+    updateEintrag(db, e.id, {
+      datum: '2026-07-15',
+      uhrzeit: '09:00',
+      lebensmittel_id: vorratId,
+      menge_gramm: 500,
+    });
+    expect(bestand()).toBe(500); // 1000 - 500
+  });
+
+  it('darf negativ werden (mehr gegessen als Vorrat)', () => {
+    const e = plane(1200);
+    setEintragGegessen(db, e.id, true);
+    expect(bestand()).toBe(-200);
+    setEintragGegessen(db, e.id, false);
+    expect(bestand()).toBe(1000); // symmetrisch zurueckgebucht
+  });
+
+  it('laesst Lebensmittel ohne Bestand (null) unberuehrt', () => {
+    const e = createEintrag(db, {
+      datum: '2026-07-15',
+      uhrzeit: '08:00',
+      lebensmittel_id: quarkId, // ohne bestand_gramm
+      menge_gramm: 300,
+      gegessen: false,
+    });
+    setEintragGegessen(db, e.id, true);
+    expect(getLebensmittel(db, quarkId)?.bestand_gramm).toBeNull();
+  });
+
+  it('laesst die gegessen-Migration den Bestand unveraendert', () => {
+    plane(300, '2026-07-10');
+    expect(markiereGegessenBis(db, '2026-07-14')).toBe(1);
+    expect(bestand()).toBe(1000); // historische Daten, kein Abzug
   });
 });

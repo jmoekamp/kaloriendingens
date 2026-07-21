@@ -87,8 +87,10 @@ function OffImport({
   onUebernehmen: (t: OffTreffer) => void;
 }) {
   const [q, setQ] = useState('');
+  const [ean, setEan] = useState('');
   const [treffer, setTreffer] = useState<OffTreffer[]>([]);
   const [sucht, setSucht] = useState(false);
+  const [suchtEan, setSuchtEan] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [gesucht, setGesucht] = useState(false);
 
@@ -108,13 +110,34 @@ function OffImport({
     }
   }
 
+  /** Einzelabruf per Barcode/EAN; das Ergebnis landet in der Trefferliste. */
+  async function barcodeAbrufen(e: React.FormEvent) {
+    e.preventDefault();
+    setFehler(null);
+    const code = ean.trim();
+    if (!/^\d{8,14}$/.test(code)) {
+      setFehler('Barcode/EAN muss aus 8–14 Ziffern bestehen.');
+      return;
+    }
+    setSuchtEan(true);
+    setGesucht(true);
+    try {
+      setTreffer([await lebensmittelApi.offProdukt(code)]);
+    } catch (err) {
+      setTreffer([]);
+      setFehler(meldung(err));
+    } finally {
+      setSuchtEan(false);
+    }
+  }
+
   return (
-    <Card title="Aus Open Food Facts importieren (Namenssuche)">
+    <Card title="Aus Open Food Facts importieren">
       <p className="mb-3 text-sm text-text-muted">
-        Sucht Nährwerte online bei Open Food Facts. Hinweis: Dies ist der
-        einzige Vorgang, bei dem die App nach außen kommuniziert (nur bei der
-        Suche, nur lesend). Übernommene Werte lassen sich vor dem Speichern
-        prüfen und anpassen.
+        Sucht Nährwerte online bei Open Food Facts – per Namenssuche oder
+        präzise per Barcode/EAN. Hinweis: Dies ist der einzige Vorgang, bei dem
+        die App nach außen kommuniziert (nur bei der Suche, nur lesend).
+        Übernommene Werte lassen sich vor dem Speichern prüfen und anpassen.
       </p>
       <form onSubmit={suchen} className="mb-3 flex flex-wrap items-end gap-3">
         <Field label="Produktname / Suchbegriff">
@@ -131,6 +154,27 @@ function OffImport({
           disabled={sucht || q.trim() === ''}
         >
           {sucht ? 'Sucht …' : 'Suchen'}
+        </Button>
+      </form>
+      <form
+        onSubmit={barcodeAbrufen}
+        className="mb-3 flex flex-wrap items-end gap-3"
+      >
+        <Field label="Barcode / EAN">
+          <TextInput
+            value={ean}
+            onChange={(e) => setEan(e.target.value)}
+            inputMode="numeric"
+            placeholder="z. B. 4260428021766"
+            className="w-72 tabular"
+          />
+        </Field>
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={suchtEan || ean.trim() === ''}
+        >
+          {suchtEan ? 'Ruft ab …' : 'Barcode abrufen'}
         </Button>
       </form>
       {fehler && (

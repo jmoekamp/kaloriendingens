@@ -6,11 +6,13 @@
  * Treffer (Name, kcal/100 g, Eiweiss/100 g, Packungsgroesse) zurueck.
  */
 import type { OffTreffer } from '../shared/types.ts';
-import { badGateway } from './errors.ts';
+import { badGateway, badRequest } from './errors.ts';
 
 // Neuer Search-a-licious-Dienst von OFF. Der alte cgi/search.pl-Endpunkt ist
 // stark rate-limitiert und liefert oft HTTP 503; dieser Dienst ist robuster.
 const OFF_SUCHE_URL = 'https://search.openfoodfacts.org/search';
+// Produkt-Einzelabruf per Barcode/EAN (API v2; deutlich mildere Rate-Limits).
+const OFF_PRODUKT_URL = 'https://world.openfoodfacts.org/api/v2/product';
 // OFF bittet um einen identifizierenden User-Agent.
 const USER_AGENT = 'cal-o-matic/1.0 (self-hosted; lokale Naehrwertverwaltung)';
 const TIMEOUT_MS = 10_000;
@@ -91,6 +93,47 @@ export function mapOffProdukt(p: OffProdukt): OffTreffer {
 }
 
 /**
+ * Ruft eine OFF-URL mit Timeout und User-Agent ab und liefert den geparsten
+ * JSON-Body. `erlaubte404` laesst HTTP 404 durch (Produkt unbekannt) statt
+ * badGateway zu werfen – der Aufrufer bekommt dann null.
+ */
+async function offAbruf<T>(
+  url: string,
+  erlaubte404 = false,
+): Promise<T | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+  } catch {
+    throw badGateway(
+      'Open Food Facts ist nicht erreichbar (Zeitüberschreitung oder kein Netz).',
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+  if (erlaubte404 && res.status === 404) return null;
+  if (!res.ok) {
+    const hinweis =
+      res.status === 503
+        ? ' (Dienst überlastet – bitte später erneut versuchen)'
+        : '';
+    throw badGateway(
+      `Open Food Facts antwortete mit HTTP ${res.status}${hinweis}.`,
+    );
+  }
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw badGateway('Open Food Facts lieferte keine gültige Antwort.');
+  }
+}
+
+/**
  * Sucht bei Open Food Facts nach `query` und liefert bis zu 20 aufbereitete
  * Treffer (nur solche mit Namen). Wirft badGateway, wenn OFF nicht erreichbar
  * ist oder mit einem Fehlerstatus antwortet.
@@ -104,46 +147,41 @@ export async function sucheOpenFoodFacts(query: string): Promise<OffTreffer[]> {
     page_size: String(MAX_TREFFER),
     fields: 'code,product_name,brands,nutriments,quantity,product_quantity',
   });
-
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-  let res: Response;
-  try {
-    res = await fetch(`${OFF_SUCHE_URL}?${params.toString()}`, {
-      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
-      signal: ctrl.signal,
-    });
-  } catch {
-    throw badGateway(
-      'Open Food Facts ist nicht erreichbar (Zeitüberschreitung oder kein Netz).',
-    );
-  } finally {
-    clearTimeout(timer);
-  }
-  if (!res.ok) {
-    const hinweis =
-      res.status === 503
-        ? ' (Dienst überlastet – bitte später erneut versuchen)'
-        : '';
-    throw badGateway(
-      `Open Food Facts antwortete mit HTTP ${res.status}${hinweis}.`,
-    );
-  }
-
-  let data: { hits?: OffProdukt[]; products?: OffProdukt[] };
-  try {
-    data = (await res.json()) as {
-      hits?: OffProdukt[];
-      products?: OffProdukt[];
-    };
-  } catch {
-    throw badGateway('Open Food Facts lieferte keine gültige Antwort.');
-  }
+  const data = await offAbruf<{ hits?: OffProdukt[]; products?: OffProdukt[] }>(
+    `${OFF_SUCHE_URL}?${params.toString()}`,
+  );
   // Search-a-licious liefert `hits`; der alte CGI-Endpunkt `products`.
-  const produkte = Array.isArray(data.hits)
+  const produkte = Array.isArray(data?.hits)
     ? data.hits
-    : Array.isArray(data.products)
+    : Array.isArray(data?.products)
       ? data.products
       : [];
   return produkte.map(mapOffProdukt).filter((t) => t.name !== '');
+}
+
+/** Prueft einen Barcode/EAN: nur Ziffern, 8–14 Stellen (EAN-8 bis GTIN-14). */
+export function istGueltigeEan(code: string): boolean {
+  return /^\d{8,14}$/.test(code.trim());
+}
+
+/**
+ * Ruft EIN Produkt per Barcode/EAN ueber die OFF-API v2 ab (praeziser als die
+ * Namenssuche). Liefert null, wenn OFF das Produkt nicht kennt oder es keinen
+ * Namen hat; wirft badRequest bei ungueltigem Barcode.
+ */
+export async function holeOffProdukt(code: string): Promise<OffTreffer | null> {
+  const c = code.trim();
+  if (!istGueltigeEan(c)) {
+    throw badRequest('Barcode/EAN muss aus 8–14 Ziffern bestehen.');
+  }
+  const params = new URLSearchParams({
+    fields: 'code,product_name,brands,nutriments,quantity,product_quantity',
+  });
+  const data = await offAbruf<{ status?: number; product?: OffProdukt }>(
+    `${OFF_PRODUKT_URL}/${c}.json?${params.toString()}`,
+    true, // 404 = Produkt unbekannt -> null statt Fehler
+  );
+  if (!data || data.status !== 1 || !data.product) return null;
+  const t = mapOffProdukt(data.product);
+  return t.name === '' ? null : t;
 }

@@ -16,4 +16,9 @@ export const lebensmittelApi = {
   /** Namenssuche bei Open Food Facts (externer Dienst, per Server-Proxy). */
   offSuche: (q: string) =>
     api.get<OffTreffer[]>(`/lebensmittel/off-suche?q=${encodeURIComponent(q)}`),
+  /** Einzelabruf per Barcode/EAN bei Open Food Facts (Server-Proxy). */
+  offProdukt: (code: string) =>
+    api.get<OffTreffer>(
+      `/lebensmittel/off-produkt?code=${encodeURIComponent(code)}`,
+    ),
 };

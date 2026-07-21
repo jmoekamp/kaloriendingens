@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapOffProdukt } from '../server/off.ts';
+import { istGueltigeEan, mapOffProdukt } from '../server/off.ts';
 
 describe('Open-Food-Facts-Mapping', () => {
   it('mappt kcal, Eiweiss (in dg) und Packungsgroesse', () => {
@@ -63,5 +63,15 @@ describe('Open-Food-Facts-Mapping', () => {
     expect(t.kcal_pro_100g).toBeNull();
     expect(t.eiweiss_dg_pro_100g).toBeNull();
     expect(t.packung_gramm).toBeNull();
+  });
+
+  it('prueft Barcodes/EANs (8–14 Ziffern)', () => {
+    expect(istGueltigeEan('12345678')).toBe(true); // EAN-8
+    expect(istGueltigeEan('4260428021766')).toBe(true); // EAN-13
+    expect(istGueltigeEan(' 4260428021766 ')).toBe(true); // getrimmt
+    expect(istGueltigeEan('1234567')).toBe(false); // zu kurz
+    expect(istGueltigeEan('123456789012345')).toBe(false); // zu lang
+    expect(istGueltigeEan('42604abc21766')).toBe(false); // keine Ziffern
+    expect(istGueltigeEan('')).toBe(false);
   });
 });

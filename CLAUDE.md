@@ -39,11 +39,14 @@ Port **3010**.
   Spaltenköpfe sortierbar (erneuter Klick dreht die Richtung; leere Werte ans
   Ende). Ein Lebensmittel, das noch in Einträgen verwendet wird, kann NICHT
   gelöscht werden (strikter Löschschutz). Zusätzlich gibt es einen **Import aus
-  Open Food Facts** (Namenssuche): Der Server ruft OFF ab
-  (`GET /api/lebensmittel/off-suche?q=`, `server/off.ts`, `sucheOpenFoodFacts`/
-  `mapOffProdukt`), liefert bis zu 20 Treffer mit Name, kcal/100 g, Eiweiß/100 g
-  (kJ→kcal-Fallback) und Packungsgröße (g/kg; ml/l werden verworfen). Ein Treffer
-  wird per „Übernehmen" ins Anlege-Formular gereicht und dort vor dem Speichern
+  Open Food Facts** – per **Namenssuche** oder präzise per **Barcode/EAN**: Der
+  Server ruft OFF ab (`GET /api/lebensmittel/off-suche?q=` über Search-a-licious
+  bzw. `GET /api/lebensmittel/off-produkt?code=` über die API v2; `server/off.ts`,
+  `sucheOpenFoodFacts`/`holeOffProdukt`/`mapOffProdukt`), liefert Treffer mit
+  Name (Marke vorangestellt), kcal/100 g, Eiweiß/100 g (kJ→kcal-Fallback) und
+  Packungsgröße (g/kg; ml/l werden verworfen). EAN = 8–14 Ziffern
+  (`istGueltigeEan`); unbekannte Barcodes → 404. Ein Treffer wird per
+  „Übernehmen" ins Anlege-Formular gereicht und dort vor dem Speichern
   geprüft/ergänzt. Das ist der einzige Außenkontakt der App (siehe Datenschutz).
 - **Tageserfassung:** Je Eintrag Uhrzeit, Lebensmittel (Auswahl), Menge in g und
   ein **„gegessen"-Häkchen**. kcal und Eiweiß eines Eintrags werden LIVE aus dem

@@ -13,7 +13,8 @@ import {
   listLebensmittel,
   updateLebensmittel,
 } from '../repos/lebensmittel.ts';
-import { sucheOpenFoodFacts } from '../off.ts';
+import { holeOffProdukt, sucheOpenFoodFacts } from '../off.ts';
+import { notFound } from '../errors.ts';
 
 export const lebensmittelRouter = Router();
 
@@ -25,6 +26,24 @@ lebensmittelRouter.get('/off-suche', (req, res, next) => {
   const q = typeof req.query.q === 'string' ? req.query.q : '';
   sucheOpenFoodFacts(q)
     .then((treffer) => res.json(treffer))
+    .catch(next);
+});
+
+/**
+ * GET /api/lebensmittel/off-produkt?code= – Einzelabruf per Barcode/EAN bei
+ * Open Food Facts (externer Dienst, per Server-Proxy). Muss VOR „/:id" stehen.
+ */
+lebensmittelRouter.get('/off-produkt', (req, res, next) => {
+  const code = typeof req.query.code === 'string' ? req.query.code : '';
+  holeOffProdukt(code)
+    .then((t) => {
+      if (t === null) {
+        throw notFound(
+          'Open Food Facts kennt kein Produkt mit diesem Barcode.',
+        );
+      }
+      res.json(t);
+    })
     .catch(next);
 });
 

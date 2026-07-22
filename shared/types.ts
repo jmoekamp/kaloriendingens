@@ -369,7 +369,7 @@ export interface AllzeitTag {
   verbrauch: number;
   /** Kalorienaufnahme (nur gegessene Eintraege, kcal) oder null (keine). */
   aufnahme_kcal: number | null;
-  /** Defizit als Aufnahme − Verbrauch (negativ = Defizit); null ohne Aufnahme. */
+  /** Defizit = Verbrauch − Aufnahme (positiv = Defizit); null ohne Aufnahme. */
   defizit_kcal: number | null;
   /** Eiweissaufnahme (nur gegessene Eintraege, Dezigramm) oder null (keine). */
   eiweiss_dg: number | null;

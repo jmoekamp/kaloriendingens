@@ -454,9 +454,8 @@ export function getAllzeitReport(db: Database, heute: string): AllzeitTag[] {
       bewegung: bew,
       verbrauch: g + bew,
       aufnahme_kcal: auf ? auf.kcal : null,
-      // Vorzeichenkonvention dieser Spalte: Aufnahme − Verbrauch (negativ =
-      // Defizit) – fuer die Tabellenkalkulation, anders als das App-Defizit.
-      defizit_kcal: auf ? auf.kcal - (g + bew) : null,
+      // App-Konvention: Defizit = Verbrauch − Aufnahme (positiv = Defizit).
+      defizit_kcal: auf ? g + bew - auf.kcal : null,
       eiweiss_dg: auf ? auf.eiweiss_dg : null,
     });
   }

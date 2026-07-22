@@ -142,7 +142,7 @@ export default function AllzeitSeite() {
                     className={`py-1.5 pr-3 text-right tabular ${
                       z.defizit_kcal === null
                         ? ''
-                        : z.defizit_kcal <= 0
+                        : z.defizit_kcal >= 0
                           ? 'text-success'
                           : 'text-danger'
                     }`}

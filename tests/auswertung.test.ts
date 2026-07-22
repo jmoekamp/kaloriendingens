@@ -220,7 +220,7 @@ describe('Allzeitreport', () => {
       bewegung: 300,
       verbrauch: 2700,
       aufnahme_kcal: 168,
-      defizit_kcal: 168 - 2700, // Aufnahme − Verbrauch (negativ = Defizit)
+      defizit_kcal: 2700 - 168, // Verbrauch − Aufnahme (positiv = Defizit)
       eiweiss_dg: 300,
     });
     expect(r[2].aufnahme_kcal).toBeNull(); // nur geplante Eintraege

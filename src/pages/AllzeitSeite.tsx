@@ -22,6 +22,7 @@ function baueTsv(zeilen: AllzeitTag[]): string {
     'Bewegung (kcal)',
     'Verbrauch (kcal)',
     'Aufnahme (kcal)',
+    'Defizit (kcal)',
     'Eiweiß (g)',
   ].join('\t');
   const koerper = zeilen.map((z) =>
@@ -32,6 +33,7 @@ function baueTsv(zeilen: AllzeitTag[]): string {
       String(z.bewegung),
       String(z.verbrauch),
       z.aufnahme_kcal === null ? '' : String(z.aufnahme_kcal),
+      z.defizit_kcal === null ? '' : String(z.defizit_kcal),
       z.eiweiss_dg === null ? '' : formatGramm(z.eiweiss_dg),
     ].join('\t'),
   );
@@ -107,6 +109,7 @@ export default function AllzeitSeite() {
                   Verbrauch
                 </th>
                 <th className="py-1.5 pr-3 text-right font-normal">Aufnahme</th>
+                <th className="py-1.5 pr-3 text-right font-normal">Defizit</th>
                 <th className="py-1.5 pr-3 text-right font-normal">
                   Eiweiß (g)
                 </th>
@@ -134,6 +137,17 @@ export default function AllzeitSeite() {
                     {z.aufnahme_kcal === null
                       ? ''
                       : formatKcal(z.aufnahme_kcal)}
+                  </td>
+                  <td
+                    className={`py-1.5 pr-3 text-right tabular ${
+                      z.defizit_kcal === null
+                        ? ''
+                        : z.defizit_kcal <= 0
+                          ? 'text-success'
+                          : 'text-danger'
+                    }`}
+                  >
+                    {z.defizit_kcal === null ? '' : formatKcal(z.defizit_kcal)}
                   </td>
                   <td className="py-1.5 pr-3 text-right tabular">
                     {z.eiweiss_dg === null ? '' : formatGramm(z.eiweiss_dg)}

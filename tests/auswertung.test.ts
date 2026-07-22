@@ -210,6 +210,7 @@ describe('Allzeitreport', () => {
       bewegung: 0,
       verbrauch: 2400,
       aufnahme_kcal: null,
+      defizit_kcal: null,
       eiweiss_dg: null,
     });
     expect(r[1]).toEqual({
@@ -219,6 +220,7 @@ describe('Allzeitreport', () => {
       bewegung: 300,
       verbrauch: 2700,
       aufnahme_kcal: 168,
+      defizit_kcal: 168 - 2700, // Aufnahme − Verbrauch (negativ = Defizit)
       eiweiss_dg: 300,
     });
     expect(r[2].aufnahme_kcal).toBeNull(); // nur geplante Eintraege

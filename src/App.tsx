@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { AuthUser } from '../shared/types.ts';
+import AllzeitSeite from './pages/AllzeitSeite.tsx';
 import BenutzerVerwaltung from './pages/BenutzerVerwaltung.tsx';
 import EinstellungenSeite from './pages/EinstellungenSeite.tsx';
 import LangfristSeite from './pages/LangfristSeite.tsx';
@@ -11,7 +12,12 @@ import { authApi } from './lib/auth.ts';
 import { heuteIso } from './lib/format.ts';
 
 type Ansicht =
-  'tag' | 'langfrist' | 'lebensmittel' | 'einstellungen' | 'benutzer';
+  | 'tag'
+  | 'langfrist'
+  | 'allzeit'
+  | 'lebensmittel'
+  | 'einstellungen'
+  | 'benutzer';
 
 export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -56,6 +62,7 @@ function AngemeldeteApp({
     : [
         { key: 'tag', label: 'Tag' },
         { key: 'langfrist', label: 'Auswertung' },
+        { key: 'allzeit', label: 'Allzeit' },
         { key: 'lebensmittel', label: 'Lebensmittel' },
         { key: 'einstellungen', label: 'Einstellungen' },
       ];
@@ -118,6 +125,7 @@ function AngemeldeteApp({
           <TagSeite datum={tagDatum} setDatum={setTagDatum} />
         )}
         {ansicht === 'langfrist' && <LangfristSeite oeffneTag={oeffneTag} />}
+        {ansicht === 'allzeit' && <AllzeitSeite />}
         {ansicht === 'lebensmittel' && <LebensmittelVerwaltung />}
         {ansicht === 'einstellungen' && <EinstellungenSeite aktiver={user} />}
         {ansicht === 'benutzer' && <BenutzerVerwaltung aktiver={user} />}

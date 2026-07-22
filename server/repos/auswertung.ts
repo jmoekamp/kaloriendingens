@@ -1,6 +1,7 @@
 import type { Database } from 'better-sqlite3';
 import type {
   AbnehmFortschritt,
+  AllzeitTag,
   DefizitFenster,
   DefizitReport,
   DefizitTag,
@@ -399,6 +400,64 @@ export function getKalorienVerlauf(
     });
   }
   return ergebnis;
+}
+
+/**
+ * Allzeitreport: eine Zeile je Kalendertag von der ERSTEN Erfassung (Eintrag,
+ * Bewegung oder Gewicht) bis heute – gemessenes Gewicht, Gesamtumsatz,
+ * Bewegung, Verbrauch sowie Kalorien-/Eiweissaufnahme (nur gegessene
+ * Eintraege). Fuer Copy & Paste in Tabellenkalkulationen gedacht.
+ */
+export function getAllzeitReport(db: Database, heute: string): AllzeitTag[] {
+  const mandant = aktuellerMandant();
+  const start = db
+    .prepare(
+      `SELECT MIN(d) AS von FROM (
+         SELECT MIN(datum) AS d FROM eintraege WHERE mandant_id = @mandant
+         UNION ALL
+         SELECT MIN(datum) FROM bewegung WHERE mandant_id = @mandant
+         UNION ALL
+         SELECT MIN(datum) FROM gewicht WHERE mandant_id = @mandant
+       )`,
+    )
+    .get({ mandant }) as { von: string | null };
+  if (!start.von || start.von > heute) return [];
+  const von = start.von;
+
+  const umsatz = ladeUmsatzKontext(db);
+  const bewegung = bewegungKcalProTag(db, von, heute);
+  const gewichtMap = new Map(
+    alleGewichteAsc(db).map((g) => [g.datum, g.gramm]),
+  );
+  const aufnahmeRows = db
+    .prepare(
+      `SELECT e.datum AS datum, SUM(${TAG_KCAL}) AS kcal,
+              SUM(${TAG_EIW}) AS eiweiss_dg
+         FROM eintraege e
+         JOIN lebensmittel l ON l.id = e.lebensmittel_id
+        WHERE e.mandant_id = @mandant AND e.gegessen = 1
+          AND e.datum BETWEEN @von AND @bis
+        GROUP BY e.datum`,
+    )
+    .all({ mandant, von, bis: heute }) as TagAggRow[];
+  const aufnahmeMap = new Map(aufnahmeRows.map((r) => [r.datum, r]));
+
+  const zeilen: AllzeitTag[] = [];
+  for (let d = von; d <= heute; d = verschiebeDatum(d, 1)) {
+    const auf = aufnahmeMap.get(d);
+    const bew = bewegung.get(d) ?? 0;
+    const g = umsatz(d);
+    zeilen.push({
+      datum: d,
+      gewicht_gramm: gewichtMap.get(d) ?? null,
+      gesamtumsatz: g,
+      bewegung: bew,
+      verbrauch: g + bew,
+      aufnahme_kcal: auf ? auf.kcal : null,
+      eiweiss_dg: auf ? auf.eiweiss_dg : null,
+    });
+  }
+  return zeilen;
 }
 
 /** Median einer nicht-leeren Zahlenliste. */

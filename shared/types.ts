@@ -353,6 +353,26 @@ export interface AbnehmFortschritt {
   meilensteine_defizit_median: GewichtsMeilenstein[];
 }
 
+/**
+ * Eine Zeile des Allzeitreports: je Kalendertag (erste Erfassung bis heute)
+ * alle Kernwerte fuer Copy & Paste in Tabellenkalkulationen.
+ */
+export interface AllzeitTag {
+  datum: string;
+  /** An dem Tag GEMESSENES Gewicht (Gramm) oder null (keine Messung). */
+  gewicht_gramm: number | null;
+  /** Gesamtumsatz/-bedarf des Tages (berechnet oder manuell, kcal). */
+  gesamtumsatz: number;
+  /** Erfasste Aktivitaetskalorien des Tages (kcal, 0 = keine). */
+  bewegung: number;
+  /** Gesamtverbrauch = Gesamtumsatz + Bewegung (kcal). */
+  verbrauch: number;
+  /** Kalorienaufnahme (nur gegessene Eintraege, kcal) oder null (keine). */
+  aufnahme_kcal: number | null;
+  /** Eiweissaufnahme (nur gegessene Eintraege, Dezigramm) oder null (keine). */
+  eiweiss_dg: number | null;
+}
+
 /** Ein 5-kg-Meilenstein auf dem Weg zum Abnehmziel. */
 export interface GewichtsMeilenstein {
   /** Meilensteingewicht in Gramm (Vielfaches von 5000). */

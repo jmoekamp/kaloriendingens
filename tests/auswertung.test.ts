@@ -9,6 +9,7 @@ import { upsertGewicht } from '../server/repos/gewicht.ts';
 import type { VorgabeInput } from '../shared/types.ts';
 import { createBewegung } from '../server/repos/bewegung.ts';
 import {
+  getAllzeitReport,
   getDefizitReport,
   getDefizitVerlauf,
   getKalorienVerlauf,
@@ -175,6 +176,56 @@ describe('Nur gegessene Eintraege zaehlen in die Statistik', () => {
     const r = getDefizitReport(db, '2026-07-15');
     expect(r.gesamt.tage).toBe(1);
     expect(r.gesamt.defizit).toBe(2400 - 168);
+  });
+});
+
+describe('Allzeitreport', () => {
+  it('liefert eine Zeile je Tag von der ersten Erfassung bis heute', () => {
+    vorgabe({ gesamtumsatz: 2400 });
+    upsertGewicht(db, { datum: '2026-07-13', gramm: 80000, aus_trend: false });
+    iss('2026-07-14', 250); // gegessen: 168 kcal, 300 dg
+    createBewegung(db, {
+      datum: '2026-07-14',
+      uhrzeit: '18:00',
+      beschreibung: 'Laufen',
+      kcal: 300,
+    });
+    createEintrag(db, {
+      datum: '2026-07-15',
+      uhrzeit: '08:00',
+      lebensmittel_id: quarkId,
+      menge_gramm: 100,
+      gegessen: false, // nur geplant -> zaehlt nicht als Aufnahme
+    });
+    const r = getAllzeitReport(db, '2026-07-15');
+    expect(r.map((z) => z.datum)).toEqual([
+      '2026-07-13',
+      '2026-07-14',
+      '2026-07-15',
+    ]);
+    expect(r[0]).toEqual({
+      datum: '2026-07-13',
+      gewicht_gramm: 80000,
+      gesamtumsatz: 2400,
+      bewegung: 0,
+      verbrauch: 2400,
+      aufnahme_kcal: null,
+      eiweiss_dg: null,
+    });
+    expect(r[1]).toEqual({
+      datum: '2026-07-14',
+      gewicht_gramm: null, // an dem Tag nicht gemessen
+      gesamtumsatz: 2400,
+      bewegung: 300,
+      verbrauch: 2700,
+      aufnahme_kcal: 168,
+      eiweiss_dg: 300,
+    });
+    expect(r[2].aufnahme_kcal).toBeNull(); // nur geplante Eintraege
+  });
+
+  it('liefert eine leere Liste ohne jegliche Erfassung', () => {
+    expect(getAllzeitReport(db, '2026-07-15')).toEqual([]);
   });
 });
 

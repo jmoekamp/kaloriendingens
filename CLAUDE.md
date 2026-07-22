@@ -190,6 +190,15 @@ Port **3010**.
   letzte 30 Tage und den gesamten Erfassungszeitraum (kumuliert). Das Defizit zählt
   nur Tage mit Einträgen.
 
+- **Allzeitreport (eigene Seite „Allzeit"):** Eine Tabelle mit einer Zeile je
+  Kalendertag von der ersten Erfassung (Eintrag, Bewegung oder Gewicht) bis
+  heute: Datum, gemessenes Gewicht, Gesamtumsatz, Bewegung, Verbrauch
+  (Umsatz + Bewegung), Kalorien- und Eiweißaufnahme (nur gegessene Mahlzeiten).
+  Für Copy & Paste gedacht; ein Button „Tabelle kopieren" legt den Report als
+  TSV (Tab-getrennt, deutsche Dezimalkommas, ohne Tausenderpunkte) in die
+  Zwischenablage. `getAllzeitReport` in `server/repos/auswertung.ts`,
+  `GET /api/auswertung/allzeit`, Seite `src/pages/AllzeitSeite.tsx`.
+
 ## Einheiten-Konvention
 
 Analog zum Cent-Prinzip: alles als Ganzzahl halten, erst zur Anzeige formatieren.

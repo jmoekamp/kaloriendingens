@@ -1,6 +1,7 @@
 /** Typisierte API-Aufrufe fuer die Auswertungen (Tag, Verlauf, Defizit). */
 import type {
   AbnehmFortschritt,
+  AllzeitTag,
   DefizitReport,
   DefizitTag,
   KalorienTag,
@@ -49,4 +50,6 @@ export const auswertungApi = {
   defizit: () => api.get<DefizitReport>('/auswertung/defizit'),
   abnehmfortschritt: () =>
     api.get<AbnehmFortschritt>('/auswertung/abnehmfortschritt'),
+  /** Allzeitreport: eine Zeile je Tag von der ersten Erfassung bis heute. */
+  allzeit: () => api.get<AllzeitTag[]>('/auswertung/allzeit'),
 };

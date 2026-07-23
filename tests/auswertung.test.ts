@@ -10,6 +10,7 @@ import type { VorgabeInput } from '../shared/types.ts';
 import { createBewegung } from '../server/repos/bewegung.ts';
 import {
   getAllzeitReport,
+  getDetailReport,
   getDefizitReport,
   getDefizitVerlauf,
   getKalorienVerlauf,
@@ -228,6 +229,61 @@ describe('Allzeitreport', () => {
 
   it('liefert eine leere Liste ohne jegliche Erfassung', () => {
     expect(getAllzeitReport(db, '2026-07-15')).toEqual([]);
+  });
+});
+
+describe('Detailreport', () => {
+  it('liefert je Tag die Tageszeile plus Mahlzeiten und Bewegungen', () => {
+    vorgabe({ gesamtumsatz: 2400 });
+    iss('2026-07-14', 250, '08:00'); // gegessen
+    createEintrag(db, {
+      datum: '2026-07-14',
+      uhrzeit: '12:00',
+      lebensmittel_id: quarkId,
+      menge_gramm: 100,
+      gegessen: false, // geplant
+    });
+    createBewegung(db, {
+      datum: '2026-07-14',
+      uhrzeit: '18:00',
+      beschreibung: 'Laufen',
+      kcal: 300,
+    });
+    iss('2026-07-15', 100);
+    const r = getDetailReport(db, '2026-07-15');
+    expect(r.map((t) => t.tag.datum)).toEqual(['2026-07-14', '2026-07-15']);
+    // Tag 14.: zwei Mahlzeiten (inkl. geplanter), eine Bewegung.
+    expect(r[0].mahlzeiten).toEqual([
+      {
+        uhrzeit: '08:00',
+        lebensmittel_name: 'Magerquark',
+        menge_gramm: 250,
+        kcal: 168,
+        eiweiss_dg: 300,
+        gegessen: true,
+      },
+      {
+        uhrzeit: '12:00',
+        lebensmittel_name: 'Magerquark',
+        menge_gramm: 100,
+        kcal: 67,
+        eiweiss_dg: 120,
+        gegessen: false,
+      },
+    ]);
+    expect(r[0].bewegungen).toEqual([
+      { uhrzeit: '18:00', beschreibung: 'Laufen', kcal: 300 },
+    ]);
+    // Die Tageszeile entspricht dem Allzeitreport (nur gegessene Aufnahme).
+    expect(r[0].tag.aufnahme_kcal).toBe(168);
+    expect(r[0].tag.verbrauch).toBe(2700);
+    // Tag 15.: keine Bewegung, eine Mahlzeit.
+    expect(r[1].mahlzeiten).toHaveLength(1);
+    expect(r[1].bewegungen).toEqual([]);
+  });
+
+  it('liefert eine leere Liste ohne jegliche Erfassung', () => {
+    expect(getDetailReport(db, '2026-07-15')).toEqual([]);
   });
 });
 

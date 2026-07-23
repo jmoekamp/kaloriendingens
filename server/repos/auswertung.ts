@@ -2,6 +2,9 @@ import type { Database } from 'better-sqlite3';
 import type {
   AbnehmFortschritt,
   AllzeitTag,
+  DetailBewegung,
+  DetailMahlzeit,
+  DetailTag,
   DefizitFenster,
   DefizitReport,
   DefizitTag,
@@ -460,6 +463,78 @@ export function getAllzeitReport(db: Database, heute: string): AllzeitTag[] {
     });
   }
   return zeilen;
+}
+
+/**
+ * Detailreport: wie der Allzeitreport, aber je Tag zusaetzlich alle Mahlzeiten
+ * (inkl. geplanter, markiert ueber `gegessen`) und Bewegungseintraege – ein
+ * Report, in dem alles steht.
+ */
+export function getDetailReport(db: Database, heute: string): DetailTag[] {
+  const tage = getAllzeitReport(db, heute);
+  if (tage.length === 0) return [];
+  const mandant = aktuellerMandant();
+  const von = tage[0].datum;
+
+  const mahlzeitRows = db
+    .prepare(
+      `SELECT e.datum AS datum, e.uhrzeit AS uhrzeit,
+              l.name AS lebensmittel_name, e.menge_gramm AS menge_gramm,
+              e.gegessen AS gegessen,
+              ${TAG_KCAL} AS kcal, ${TAG_EIW} AS eiweiss_dg
+         FROM eintraege e
+         JOIN lebensmittel l ON l.id = e.lebensmittel_id
+        WHERE e.mandant_id = @mandant AND e.datum BETWEEN @von AND @bis
+        ORDER BY e.datum, e.uhrzeit, e.id`,
+    )
+    .all({ mandant, von, bis: heute }) as {
+    datum: string;
+    uhrzeit: string;
+    lebensmittel_name: string;
+    menge_gramm: number;
+    gegessen: number;
+    kcal: number;
+    eiweiss_dg: number;
+  }[];
+  const bewegungRows = db
+    .prepare(
+      `SELECT datum, uhrzeit, beschreibung, kcal FROM bewegung
+        WHERE mandant_id = @mandant AND datum BETWEEN @von AND @bis
+        ORDER BY datum, uhrzeit, id`,
+    )
+    .all({ mandant, von, bis: heute }) as (DetailBewegung & {
+    datum: string;
+  })[];
+
+  const mahlzeitenJeTag = new Map<string, DetailMahlzeit[]>();
+  for (const r of mahlzeitRows) {
+    const liste = mahlzeitenJeTag.get(r.datum) ?? [];
+    liste.push({
+      uhrzeit: r.uhrzeit,
+      lebensmittel_name: r.lebensmittel_name,
+      menge_gramm: r.menge_gramm,
+      kcal: r.kcal,
+      eiweiss_dg: r.eiweiss_dg,
+      gegessen: r.gegessen === 1,
+    });
+    mahlzeitenJeTag.set(r.datum, liste);
+  }
+  const bewegungenJeTag = new Map<string, DetailBewegung[]>();
+  for (const r of bewegungRows) {
+    const liste = bewegungenJeTag.get(r.datum) ?? [];
+    liste.push({
+      uhrzeit: r.uhrzeit,
+      beschreibung: r.beschreibung,
+      kcal: r.kcal,
+    });
+    bewegungenJeTag.set(r.datum, liste);
+  }
+
+  return tage.map((tag) => ({
+    tag,
+    mahlzeiten: mahlzeitenJeTag.get(tag.datum) ?? [],
+    bewegungen: bewegungenJeTag.get(tag.datum) ?? [],
+  }));
 }
 
 /** Median einer nicht-leeren Zahlenliste. */

@@ -2,6 +2,7 @@
 import type {
   AbnehmFortschritt,
   AllzeitTag,
+  DetailTag,
   DefizitReport,
   DefizitTag,
   KalorienTag,
@@ -52,4 +53,6 @@ export const auswertungApi = {
     api.get<AbnehmFortschritt>('/auswertung/abnehmfortschritt'),
   /** Allzeitreport: eine Zeile je Tag von der ersten Erfassung bis heute. */
   allzeit: () => api.get<AllzeitTag[]>('/auswertung/allzeit'),
+  /** Detailreport: Allzeitreport plus Mahlzeiten und Bewegung je Tag. */
+  detail: () => api.get<DetailTag[]>('/auswertung/detail'),
 };

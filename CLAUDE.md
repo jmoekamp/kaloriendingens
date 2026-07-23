@@ -197,7 +197,14 @@ Port **3010**.
   Für Copy & Paste gedacht; ein Button „Tabelle kopieren" legt den Report als
   TSV (Tab-getrennt, deutsche Dezimalkommas, ohne Tausenderpunkte) in die
   Zwischenablage. `getAllzeitReport` in `server/repos/auswertung.ts`,
-  `GET /api/auswertung/allzeit`, Seite `src/pages/AllzeitSeite.tsx`.
+  `GET /api/auswertung/allzeit`, Seite `src/pages/AllzeitSeite.tsx`. Darunter
+  liegt der **Detailreport („alles")**: gleiche Tageszeilen, aber unter jeder
+  stehen zusätzlich alle Mahlzeiten (inkl. geplanter, als „(geplant)" markiert)
+  und Bewegungseinträge des Tages chronologisch gemischt – Spalten Datum,
+  Uhrzeit, Eintrag, Menge plus die Allzeit-Zahlenspalten; Mahlzeiten-kcal stehen
+  in der Aufnahme-, Bewegungs-kcal in der Bewegungs-Spalte. Eigener
+  „Tabelle kopieren"-Button (TSV). `getDetailReport`,
+  `GET /api/auswertung/detail`.
 
 ## Einheiten-Konvention
 

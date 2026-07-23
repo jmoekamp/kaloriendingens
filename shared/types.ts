@@ -375,6 +375,33 @@ export interface AllzeitTag {
   eiweiss_dg: number | null;
 }
 
+/** Eine Mahlzeit-Zeile des Detailreports. */
+export interface DetailMahlzeit {
+  uhrzeit: string;
+  lebensmittel_name: string;
+  menge_gramm: number;
+  kcal: number;
+  eiweiss_dg: number;
+  gegessen: boolean;
+}
+
+/** Eine Bewegungs-Zeile des Detailreports. */
+export interface DetailBewegung {
+  uhrzeit: string;
+  beschreibung: string;
+  kcal: number;
+}
+
+/**
+ * Ein Tag des Detailreports: die Tageszeile (wie im Allzeitreport) plus alle
+ * Mahlzeiten und Bewegungseintraege des Tages.
+ */
+export interface DetailTag {
+  tag: AllzeitTag;
+  mahlzeiten: DetailMahlzeit[];
+  bewegungen: DetailBewegung[];
+}
+
 /** Ein 5-kg-Meilenstein auf dem Weg zum Abnehmziel. */
 export interface GewichtsMeilenstein {
   /** Meilensteingewicht in Gramm (Vielfaches von 5000). */

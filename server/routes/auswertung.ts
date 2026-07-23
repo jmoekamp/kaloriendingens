@@ -4,6 +4,7 @@ import { badRequest } from '../errors.ts';
 import {
   getAbnehmFortschritt,
   getAllzeitReport,
+  getDetailReport,
   getDefizitReport,
   getDefizitVerlauf,
   getKalorienVerlauf,
@@ -109,4 +110,9 @@ auswertungRouter.get('/abnehmfortschritt', (_req, res) => {
 /** GET /api/auswertung/allzeit – alle Tage (erste Erfassung bis heute). */
 auswertungRouter.get('/allzeit', (_req, res) => {
   res.json(getAllzeitReport(getDb(), heuteIso()));
+});
+
+/** GET /api/auswertung/detail – Allzeitreport inkl. Mahlzeiten und Bewegung. */
+auswertungRouter.get('/detail', (_req, res) => {
+  res.json(getDetailReport(getDb(), heuteIso()));
 });

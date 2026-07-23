@@ -4,6 +4,7 @@ import { Banner, Button, Card } from '../components/ui.tsx';
 import { formatGramm, formatKcal, formatKg } from '../../shared/naehrwerte.ts';
 import { formatDatum } from '../lib/format.ts';
 import { auswertungApi } from '../lib/auswertung.ts';
+import { kopiereText } from '../lib/zwischenablage.ts';
 
 function meldung(e: unknown): string {
   return e instanceof Error ? e.message : 'Unbekannter Fehler';
@@ -156,7 +157,7 @@ function DetailReportKarte() {
     setFehler(null);
     setKopiert(false);
     try {
-      await navigator.clipboard.writeText(baueDetailTsv(tage));
+      await kopiereText(baueDetailTsv(tage));
       setKopiert(true);
     } catch (e) {
       setFehler(meldung(e));
@@ -252,7 +253,7 @@ export default function AllzeitSeite() {
     setFehler(null);
     setKopiert(false);
     try {
-      await navigator.clipboard.writeText(baueTsv(zeilen));
+      await kopiereText(baueTsv(zeilen));
       setKopiert(true);
     } catch (e) {
       setFehler(meldung(e));

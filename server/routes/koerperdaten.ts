@@ -8,7 +8,7 @@ import { getDb } from '../db/index.ts';
 import { badRequest } from '../errors.ts';
 import { optionalNonNegativeInteger } from '../validation.ts';
 import { getKoerperdaten, updateKoerperdaten } from '../repos/koerperdaten.ts';
-import { letztesGewichtGesamt } from '../repos/gewicht.ts';
+import { alleGewichteAsc, letztesGewichtGesamt } from '../repos/gewicht.ts';
 import { gesamtumsatzFuerTag } from '../repos/auswertung.ts';
 
 export const koerperdatenRouter = Router();
@@ -22,13 +22,19 @@ function heuteIso(): string {
   return `${y}-${m}-${t}`;
 }
 
-/** Ergaenzt die Koerperdaten um aktuelles Gewicht und heutigen Gesamtumsatz. */
+/** Ergaenzt die Koerperdaten um aktuelles Gewicht/Fett und heutigen Umsatz. */
 function toAnsicht(kd: Koerperdaten): KoerperdatenAnsicht {
   const heute = heuteIso();
   const g = letztesGewichtGesamt(getDb(), heute);
+  // Letzter erfasster Fettanteil bis heute (Carry-forward wie in der Auswertung).
+  const fette = alleGewichteAsc(getDb()).filter(
+    (w) => w.fett_promille !== null && w.datum <= heute,
+  );
   return {
     ...kd,
     aktuelles_gewicht_gramm: g ? g.gramm : null,
+    aktueller_fett_promille:
+      fette.length > 0 ? fette[fette.length - 1].fett_promille : null,
     gesamtumsatz_heute: gesamtumsatzFuerTag(getDb(), heute),
   };
 }
@@ -74,6 +80,13 @@ koerperdatenRouter.put('/', (req, res) => {
       throw badRequest('Feld "modus" muss "manuell" oder "berechnet" sein.');
     }
     input.modus = body.modus;
+  }
+
+  if (body.formel !== undefined) {
+    if (body.formel !== 'mifflin' && body.formel !== 'katch') {
+      throw badRequest('Feld "formel" muss "mifflin" oder "katch" sein.');
+    }
+    input.formel = body.formel;
   }
 
   res.json(toAnsicht(updateKoerperdaten(getDb(), input)));

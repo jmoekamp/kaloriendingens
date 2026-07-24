@@ -5,6 +5,7 @@ import type {
   Geschlecht,
   GesamtumsatzModus,
   KoerperdatenAnsicht,
+  UmsatzFormel,
   Vorgabe,
   ZielTyp,
 } from '../../shared/types.ts';
@@ -28,6 +29,7 @@ import {
 import {
   AKTIVITAETSSTUFEN,
   gesamtumsatzBerechnet,
+  gesamtumsatzKatch,
 } from '../../shared/umsatz.ts';
 import { formatDatum, heuteIso, vorMonaten } from '../lib/format.ts';
 import { vorgabenApi } from '../lib/vorgaben.ts';
@@ -389,6 +391,7 @@ function KoerperdatenKarte({
   onGespeichert: (k: KoerperdatenAnsicht) => void;
 }) {
   const [modus, setModus] = useState<GesamtumsatzModus>(initial.modus);
+  const [formel, setFormel] = useState<UmsatzFormel>(initial.formel);
   const [groesse, setGroesse] = useState(
     initial.groesse_cm === 0 ? '' : String(initial.groesse_cm),
   );
@@ -405,24 +408,32 @@ function KoerperdatenKarte({
   const jahrNum = parseGanzzahl(geburtsjahr);
   const faktorNum = Number(faktor);
   const gewicht = initial.aktuelles_gewicht_gramm;
+  const fettPromille = initial.aktueller_fett_promille;
   const vollstaendig =
     groesseNum !== null && groesseNum > 0 && jahrNum !== null && jahrNum > 0;
+  // Vorschau: Katch-McArdle, wenn gewaehlt und ein Fettwert vorliegt; sonst
+  // Mifflin-St Jeor (entspricht dem Fallback der Auswertung).
+  const katchAktiv = formel === 'katch' && fettPromille !== null;
   const vorschau =
-    vollstaendig && gewicht !== null && Number.isFinite(faktorNum)
-      ? gesamtumsatzBerechnet(
-          gewicht,
-          groesseNum as number,
-          new Date().getFullYear() - (jahrNum as number),
-          geschlecht,
-          faktorNum,
-        )
+    gewicht !== null && Number.isFinite(faktorNum)
+      ? katchAktiv
+        ? gesamtumsatzKatch(gewicht, fettPromille, faktorNum)
+        : vollstaendig
+          ? gesamtumsatzBerechnet(
+              gewicht,
+              groesseNum as number,
+              new Date().getFullYear() - (jahrNum as number),
+              geschlecht,
+              faktorNum,
+            )
+          : null
       : null;
 
   async function speichern(e: React.FormEvent) {
     e.preventDefault();
     setFehler(null);
     setOk(false);
-    if (modus === 'berechnet') {
+    if (modus === 'berechnet' && formel === 'mifflin') {
       if (groesseNum === null || groesseNum <= 0) {
         setFehler('Bitte Größe (cm) eingeben.');
         return;
@@ -436,6 +447,7 @@ function KoerperdatenKarte({
     try {
       const k = await koerperdatenApi.update({
         modus,
+        formel,
         groesse_cm: groesseNum ?? 0,
         geschlecht,
         geburtsjahr: jahrNum ?? 0,
@@ -478,6 +490,30 @@ function KoerperdatenKarte({
 
         {modus === 'berechnet' && (
           <>
+            <Field label="Formel">
+              <Select
+                className="w-72"
+                value={formel}
+                onChange={(e) => setFormel(e.target.value as UmsatzFormel)}
+              >
+                <option value="mifflin">
+                  Mifflin-St Jeor (Größe, Alter, Geschlecht)
+                </option>
+                <option value="katch">
+                  Katch-McArdle (Magermasse aus Fettanteil)
+                </option>
+              </Select>
+            </Field>
+            {formel === 'katch' && (
+              <p className="text-sm text-text-muted">
+                Katch-McArdle rechnet mit der Magermasse: Gewicht × (1 −
+                Fettanteil). Der Fettanteil wird bei den Tagesgewichten erfasst
+                und gilt tageweise fort (Carry-forward). An Tagen ohne jeglichen
+                Fettwert fällt die Berechnung auf Mifflin-St Jeor zurück.
+                {fettPromille === null &&
+                  ' Bisher ist noch KEIN Fettanteil erfasst.'}
+              </p>
+            )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Größe (cm)">
                 <TextInput
@@ -524,12 +560,17 @@ function KoerperdatenKarte({
                 'Noch kein Gewicht erfasst – trage ein Tagesgewicht ein, damit der Gesamtumsatz berechnet werden kann.'
               ) : vorschau !== null ? (
                 <>
-                  Aktuell berechneter Gesamtumsatz:{' '}
+                  Aktuell berechneter Gesamtumsatz (
+                  {katchAktiv ? 'Katch-McArdle' : 'Mifflin-St Jeor'}):{' '}
                   <span className="font-bold text-text">
                     {formatKcal(vorschau)} kcal/Tag
                   </span>{' '}
-                  (bei {formatKg(gewicht)} kg). Für die Auswertung zählt je Tag
-                  das an dem Tag gültige Gewicht.
+                  (bei {formatKg(gewicht)} kg
+                  {katchAktiv && fettPromille !== null
+                    ? `, ${formatGramm(fettPromille)} % Fett`
+                    : ''}
+                  ). Für die Auswertung zählt je Tag das an dem Tag gültige
+                  Gewicht.
                 </>
               ) : (
                 'Bitte Größe und Geburtsjahr ausfüllen.'

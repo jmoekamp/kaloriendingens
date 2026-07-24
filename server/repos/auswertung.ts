@@ -23,7 +23,10 @@ import {
   gleitenderMedian,
   lineareRegression,
 } from '../../shared/naehrwerte.ts';
-import { gesamtumsatzBerechnet } from '../../shared/umsatz.ts';
+import {
+  gesamtumsatzBerechnet,
+  gesamtumsatzKatch,
+} from '../../shared/umsatz.ts';
 import { listEintraegeFuerTag } from './eintraege.ts';
 import { bewegungKcalProTag } from './bewegung.ts';
 import {
@@ -33,7 +36,11 @@ import {
   gewichteImTrendBis,
   letztesGewichtBis,
 } from './gewicht.ts';
-import { getKoerperdaten, koerperdatenVollstaendig } from './koerperdaten.ts';
+import {
+  getKoerperdaten,
+  koerperdatenVollstaendig,
+  mifflinDatenVollstaendig,
+} from './koerperdaten.ts';
 import { aktivesAbnehmziel } from './abnehmziele.ts';
 import {
   getVorgabeFuerTag,
@@ -62,10 +69,29 @@ function gewichtFuerTag(
 }
 
 /**
+ * Fettanteil (Promille), der an einem Tag „gilt": letzte Messung MIT Fettwert
+ * ≤ Tag (Carry-forward); vor der ersten die frueheste. null, wenn nie gemessen.
+ */
+function fettFuerTag(
+  fetteAsc: { datum: string; fett_promille: number }[],
+  datum: string,
+): number | null {
+  if (fetteAsc.length === 0) return null;
+  let wert = fetteAsc[0].fett_promille;
+  for (const f of fetteAsc) {
+    if (f.datum <= datum) wert = f.fett_promille;
+    else break;
+  }
+  return wert;
+}
+
+/**
  * Baut die Gesamtumsatz-Funktion: bei modus 'berechnet' + vollstaendigen
- * Koerperdaten aus dem tagesgueltigen Gewicht (Mifflin-St Jeor × Aktivitaet),
- * sonst der manuelle, versionierte Vorgabe-Wert. Ohne Gewicht an einem Tag faellt
- * die Berechnung auf den manuellen Wert zurueck.
+ * Koerperdaten aus dem tagesgueltigen Gewicht, sonst der manuelle,
+ * versionierte Vorgabe-Wert. Formel je nach Einstellung: Katch-McArdle
+ * (Magermasse aus Gewicht × (1 − tagesgueltiger Fettanteil)) oder
+ * Mifflin-St Jeor. Ohne Fettwert am Tag faellt Katch auf Mifflin zurueck
+ * (sofern Groesse/Geburtsjahr gesetzt), ohne Gewicht auf den manuellen Wert.
  */
 function ladeUmsatzKontext(db: Database): UmsatzFuerTag {
   const versionenAsc = ladeVersionenAsc(db);
@@ -77,9 +103,21 @@ function ladeUmsatzKontext(db: Database): UmsatzFuerTag {
     return manuell;
   }
   const gewichteAsc = alleGewichteAsc(db);
+  const fetteAsc = gewichteAsc.filter(
+    (g): g is { datum: string; gramm: number; fett_promille: number } =>
+      g.fett_promille !== null,
+  );
   return (datum) => {
     const gramm = gewichtFuerTag(gewichteAsc, datum);
     if (gramm === null) return manuell(datum);
+    if (kd.formel === 'katch') {
+      const fett = fettFuerTag(fetteAsc, datum);
+      if (fett !== null) {
+        return gesamtumsatzKatch(gramm, fett, kd.aktivitaetsfaktor);
+      }
+      // Kein Fettwert: Fallback Mifflin, wenn dessen Daten vorliegen.
+      if (!mifflinDatenVollstaendig(kd)) return manuell(datum);
+    }
     const alter = Number(datum.slice(0, 4)) - kd.geburtsjahr;
     return gesamtumsatzBerechnet(
       gramm,

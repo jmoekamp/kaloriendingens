@@ -125,6 +125,8 @@ export interface Gewicht {
   gramm: number;
   /** true = aus der Trend-/Regressionsberechnung ausgeschlossen (z. B. Wasser-Anfangstage). */
   aus_trend: boolean;
+  /** Optionaler Koerperfettanteil in Promille (25,4 % = 254); null = nicht gemessen. */
+  fett_promille: number | null;
   erstellt_am: string;
   geaendert_am: string;
 }
@@ -134,6 +136,8 @@ export interface GewichtInput {
   datum: string;
   gramm: number;
   aus_trend: boolean;
+  /** Koerperfettanteil in Promille; null/weggelassen = nicht gemessen. */
+  fett_promille?: number | null;
 }
 
 /** Ein Punkt der Gewichts-Verlaufskurve. */
@@ -142,6 +146,8 @@ export interface GewichtPunkt {
   gramm: number;
   /** true = nicht in die Trendlinie einbeziehen (Messpunkt bleibt sichtbar). */
   aus_trend: boolean;
+  /** Koerperfettanteil in Promille oder null (fuer Erhalt beim Trend-Umschalten). */
+  fett_promille: number | null;
 }
 
 /**
@@ -422,11 +428,16 @@ export type Geschlecht = 'm' | 'w';
 /** Quelle des Gesamtumsatzes: manuell gesetzt oder aus Koerperdaten berechnet. */
 export type GesamtumsatzModus = 'manuell' | 'berechnet';
 
+/** Grundumsatz-Formel: Mifflin-St Jeor oder Katch-McArdle (braucht Fettanteil). */
+export type UmsatzFormel = 'mifflin' | 'katch';
+
 /**
- * Koerperdaten fuer die Gesamtumsatz-Berechnung (Mifflin-St Jeor). Nicht
- * versioniert; das taegliche Gewicht kommt aus den Messungen. Bei modus =
- * 'berechnet' und vollstaendigen Daten wird der Gesamtumsatz je Tag daraus
- * berechnet, sonst gilt der manuelle (versionierte) Wert.
+ * Koerperdaten fuer die Gesamtumsatz-Berechnung. Nicht versioniert; das
+ * taegliche Gewicht (und ggf. der Fettanteil) kommt aus den Messungen. Bei
+ * modus = 'berechnet' und vollstaendigen Daten wird der Gesamtumsatz je Tag
+ * daraus berechnet, sonst gilt der manuelle (versionierte) Wert. Formel:
+ * Mifflin-St Jeor (Groesse/Alter/Geschlecht) oder Katch-McArdle (Magermasse aus
+ * Gewicht × (1 − Fettanteil); ohne Fettwert am Tag Fallback auf Mifflin).
  */
 export interface Koerperdaten {
   groesse_cm: number; // 0 = nicht gesetzt
@@ -434,6 +445,7 @@ export interface Koerperdaten {
   geburtsjahr: number; // 0 = nicht gesetzt
   aktivitaetsfaktor: number; // z. B. 1.55
   modus: GesamtumsatzModus;
+  formel: UmsatzFormel;
 }
 
 /** Teilweise Aktualisierung der Koerperdaten. */
@@ -443,6 +455,8 @@ export type KoerperdatenInput = Partial<Koerperdaten>;
 export interface KoerperdatenAnsicht extends Koerperdaten {
   /** Letzte Gewichtsmessung bis heute (Gramm) oder null. */
   aktuelles_gewicht_gramm: number | null;
+  /** Letzter erfasster Fettanteil bis heute (Promille) oder null. */
+  aktueller_fett_promille: number | null;
   /** Der fuer heute geltende Gesamtumsatz (berechnet oder manuell). */
   gesamtumsatz_heute: number;
 }

@@ -89,13 +89,17 @@ Port **3010**.
 - **Ziele:** Kalorien- und Eiweißziel, je als Minimum ODER Maximum definierbar.
 - **Gesamtumsatz:** Täglicher Gesamtumsatz (kcal/Tag) als Grundlage für das
   Kaloriendefizit. Umschaltbar **manuell** (versionierter Wert je Vorgabe) oder
-  **berechnet**: aus Körperdaten (Größe, Geschlecht, Geburtsjahr, Aktivitätsfaktor)
-  und dem **an dem Tag gültigen Gewicht** (letzte Messung ≤ Tag) nach Mifflin‑St
-  Jeor × Aktivitätsfaktor. Die Aktivitätsstufen (PAL) folgen den DGE‑Referenzwerten
-  (`AKTIVITAETSSTUFEN` in `shared/umsatz.ts`). Der Gesamtumsatz sinkt so automatisch mit dem Gewicht.
-  Ohne Gewicht an einem Tag greift der manuelle Wert als Rückfall.
-  (`shared/umsatz.ts`, Körperdaten in der Key‑Value‑Tabelle, `gesamtumsatzFuerTag`
-  in `server/repos/auswertung.ts`.)
+  **berechnet** aus Körperdaten und dem **an dem Tag gültigen Gewicht** (letzte
+  Messung ≤ Tag). Die Grundumsatz-**Formel** ist wählbar (`formel`):
+  **Mifflin-St Jeor** (Größe, Geschlecht, Geburtsjahr) oder **Katch-McArdle**
+  (370 + 21,6 × Magermasse; Magermasse = Gewicht × (1 − tagesgültiger
+  Fettanteil), Carry-forward über die Messungen mit Fettwert). Bei Katch ohne
+  jeglichen Fettwert am Tag greift Mifflin als Rückfall (sofern Größe/Geburtsjahr
+  gesetzt), ohne Gewicht der manuelle Wert. Die Aktivitätsstufen (PAL) folgen den
+  DGE‑Referenzwerten (`AKTIVITAETSSTUFEN` in `shared/umsatz.ts`). Der
+  Gesamtumsatz sinkt so automatisch mit dem Gewicht. (`shared/umsatz.ts`:
+  `grundumsatzMifflin`/`grundumsatzKatchMcArdle`, Körperdaten in der
+  Key‑Value‑Tabelle, `gesamtumsatzFuerTag` in `server/repos/auswertung.ts`.)
 - **Zeitversionierte Vorgaben:** Ziele und Gesamtumsatz werden je Stichtag
   (`gueltig_ab`) gespeichert. Eine neue Vorgabe ändert nur Tage ab ihrem Stichtag;
   frühere Tage behalten die davor gültige Vorgabe. So lässt sich der mit
@@ -147,7 +151,9 @@ Port **3010**.
   entfällt der Wert. `getTagesAuswertung` liefert dafür `gewicht_gramm` und
   `eiweiss_pro_kg` (`eiweissProKgKoerper` in `shared/naehrwerte.ts`).
 - **Tagesgewicht:** Pro Tag lässt sich ein Gewicht (kg) eingeben (eine Waage-
-  Eingabe je Tag, Upsert). Wird auf der Auswertungsseite als Liniendiagramm über
+  Eingabe je Tag, Upsert), optional mit **Körperfettanteil** in %
+  (`fett_promille`, Promille-Ganzzahl: 25,4 % = 254; Basis für Katch-McArdle).
+  Wird auf der Auswertungsseite als Liniendiagramm über
   den gewählten Zeitraum gezeigt (y-Achse skaliert auf den Datenbereich, nicht ab 0).
   Je Messung lässt sich „**Aus Trendberechnung ausschließen**" setzen (`aus_trend`):
   der Punkt bleibt in der Kurve sichtbar (hohl dargestellt), fließt aber nicht in
@@ -268,7 +274,8 @@ kein Zugriff auf Fachdaten). Erst-Accounts beim ersten Start: `admin/admin`
   ziel_gramm/1000 × 7000 kcal.
 - `bewegung`: id, mandant_id, datum, uhrzeit, beschreibung, kcal
   (Aktivitätskalorien). Je Tag zum Gesamtverbrauch addiert (Defizit/Prognose).
-- `gewicht`: id, mandant_id, datum, gramm, aus_trend (0/1: aus der Trendlinie
+- `gewicht`: id, mandant_id, datum, gramm, fett_promille (optional, 25,4 % =
+  254), aus_trend (0/1: aus der Trendlinie
   ausgeschlossen). Ein Tagesgewicht je (mandant_id, datum); Quelle für das
   Gewichts-Liniendiagramm.
 - `einstellungen`: Legacy-Key-Value, nur noch Migrationsquelle für `vorgaben`.

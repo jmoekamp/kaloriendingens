@@ -64,6 +64,44 @@ describe('Tagesgewicht', () => {
     expect(getGewichtFuerTag(db, '2026-07-10')?.aus_trend).toBe(false);
   });
 
+  it('speichert den optionalen Fettanteil (Promille) und validiert ihn', () => {
+    upsertGewicht(db, {
+      datum: '2026-07-15',
+      gramm: 82500,
+      aus_trend: false,
+      fett_promille: 254, // 25,4 %
+    });
+    expect(getGewichtFuerTag(db, '2026-07-15')?.fett_promille).toBe(254);
+    // Ohne Angabe bleibt/ist der Fettanteil null (Upsert ueberschreibt).
+    upsertGewicht(db, { datum: '2026-07-15', gramm: 82500, aus_trend: false });
+    expect(getGewichtFuerTag(db, '2026-07-15')?.fett_promille).toBeNull();
+    // Verlauf liefert den Fettanteil mit.
+    upsertGewicht(db, {
+      datum: '2026-07-10',
+      gramm: 83000,
+      aus_trend: false,
+      fett_promille: 260,
+    });
+    const v = listGewichtImZeitraum(
+      db,
+      '2026-07-01',
+      '2026-07-31',
+      '2026-07-16',
+    );
+    expect(v.map((p) => p.fett_promille)).toEqual([260, null]);
+    // Ungueltige Werte (<= 0 oder >= 100 %) werden abgewiesen.
+    for (const fett of [0, -10, 1000]) {
+      expect(() =>
+        upsertGewicht(db, {
+          datum: '2026-07-15',
+          gramm: 82500,
+          aus_trend: false,
+          fett_promille: fett,
+        }),
+      ).toThrow(AppError);
+    }
+  });
+
   it('loescht ein Tagesgewicht und meldet Unbekanntes', () => {
     upsertGewicht(db, { datum: '2026-07-15', gramm: 82500, aus_trend: false });
     deleteGewicht(db, '2026-07-15');

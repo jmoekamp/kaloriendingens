@@ -4,6 +4,7 @@ import { getDb } from '../db/index.ts';
 import { badRequest } from '../errors.ts';
 import {
   optionalBoolean,
+  optionalIntegerOrNull,
   requireInteger,
   requireIsoDate,
 } from '../validation.ts';
@@ -53,6 +54,7 @@ gewichtRouter.put('/', (req, res) => {
     datum: requireIsoDate(body, 'datum'),
     gramm: requireInteger(body, 'gramm'),
     aus_trend: optionalBoolean(body, 'aus_trend', false),
+    fett_promille: optionalIntegerOrNull(body, 'fett_promille'),
   };
   res.json(upsertGewicht(getDb(), input));
 });

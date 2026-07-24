@@ -358,7 +358,8 @@ export default function LangfristSeite({
   async function trendUmschalten(g: GewichtPunkt, imTrend: boolean) {
     setFehler(null);
     try {
-      await gewichtApi.save(g.datum, g.gramm, !imTrend); // aus_trend = !imTrend
+      // aus_trend = !imTrend; Fettanteil der Messung unveraendert mitschreiben.
+      await gewichtApi.save(g.datum, g.gramm, !imTrend, g.fett_promille);
       setGewicht(await gewichtApi.verlauf(von, bis));
     } catch (e) {
       setFehler(meldung(e));

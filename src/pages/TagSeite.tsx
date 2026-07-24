@@ -20,6 +20,7 @@ import {
   formatGramm,
   formatKcal,
   formatKg,
+  parseGrammToDg,
   parseKgToGramm,
 } from '../../shared/naehrwerte.ts';
 import {
@@ -629,6 +630,7 @@ function GewichtAbschnitt({
   onAenderung?: () => void;
 }) {
   const [kg, setKg] = useState('');
+  const [fett, setFett] = useState('');
   const [ausTrend, setAusTrend] = useState(false);
   const [vorhanden, setVorhanden] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
@@ -640,6 +642,9 @@ function GewichtAbschnitt({
       .fuerTag(datum)
       .then((g) => {
         setKg(g ? formatKg(g.gramm) : '');
+        setFett(
+          g && g.fett_promille !== null ? formatGramm(g.fett_promille) : '',
+        );
         setAusTrend(g ? g.aus_trend : false);
         setVorhanden(g !== null);
         setOk(false);
@@ -657,9 +662,18 @@ function GewichtAbschnitt({
       setFehler('Bitte ein Gewicht in kg eingeben (größer als 0, z. B. 82,5).');
       return;
     }
+    // Fettanteil (%) in Promille: gleiche Zehntel-Konvention wie Gramm -> dg.
+    const fettPromille = fett.trim() === '' ? null : parseGrammToDg(fett);
+    if (
+      fett.trim() !== '' &&
+      (fettPromille === null || fettPromille <= 0 || fettPromille >= 1000)
+    ) {
+      setFehler('Fettanteil muss zwischen 0 und 100 % liegen (z. B. 25,4).');
+      return;
+    }
     setSpeichert(true);
     try {
-      await gewichtApi.save(datum, gramm, ausTrend);
+      await gewichtApi.save(datum, gramm, ausTrend, fettPromille);
       setVorhanden(true);
       setOk(true);
       onAenderung?.();
@@ -675,6 +689,7 @@ function GewichtAbschnitt({
     try {
       await gewichtApi.remove(datum);
       setKg('');
+      setFett('');
       setVorhanden(false);
       setOk(false);
       onAenderung?.();
@@ -700,6 +715,15 @@ function GewichtAbschnitt({
             onChange={(e) => setKg(e.target.value)}
             inputMode="decimal"
             placeholder="z. B. 82,5"
+          />
+        </Field>
+        <Field label="Fettanteil (%, optional)">
+          <TextInput
+            className="w-40 tabular"
+            value={fett}
+            onChange={(e) => setFett(e.target.value)}
+            inputMode="decimal"
+            placeholder="z. B. 25,4"
           />
         </Field>
         <div className="pb-1.5">

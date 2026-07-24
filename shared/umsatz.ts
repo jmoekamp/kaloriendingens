@@ -63,3 +63,28 @@ export function gesamtumsatzBerechnet(
   );
   return Math.round(bmr * aktivitaetsfaktor);
 }
+
+/**
+ * Grundumsatz (kcal/Tag) nach Katch-McArdle: 370 + 21,6 × Magermasse (kg).
+ * Magermasse = Gewicht × (1 − Fettanteil); Fettanteil in Promille (25,4 % = 254).
+ * Geschlecht/Alter/Groesse gehen hier nicht ein – die Koerperkomposition steckt
+ * im Fettanteil.
+ */
+export function grundumsatzKatchMcArdle(
+  gewichtGramm: number,
+  fettPromille: number,
+): number {
+  const magermasseKg = (gewichtGramm / 1000) * (1 - fettPromille / 1000);
+  return 370 + 21.6 * magermasseKg;
+}
+
+/** Gesamtumsatz (kcal/Tag, gerundet) nach Katch-McArdle × Aktivitaetsfaktor. */
+export function gesamtumsatzKatch(
+  gewichtGramm: number,
+  fettPromille: number,
+  aktivitaetsfaktor: number,
+): number {
+  return Math.round(
+    grundumsatzKatchMcArdle(gewichtGramm, fettPromille) * aktivitaetsfaktor,
+  );
+}

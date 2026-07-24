@@ -17,6 +17,7 @@ interface GewichtRow {
   datum: string;
   gramm: number;
   aus_trend: number;
+  fett_promille: number | null;
   erstellt_am: string;
   geaendert_am: string;
 }
@@ -27,13 +28,14 @@ function toGewicht(row: GewichtRow): Gewicht {
     datum: row.datum,
     gramm: row.gramm,
     aus_trend: row.aus_trend === 1,
+    fett_promille: row.fett_promille,
     erstellt_am: row.erstellt_am,
     geaendert_am: row.geaendert_am,
   };
 }
 
 const SELECT =
-  'SELECT id, datum, gramm, aus_trend, erstellt_am, geaendert_am' +
+  'SELECT id, datum, gramm, aus_trend, fett_promille, erstellt_am, geaendert_am' +
   ' FROM gewicht WHERE mandant_id = @mandant';
 
 export function getGewichtFuerTag(db: Database, datum: string): Gewicht | null {
@@ -56,7 +58,7 @@ export function listGewichtImZeitraum(
 ): GewichtPunkt[] {
   const rows = db
     .prepare(
-      `SELECT datum, gramm, aus_trend FROM gewicht
+      `SELECT datum, gramm, aus_trend, fett_promille FROM gewicht
         WHERE mandant_id = @mandant
           AND datum BETWEEN @von AND @bis
           AND datum <= @heute
@@ -66,11 +68,13 @@ export function listGewichtImZeitraum(
     datum: string;
     gramm: number;
     aus_trend: number;
+    fett_promille: number | null;
   }[];
   return rows.map((r) => ({
     datum: r.datum,
     gramm: r.gramm,
     aus_trend: r.aus_trend === 1,
+    fett_promille: r.fett_promille,
   }));
 }
 
@@ -114,12 +118,17 @@ export function letztesGewichtGesamt(
 /** Alle Messungen aufsteigend (inkl. aus_trend) – fuer die tagesgenaue Umsatzberechnung. */
 export function alleGewichteAsc(
   db: Database,
-): { datum: string; gramm: number }[] {
+): { datum: string; gramm: number; fett_promille: number | null }[] {
   return db
     .prepare(
-      'SELECT datum, gramm FROM gewicht WHERE mandant_id = ? ORDER BY datum ASC',
+      `SELECT datum, gramm, fett_promille FROM gewicht
+        WHERE mandant_id = ? ORDER BY datum ASC`,
     )
-    .all(aktuellerMandant()) as { datum: string; gramm: number }[];
+    .all(aktuellerMandant()) as {
+    datum: string;
+    gramm: number;
+    fett_promille: number | null;
+  }[];
 }
 
 /** Nicht ausgeschlossene Messungen bis heute, aufsteigend – fuer die Trend-Regression. */
@@ -153,18 +162,27 @@ export function upsertGewicht(db: Database, input: GewichtInput): Gewicht {
   if (!Number.isInteger(input.gramm) || input.gramm <= 0) {
     throw badRequest('Gewicht muss groesser als 0 sein.');
   }
+  const fett = input.fett_promille ?? null;
+  if (fett !== null && (!Number.isInteger(fett) || fett <= 0 || fett >= 1000)) {
+    throw badRequest(
+      'Fettanteil muss zwischen 0 und 100 % liegen (z. B. 25,4).',
+    );
+  }
   const jetzt = new Date().toISOString();
   db.prepare(
-    `INSERT INTO gewicht (mandant_id, datum, gramm, aus_trend, erstellt_am, geaendert_am)
-     VALUES (@mandant, @datum, @gramm, @aus_trend, @jetzt, @jetzt)
+    `INSERT INTO gewicht (mandant_id, datum, gramm, aus_trend, fett_promille,
+                          erstellt_am, geaendert_am)
+     VALUES (@mandant, @datum, @gramm, @aus_trend, @fett, @jetzt, @jetzt)
      ON CONFLICT(mandant_id, datum)
        DO UPDATE SET gramm = excluded.gramm, aus_trend = excluded.aus_trend,
+                     fett_promille = excluded.fett_promille,
                      geaendert_am = excluded.geaendert_am`,
   ).run({
     mandant: aktuellerMandant(),
     datum: input.datum,
     gramm: input.gramm,
     aus_trend: input.aus_trend ? 1 : 0,
+    fett,
     jetzt,
   });
   return getGewichtFuerTag(db, input.datum) as Gewicht;

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { gesamtumsatzBerechnet, grundumsatzMifflin } from '../shared/umsatz.ts';
+import {
+  gesamtumsatzBerechnet,
+  gesamtumsatzKatch,
+  grundumsatzKatchMcArdle,
+  grundumsatzMifflin,
+} from '../shared/umsatz.ts';
 
 describe('Grundumsatz (Mifflin-St Jeor)', () => {
   it('rechnet fuer einen Mann', () => {
@@ -13,6 +18,21 @@ describe('Grundumsatz (Mifflin-St Jeor)', () => {
   });
 });
 
+describe('Grundumsatz (Katch-McArdle)', () => {
+  it('rechnet aus der Magermasse (370 + 21,6 × LBM)', () => {
+    // 80 kg, 25,0 % Fett -> Magermasse 60 kg -> 370 + 21,6*60 = 1666
+    expect(grundumsatzKatchMcArdle(80000, 250)).toBeCloseTo(1666, 6);
+    // 80 kg, 25,4 % Fett -> LBM 59,68 kg -> 370 + 1289,088 = 1659,088
+    expect(grundumsatzKatchMcArdle(80000, 254)).toBeCloseTo(1659.088, 6);
+  });
+
+  it('sinkt mit steigendem Fettanteil (weniger Magermasse)', () => {
+    expect(grundumsatzKatchMcArdle(80000, 300)).toBeLessThan(
+      grundumsatzKatchMcArdle(80000, 200),
+    );
+  });
+});
+
 describe('Gesamtumsatz', () => {
   it('multipliziert mit dem Aktivitaetsfaktor und rundet', () => {
     // BMR 1730 × 1,55 = 2681,5 -> 2682
@@ -23,5 +43,10 @@ describe('Gesamtumsatz', () => {
     const schwer = gesamtumsatzBerechnet(90000, 180, 40, 'm', 1.5);
     const leicht = gesamtumsatzBerechnet(80000, 180, 40, 'm', 1.5);
     expect(leicht).toBeLessThan(schwer);
+  });
+
+  it('rechnet Katch-McArdle × Aktivitaetsfaktor gerundet', () => {
+    // BMR 1666 × 1,5 = 2499
+    expect(gesamtumsatzKatch(80000, 250, 1.5)).toBe(2499);
   });
 });

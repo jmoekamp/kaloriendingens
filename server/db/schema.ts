@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS gewicht (
   datum        TEXT    NOT NULL,
   gramm        INTEGER NOT NULL,
   aus_trend    INTEGER NOT NULL DEFAULT 0,
+  fett_promille INTEGER,
   erstellt_am  TEXT    NOT NULL,
   geaendert_am TEXT    NOT NULL
 );
@@ -225,6 +226,8 @@ export function applySchema(db: Database): void {
   ensureColumn(db, 'lebensmittel', 'bestand_gramm', 'INTEGER');
   // Trend-Ausschluss-Flag am Gewicht nachziehen.
   ensureColumn(db, 'gewicht', 'aus_trend', 'INTEGER NOT NULL DEFAULT 0');
+  // Optionaler Koerperfettanteil je Messung (Promille, 25,4 % = 254).
+  ensureColumn(db, 'gewicht', 'fett_promille', 'INTEGER');
   // „gegessen"-Flag an Eintraegen nachziehen: nur gegessene Eintraege zaehlen in
   // die Statistik. Bestandsdaten sind zunaechst 0 (per Migrations-Button in den
   // Einstellungen nachtraeglich markierbar).

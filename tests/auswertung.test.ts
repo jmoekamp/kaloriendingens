@@ -320,6 +320,43 @@ describe('Berechneter Gesamtumsatz (Mifflin-St Jeor)', () => {
     expect(r.tag.defizit).toBe(2829 - 168);
   });
 
+  it('rechnet mit Katch-McArdle aus dem tagesgueltigen Fettanteil', () => {
+    updateKoerperdaten(db, {
+      modus: 'berechnet',
+      formel: 'katch',
+      aktivitaetsfaktor: 1.5,
+      groesse_cm: 180,
+      geschlecht: 'm',
+      geburtsjahr: 1985,
+    });
+    upsertGewicht(db, {
+      datum: '2026-07-14',
+      gramm: 80000,
+      aus_trend: false,
+      fett_promille: 250, // 25 % -> LBM 60 kg -> BMR 1666 -> ×1,5 = 2499
+    });
+    iss('2026-07-15', 250); // 168 kcal (Fett-Carry-forward vom 14.)
+    const r = getDefizitReport(db, '2026-07-15');
+    expect(r.gesamtumsatz).toBe(2499);
+    expect(r.tag.defizit).toBe(2499 - 168);
+  });
+
+  it('faellt bei Katch ohne Fettwert auf Mifflin-St Jeor zurueck', () => {
+    updateKoerperdaten(db, {
+      modus: 'berechnet',
+      formel: 'katch',
+      aktivitaetsfaktor: 1.55,
+      groesse_cm: 180,
+      geschlecht: 'm',
+      geburtsjahr: 1985,
+    });
+    // Gewicht ohne Fettanteil -> Mifflin (wie im bestehenden Mifflin-Test).
+    upsertGewicht(db, { datum: '2026-07-15', gramm: 90000, aus_trend: false });
+    iss('2026-07-15', 250);
+    const r = getDefizitReport(db, '2026-07-15');
+    expect(r.gesamtumsatz).toBe(2829); // BMR 1825 × 1,55
+  });
+
   it('faellt ohne Gewicht auf den manuellen Wert zurueck', () => {
     updateKoerperdaten(db, {
       modus: 'berechnet',

@@ -4,6 +4,7 @@ import type {
   GesamtumsatzModus,
   Koerperdaten,
   KoerperdatenInput,
+  UmsatzFormel,
 } from '../../shared/types.ts';
 import { aktuellerMandant } from '../db/index.ts';
 
@@ -17,6 +18,7 @@ export const KOERPERDATEN_DEFAULTS: Koerperdaten = {
   geburtsjahr: 0,
   aktivitaetsfaktor: 1.5,
   modus: 'manuell',
+  formel: 'mifflin',
 };
 
 export function getKoerperdaten(db: Database): Koerperdaten {
@@ -37,6 +39,8 @@ export function getKoerperdaten(db: Database): Koerperdaten {
     map.get('koerper_geschlecht') === 'w' ? 'w' : 'm';
   const modus: GesamtumsatzModus =
     map.get('gesamtumsatz_modus') === 'berechnet' ? 'berechnet' : 'manuell';
+  const formel: UmsatzFormel =
+    map.get('gesamtumsatz_formel') === 'katch' ? 'katch' : 'mifflin';
 
   return {
     groesse_cm: ganz('koerper_groesse_cm', KOERPERDATEN_DEFAULTS.groesse_cm),
@@ -47,6 +51,7 @@ export function getKoerperdaten(db: Database): Koerperdaten {
       KOERPERDATEN_DEFAULTS.aktivitaetsfaktor,
     ),
     modus,
+    formel,
   };
 }
 
@@ -72,13 +77,25 @@ export function updateKoerperdaten(
     if (input.aktivitaetsfaktor !== undefined)
       setze('koerper_aktivitaetsfaktor', String(input.aktivitaetsfaktor));
     if (input.modus !== undefined) setze('gesamtumsatz_modus', input.modus);
+    if (input.formel !== undefined) setze('gesamtumsatz_formel', input.formel);
   });
   tx();
 
   return getKoerperdaten(db);
 }
 
-/** Sind alle fuer die Berechnung noetigen Werte gesetzt? */
+/**
+ * Sind alle fuer die Berechnung noetigen Werte gesetzt? Katch-McArdle braucht
+ * nur den Aktivitaetsfaktor (Fettanteil kommt je Tag aus den Messungen; fuer
+ * den Mifflin-Fallback ohne Fettwert werden Groesse/Geburtsjahr in der
+ * Umsatz-Funktion zusaetzlich geprueft).
+ */
 export function koerperdatenVollstaendig(kd: Koerperdaten): boolean {
+  if (kd.formel === 'katch') return kd.aktivitaetsfaktor > 0;
   return kd.groesse_cm > 0 && kd.geburtsjahr > 0 && kd.aktivitaetsfaktor > 0;
+}
+
+/** Sind die Mifflin-spezifischen Werte (Groesse/Geburtsjahr) gesetzt? */
+export function mifflinDatenVollstaendig(kd: Koerperdaten): boolean {
+  return kd.groesse_cm > 0 && kd.geburtsjahr > 0;
 }

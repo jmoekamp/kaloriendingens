@@ -69,15 +69,16 @@ function gewichtFuerTag(
 }
 
 /**
- * Fettanteil (Promille), der an einem Tag „gilt": letzte Messung MIT Fettwert
- * ≤ Tag (Carry-forward); vor der ersten die frueheste. null, wenn nie gemessen.
+ * Fettanteil (Promille), der an einem Tag „gilt": die letzte Messung MIT
+ * Fettwert ≤ Tag (Carry-forward). Anders als beim Gewicht gibt es KEINEN
+ * Rueckgriff auf spaetere Messungen: fuer Tage vor der ersten Fettmessung
+ * liefert die Funktion null (dort rechnet die Auswertung mit Mifflin weiter).
  */
 function fettFuerTag(
   fetteAsc: { datum: string; fett_promille: number }[],
   datum: string,
 ): number | null {
-  if (fetteAsc.length === 0) return null;
-  let wert = fetteAsc[0].fett_promille;
+  let wert: number | null = null;
   for (const f of fetteAsc) {
     if (f.datum <= datum) wert = f.fett_promille;
     else break;
@@ -90,8 +91,10 @@ function fettFuerTag(
  * Koerperdaten aus dem tagesgueltigen Gewicht, sonst der manuelle,
  * versionierte Vorgabe-Wert. Formel je nach Einstellung: Katch-McArdle
  * (Magermasse aus Gewicht × (1 − tagesgueltiger Fettanteil)) oder
- * Mifflin-St Jeor. Ohne Fettwert am Tag faellt Katch auf Mifflin zurueck
- * (sofern Groesse/Geburtsjahr gesetzt), ohne Gewicht auf den manuellen Wert.
+ * Mifflin-St Jeor. Fehlt an einem Tag der Fettwert, gilt der letzte davor
+ * (Carry-forward); gibt es bis zu dem Tag noch keinen (oder nie einen),
+ * faellt Katch auf Mifflin zurueck (sofern Groesse/Geburtsjahr gesetzt),
+ * ohne Gewicht auf den manuellen Wert.
  */
 function ladeUmsatzKontext(db: Database): UmsatzFuerTag {
   const versionenAsc = ladeVersionenAsc(db);

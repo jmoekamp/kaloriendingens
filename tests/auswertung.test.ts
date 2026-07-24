@@ -341,6 +341,34 @@ describe('Berechneter Gesamtumsatz (Mifflin-St Jeor)', () => {
     expect(r.tag.defizit).toBe(2499 - 168);
   });
 
+  it('nutzt vor der ersten Fettmessung Mifflin, danach Katch (Carry-forward)', () => {
+    updateKoerperdaten(db, {
+      modus: 'berechnet',
+      formel: 'katch',
+      aktivitaetsfaktor: 1.5,
+      groesse_cm: 180,
+      geschlecht: 'm',
+      geburtsjahr: 1985,
+    });
+    // Gewicht ab dem 10., Fettanteil erst ab dem 14. erfasst.
+    upsertGewicht(db, { datum: '2026-07-10', gramm: 80000, aus_trend: false });
+    upsertGewicht(db, {
+      datum: '2026-07-14',
+      gramm: 80000,
+      aus_trend: false,
+      fett_promille: 250, // -> Katch: BMR 1666 × 1,5 = 2499
+    });
+    iss('2026-07-12', 100); // vor der ersten Fettmessung
+    iss('2026-07-15', 100); // danach (Carry-forward vom 14.)
+    const v = getDefizitVerlauf(db, '2026-07-01', '2026-07-31', '2026-07-15');
+    // 12.07.: kein Fettwert davor -> Mifflin: 80 kg, 180 cm, 41 J, m ->
+    // BMR 10*80+6,25*180−5*41+5 = 1725; ×1,5 = 2587,5 -> 2588.
+    expect(v).toEqual([
+      { datum: '2026-07-12', defizit: 2588 - 67 },
+      { datum: '2026-07-15', defizit: 2499 - 67 },
+    ]);
+  });
+
   it('faellt bei Katch ohne Fettwert auf Mifflin-St Jeor zurueck', () => {
     updateKoerperdaten(db, {
       modus: 'berechnet',

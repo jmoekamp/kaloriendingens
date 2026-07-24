@@ -93,9 +93,10 @@ Port **3010**.
   Messung ≤ Tag). Die Grundumsatz-**Formel** ist wählbar (`formel`):
   **Mifflin-St Jeor** (Größe, Geschlecht, Geburtsjahr) oder **Katch-McArdle**
   (370 + 21,6 × Magermasse; Magermasse = Gewicht × (1 − tagesgültiger
-  Fettanteil), Carry-forward über die Messungen mit Fettwert). Bei Katch ohne
-  jeglichen Fettwert am Tag greift Mifflin als Rückfall (sofern Größe/Geburtsjahr
-  gesetzt), ohne Gewicht der manuelle Wert. Die Aktivitätsstufen (PAL) folgen den
+  Fettanteil)). Fehlt an einem Tag der Fettwert, gilt der **letzte davor**
+  (Carry-forward, KEIN Rückgriff auf spätere Messungen); für Tage vor der
+  ersten Fettmessung – und wenn nie einer erfasst wurde – greift Mifflin als
+  Rückfall (sofern Größe/Geburtsjahr gesetzt), ohne Gewicht der manuelle Wert. Die Aktivitätsstufen (PAL) folgen den
   DGE‑Referenzwerten (`AKTIVITAETSSTUFEN` in `shared/umsatz.ts`). Der
   Gesamtumsatz sinkt so automatisch mit dem Gewicht. (`shared/umsatz.ts`:
   `grundumsatzMifflin`/`grundumsatzKatchMcArdle`, Körperdaten in der

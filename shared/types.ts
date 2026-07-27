@@ -20,6 +20,12 @@ export interface Lebensmittel {
   kcal_pro_100g: number;
   /** Eiweiss je 100 g in Dezigramm (0,1 g). */
   eiweiss_dg_pro_100g: number;
+  /** Fett je 100 g in Dezigramm; null = nicht erfasst. */
+  fett_dg_pro_100g: number | null;
+  /** Kohlenhydrate je 100 g in Dezigramm; null = nicht erfasst. */
+  kohlenhydrate_dg_pro_100g: number | null;
+  /** Ballaststoffe je 100 g in Dezigramm; null = nicht erfasst. */
+  ballaststoffe_dg_pro_100g: number | null;
   /** Optionale Packungsgroesse in Gramm (null = keine); fuer „ganze Packung". */
   packung_gramm: number | null;
   /**
@@ -39,6 +45,12 @@ export interface LebensmittelInput {
   name: string;
   kcal_pro_100g: number;
   eiweiss_dg_pro_100g: number;
+  /** Fett je 100 g in Dezigramm; null/weggelassen = nicht erfasst. */
+  fett_dg_pro_100g?: number | null;
+  /** Kohlenhydrate je 100 g in Dezigramm; null/weggelassen = nicht erfasst. */
+  kohlenhydrate_dg_pro_100g?: number | null;
+  /** Ballaststoffe je 100 g in Dezigramm; null/weggelassen = nicht erfasst. */
+  ballaststoffe_dg_pro_100g?: number | null;
   packung_gramm: number | null;
   /** Bestand in Gramm; null/weggelassen = Bestand wird nicht gefuehrt. */
   bestand_gramm?: number | null;
@@ -58,6 +70,12 @@ export interface OffTreffer {
   kcal_pro_100g: number | null;
   /** Eiweiss je 100 g in Dezigramm oder null. */
   eiweiss_dg_pro_100g: number | null;
+  /** Fett je 100 g in Dezigramm oder null. */
+  fett_dg_pro_100g: number | null;
+  /** Kohlenhydrate je 100 g in Dezigramm oder null. */
+  kohlenhydrate_dg_pro_100g: number | null;
+  /** Ballaststoffe je 100 g in Dezigramm oder null. */
+  ballaststoffe_dg_pro_100g: number | null;
   /** Packungsgroesse in Gramm oder null. */
   packung_gramm: number | null;
 }

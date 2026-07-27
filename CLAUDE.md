@@ -31,7 +31,9 @@ Port **3010**.
 ## Was die App können soll
 
 - **Lebensmittel (Stammdaten):** Anlegen/Bearbeiten/Löschen mit kcal und Eiweiß,
-  jeweils bezogen auf 100 g, plus optionaler **Packungsgröße** (g) und optionalem
+  jeweils bezogen auf 100 g, optional zusätzlich **Fett, Kohlenhydrate und
+  Ballaststoffe** je 100 g (Dezigramm-Ganzzahlen wie Eiweiß, null = nicht
+  erfasst; der OFF-Import übernimmt sie mit), plus optionaler **Packungsgröße** (g) und optionalem
   **Bestand** (g, `bestand_gramm`; leer = Bestand wird nicht geführt). Der
   Bestand ist der Vorrat des Produkts: Beim Ankreuzen von „gegessen" wird die
   Menge des Eintrags abgezogen; Abwählen, Löschen oder Mengen-Änderung eines
@@ -259,7 +261,9 @@ kein Zugriff auf Fachdaten). Erst-Accounts beim ersten Start: `admin/admin`
 ## Datenmodell (Kurzform)
 
 - `lebensmittel`: id, mandant_id, name (eindeutig/Mandant), kcal_pro_100g,
-  eiweiss_dg_pro_100g, packung_gramm (optional, für „ganze Packung"),
+  eiweiss_dg_pro_100g, fett_dg_pro_100g/kohlenhydrate_dg_pro_100g/
+  ballaststoffe_dg_pro_100g (optional, dg je 100 g), packung_gramm (optional,
+  für „ganze Packung"),
   bestand_gramm (optional; Vorrat, wird durch „gegessen" reduziert), Zeitstempel.
 - `eintraege`: id, mandant_id, datum, uhrzeit, lebensmittel_id (FK), menge_gramm,
   gegessen (0/1: zählt nur bei 1 in die Statistik), Zeitstempel. kcal/Eiweiß

@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS lebensmittel (
   name                TEXT    NOT NULL,
   kcal_pro_100g       INTEGER NOT NULL DEFAULT 0,
   eiweiss_dg_pro_100g INTEGER NOT NULL DEFAULT 0,
+  fett_dg_pro_100g          INTEGER,
+  kohlenhydrate_dg_pro_100g INTEGER,
+  ballaststoffe_dg_pro_100g INTEGER,
   packung_gramm       INTEGER,
   bestand_gramm       INTEGER,
   erstellt_am         TEXT    NOT NULL,
@@ -224,6 +227,10 @@ export function applySchema(db: Database): void {
   ensureColumn(db, 'lebensmittel', 'packung_gramm', 'INTEGER');
   // Optionaler Bestand (Gramm): wird beim Ankreuzen von „gegessen" reduziert.
   ensureColumn(db, 'lebensmittel', 'bestand_gramm', 'INTEGER');
+  // Weitere Naehrwerte je 100 g (Dezigramm, optional).
+  ensureColumn(db, 'lebensmittel', 'fett_dg_pro_100g', 'INTEGER');
+  ensureColumn(db, 'lebensmittel', 'kohlenhydrate_dg_pro_100g', 'INTEGER');
+  ensureColumn(db, 'lebensmittel', 'ballaststoffe_dg_pro_100g', 'INTEGER');
   // Trend-Ausschluss-Flag am Gewicht nachziehen.
   ensureColumn(db, 'gewicht', 'aus_trend', 'INTEGER NOT NULL DEFAULT 0');
   // Optionaler Koerperfettanteil je Messung (Promille, 25,4 % = 254).

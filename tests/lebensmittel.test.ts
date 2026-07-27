@@ -17,6 +17,39 @@ beforeEach(() => {
 });
 
 describe('Lebensmittel-CRUD', () => {
+  it('speichert optionale Naehrwerte (Fett/KH/Ballaststoffe in dg)', () => {
+    const l = createLebensmittel(db, {
+      name: 'Haferflocken',
+      kcal_pro_100g: 372,
+      eiweiss_dg_pro_100g: 135,
+      fett_dg_pro_100g: 70, // 7,0 g
+      kohlenhydrate_dg_pro_100g: 589, // 58,9 g
+      ballaststoffe_dg_pro_100g: 100, // 10,0 g
+      packung_gramm: null,
+    });
+    expect(l.fett_dg_pro_100g).toBe(70);
+    expect(l.kohlenhydrate_dg_pro_100g).toBe(589);
+    expect(l.ballaststoffe_dg_pro_100g).toBe(100);
+    // Ohne Angabe bleiben die Werte null; Update kann sie setzen/leeren.
+    const u = updateLebensmittel(db, l.id, {
+      name: 'Haferflocken',
+      kcal_pro_100g: 372,
+      eiweiss_dg_pro_100g: 135,
+      packung_gramm: null,
+    });
+    expect(u.fett_dg_pro_100g).toBeNull();
+    // Negative Werte werden abgewiesen.
+    expect(() =>
+      createLebensmittel(db, {
+        name: 'Kaputt',
+        kcal_pro_100g: 100,
+        eiweiss_dg_pro_100g: 0,
+        fett_dg_pro_100g: -10,
+        packung_gramm: null,
+      }),
+    ).toThrow(AppError);
+  });
+
   it('legt an, liest und listet', () => {
     const l = createLebensmittel(db, {
       name: 'Magerquark',

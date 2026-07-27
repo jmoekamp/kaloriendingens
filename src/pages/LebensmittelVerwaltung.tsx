@@ -23,12 +23,24 @@ function meldung(e: unknown): string {
   return e instanceof Error ? e.message : 'Unbekannter Fehler';
 }
 
-const LEER = { name: '', kcal: '', eiweiss: '', packung: '', bestand: '' };
+const LEER = {
+  name: '',
+  kcal: '',
+  eiweiss: '',
+  fett: '',
+  kh: '',
+  ballast: '',
+  packung: '',
+  bestand: '',
+};
 
 type SortKey =
   | 'name'
   | 'kcal'
   | 'eiweiss'
+  | 'fett'
+  | 'kh'
+  | 'ballast'
   | 'eiweiss_kcal'
   | 'g_kcal'
   | 'g_eiweiss'
@@ -48,6 +60,9 @@ const SPALTEN: { key: SortKey; label: string; rechts: boolean }[] = [
   { key: 'name', label: 'Name', rechts: false },
   { key: 'kcal', label: 'kcal / 100 g', rechts: true },
   { key: 'eiweiss', label: 'Eiweiß / 100 g', rechts: true },
+  { key: 'fett', label: 'Fett', rechts: true },
+  { key: 'kh', label: 'KH', rechts: true },
+  { key: 'ballast', label: 'Ballastst.', rechts: true },
   { key: 'eiweiss_kcal', label: 'Eiweiß / kcal', rechts: true },
   { key: 'g_kcal', label: 'g / kcal', rechts: true },
   { key: 'g_eiweiss', label: 'g / g Eiweiß', rechts: true },
@@ -65,6 +80,12 @@ function sortWert(l: Lebensmittel, key: SortKey): number | string | null {
       return l.kcal_pro_100g;
     case 'eiweiss':
       return l.eiweiss_dg_pro_100g;
+    case 'fett':
+      return l.fett_dg_pro_100g;
+    case 'kh':
+      return l.kohlenhydrate_dg_pro_100g;
+    case 'ballast':
+      return l.ballaststoffe_dg_pro_100g;
     case 'eiweiss_kcal':
       return eiweissProKcal(l.kcal_pro_100g, l.eiweiss_dg_pro_100g);
     case 'g_kcal':
@@ -200,6 +221,9 @@ function OffImport({
               <th className="py-2 pr-3 text-right font-normal">
                 Eiweiß / 100 g
               </th>
+              <th className="py-2 pr-3 text-right font-normal">Fett</th>
+              <th className="py-2 pr-3 text-right font-normal">KH</th>
+              <th className="py-2 pr-3 text-right font-normal">Ballastst.</th>
               <th className="py-2 pr-3 text-right font-normal">Packung</th>
               <th className="py-2 font-normal"></th>
             </tr>
@@ -215,6 +239,21 @@ function OffImport({
                   {t.eiweiss_dg_pro_100g === null
                     ? '—'
                     : `${formatGramm(t.eiweiss_dg_pro_100g)} g`}
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {t.fett_dg_pro_100g === null
+                    ? '—'
+                    : `${formatGramm(t.fett_dg_pro_100g)} g`}
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {t.kohlenhydrate_dg_pro_100g === null
+                    ? '—'
+                    : `${formatGramm(t.kohlenhydrate_dg_pro_100g)} g`}
+                </td>
+                <td className="py-2 pr-3 text-right tabular">
+                  {t.ballaststoffe_dg_pro_100g === null
+                    ? '—'
+                    : `${formatGramm(t.ballaststoffe_dg_pro_100g)} g`}
                 </td>
                 <td className="py-2 pr-3 text-right tabular">
                   {t.packung_gramm === null ? '—' : `${t.packung_gramm} g`}
@@ -304,6 +343,15 @@ export default function LebensmittelVerwaltung() {
       name: l.name,
       kcal: String(l.kcal_pro_100g),
       eiweiss: formatGramm(l.eiweiss_dg_pro_100g),
+      fett: l.fett_dg_pro_100g == null ? '' : formatGramm(l.fett_dg_pro_100g),
+      kh:
+        l.kohlenhydrate_dg_pro_100g == null
+          ? ''
+          : formatGramm(l.kohlenhydrate_dg_pro_100g),
+      ballast:
+        l.ballaststoffe_dg_pro_100g == null
+          ? ''
+          : formatGramm(l.ballaststoffe_dg_pro_100g),
       packung: l.packung_gramm == null ? '' : String(l.packung_gramm),
       bestand: l.bestand_gramm == null ? '' : String(l.bestand_gramm),
     });
@@ -321,6 +369,15 @@ export default function LebensmittelVerwaltung() {
         t.eiweiss_dg_pro_100g === null
           ? ''
           : formatGramm(t.eiweiss_dg_pro_100g),
+      fett: t.fett_dg_pro_100g === null ? '' : formatGramm(t.fett_dg_pro_100g),
+      kh:
+        t.kohlenhydrate_dg_pro_100g === null
+          ? ''
+          : formatGramm(t.kohlenhydrate_dg_pro_100g),
+      ballast:
+        t.ballaststoffe_dg_pro_100g === null
+          ? ''
+          : formatGramm(t.ballaststoffe_dg_pro_100g),
       packung: t.packung_gramm === null ? '' : String(t.packung_gramm),
       bestand: '',
     });
@@ -348,6 +405,25 @@ export default function LebensmittelVerwaltung() {
       setFehler('Eiweiß je 100 g muss eine Zahl ≥ 0 sein (z. B. 12,5).');
       return;
     }
+    // Optionale Naehrwerte: leer = nicht erfasst, sonst Gramm-Zahl >= 0.
+    const optionalDg = (
+      eingabe: string,
+      label: string,
+    ): { ok: boolean; wert: number | null } => {
+      if (eingabe.trim() === '') return { ok: true, wert: null };
+      const dg = parseGrammToDg(eingabe);
+      if (dg === null) {
+        setFehler(`${label} je 100 g muss eine Zahl ≥ 0 sein (z. B. 3,2).`);
+        return { ok: false, wert: null };
+      }
+      return { ok: true, wert: dg };
+    };
+    const fett = optionalDg(form.fett, 'Fett');
+    if (!fett.ok) return;
+    const kh = optionalDg(form.kh, 'Kohlenhydrate');
+    if (!kh.ok) return;
+    const ballast = optionalDg(form.ballast, 'Ballaststoffe');
+    if (!ballast.ok) return;
     const packung =
       form.packung.trim() === '' ? null : parseGanzzahl(form.packung);
     if (packung === null && form.packung.trim() !== '') {
@@ -367,6 +443,9 @@ export default function LebensmittelVerwaltung() {
       name: form.name.trim(),
       kcal_pro_100g: kcal,
       eiweiss_dg_pro_100g: eiweissDg,
+      fett_dg_pro_100g: fett.wert,
+      kohlenhydrate_dg_pro_100g: kh.wert,
+      ballaststoffe_dg_pro_100g: ballast.wert,
       packung_gramm: packung,
       bestand_gramm: bestand,
     };
@@ -450,6 +529,33 @@ export default function LebensmittelVerwaltung() {
               onChange={(e) => set('eiweiss', e.target.value)}
               inputMode="decimal"
               placeholder="z. B. 12,5"
+            />
+          </Field>
+          <Field label="Fett je 100 g (g, optional)">
+            <TextInput
+              className="tabular"
+              value={form.fett}
+              onChange={(e) => set('fett', e.target.value)}
+              inputMode="decimal"
+              placeholder="z. B. 3,2"
+            />
+          </Field>
+          <Field label="Kohlenhydrate je 100 g (g, optional)">
+            <TextInput
+              className="tabular"
+              value={form.kh}
+              onChange={(e) => set('kh', e.target.value)}
+              inputMode="decimal"
+              placeholder="z. B. 4,1"
+            />
+          </Field>
+          <Field label="Ballaststoffe je 100 g (g, optional)">
+            <TextInput
+              className="tabular"
+              value={form.ballast}
+              onChange={(e) => set('ballast', e.target.value)}
+              inputMode="decimal"
+              placeholder="z. B. 1,0"
             />
           </Field>
           <Field label="Packungsgröße (g, optional)">
@@ -554,6 +660,21 @@ export default function LebensmittelVerwaltung() {
                   </td>
                   <td className="py-2 pr-3 text-right tabular">
                     {formatGramm(l.eiweiss_dg_pro_100g)} g
+                  </td>
+                  <td className="py-2 pr-3 text-right tabular">
+                    {l.fett_dg_pro_100g == null
+                      ? '—'
+                      : `${formatGramm(l.fett_dg_pro_100g)} g`}
+                  </td>
+                  <td className="py-2 pr-3 text-right tabular">
+                    {l.kohlenhydrate_dg_pro_100g == null
+                      ? '—'
+                      : `${formatGramm(l.kohlenhydrate_dg_pro_100g)} g`}
+                  </td>
+                  <td className="py-2 pr-3 text-right tabular">
+                    {l.ballaststoffe_dg_pro_100g == null
+                      ? '—'
+                      : `${formatGramm(l.ballaststoffe_dg_pro_100g)} g`}
                   </td>
                   <td className="py-2 pr-3 text-right tabular text-text-muted">
                     {fmtOderStrich(

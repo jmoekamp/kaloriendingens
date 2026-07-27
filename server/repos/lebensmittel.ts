@@ -14,6 +14,9 @@ interface LebensmittelRow {
   name: string;
   kcal_pro_100g: number;
   eiweiss_dg_pro_100g: number;
+  fett_dg_pro_100g: number | null;
+  kohlenhydrate_dg_pro_100g: number | null;
+  ballaststoffe_dg_pro_100g: number | null;
   packung_gramm: number | null;
   bestand_gramm: number | null;
   erstellt_am: string;
@@ -27,6 +30,9 @@ function toLebensmittel(row: LebensmittelRow): Lebensmittel {
     name: row.name,
     kcal_pro_100g: row.kcal_pro_100g,
     eiweiss_dg_pro_100g: row.eiweiss_dg_pro_100g,
+    fett_dg_pro_100g: row.fett_dg_pro_100g,
+    kohlenhydrate_dg_pro_100g: row.kohlenhydrate_dg_pro_100g,
+    ballaststoffe_dg_pro_100g: row.ballaststoffe_dg_pro_100g,
     packung_gramm: row.packung_gramm,
     bestand_gramm: row.bestand_gramm,
     erstellt_am: row.erstellt_am,
@@ -36,7 +42,9 @@ function toLebensmittel(row: LebensmittelRow): Lebensmittel {
 }
 
 const SELECT = `
-  SELECT l.id, l.name, l.kcal_pro_100g, l.eiweiss_dg_pro_100g, l.packung_gramm,
+  SELECT l.id, l.name, l.kcal_pro_100g, l.eiweiss_dg_pro_100g,
+         l.fett_dg_pro_100g, l.kohlenhydrate_dg_pro_100g,
+         l.ballaststoffe_dg_pro_100g, l.packung_gramm,
          l.bestand_gramm, l.erstellt_am, l.geaendert_am,
          (SELECT COUNT(*) FROM eintraege e WHERE e.lebensmittel_id = l.id)
            AS eintrag_anzahl
@@ -85,6 +93,17 @@ function pruefeEingabe(input: LebensmittelInput): void {
   if (input.bestand_gramm != null && !Number.isInteger(input.bestand_gramm)) {
     throw conflict('Bestand muss eine Ganzzahl (g) sein.');
   }
+  // Weitere Naehrwerte (Dezigramm je 100 g): optional, nicht negativ.
+  const naehrwerte: [string, number | null | undefined][] = [
+    ['Fett', input.fett_dg_pro_100g],
+    ['Kohlenhydrate', input.kohlenhydrate_dg_pro_100g],
+    ['Ballaststoffe', input.ballaststoffe_dg_pro_100g],
+  ];
+  for (const [label, wert] of naehrwerte) {
+    if (wert != null && (!Number.isInteger(wert) || wert < 0)) {
+      throw conflict(`${label} je 100 g muss eine nicht-negative Zahl sein.`);
+    }
+  }
 }
 
 export function createLebensmittel(
@@ -97,16 +116,21 @@ export function createLebensmittel(
     const info = db
       .prepare(
         `INSERT INTO lebensmittel
-           (mandant_id, name, kcal_pro_100g, eiweiss_dg_pro_100g, packung_gramm,
+           (mandant_id, name, kcal_pro_100g, eiweiss_dg_pro_100g,
+            fett_dg_pro_100g, kohlenhydrate_dg_pro_100g,
+            ballaststoffe_dg_pro_100g, packung_gramm,
             bestand_gramm, erstellt_am, geaendert_am)
-         VALUES (@mandant, @name, @kcal, @eiweiss, @packung, @bestand, @jetzt,
-                 @jetzt)`,
+         VALUES (@mandant, @name, @kcal, @eiweiss, @fett, @kh, @ballast,
+                 @packung, @bestand, @jetzt, @jetzt)`,
       )
       .run({
         mandant: aktuellerMandant(),
         name: input.name.trim(),
         kcal: input.kcal_pro_100g,
         eiweiss: input.eiweiss_dg_pro_100g,
+        fett: input.fett_dg_pro_100g ?? null,
+        kh: input.kohlenhydrate_dg_pro_100g ?? null,
+        ballast: input.ballaststoffe_dg_pro_100g ?? null,
         packung: input.packung_gramm,
         bestand: input.bestand_gramm ?? null,
         jetzt,
@@ -134,7 +158,9 @@ export function updateLebensmittel(
     db.prepare(
       `UPDATE lebensmittel
           SET name = @name, kcal_pro_100g = @kcal,
-              eiweiss_dg_pro_100g = @eiweiss, packung_gramm = @packung,
+              eiweiss_dg_pro_100g = @eiweiss, fett_dg_pro_100g = @fett,
+              kohlenhydrate_dg_pro_100g = @kh,
+              ballaststoffe_dg_pro_100g = @ballast, packung_gramm = @packung,
               bestand_gramm = @bestand, geaendert_am = @jetzt
         WHERE id = @id AND mandant_id = @mandant`,
     ).run({
@@ -143,6 +169,9 @@ export function updateLebensmittel(
       name: input.name.trim(),
       kcal: input.kcal_pro_100g,
       eiweiss: input.eiweiss_dg_pro_100g,
+      fett: input.fett_dg_pro_100g ?? null,
+      kh: input.kohlenhydrate_dg_pro_100g ?? null,
+      ballast: input.ballaststoffe_dg_pro_100g ?? null,
       packung: input.packung_gramm,
       bestand: input.bestand_gramm ?? null,
       jetzt: new Date().toISOString(),

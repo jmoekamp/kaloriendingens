@@ -82,12 +82,19 @@ function baueName(p: OffProdukt): string {
 /** Bildet ein OFF-Rohprodukt auf einen Treffer ab (rein, ohne Netz – testbar). */
 export function mapOffProdukt(p: OffProdukt): OffTreffer {
   const n = p.nutriments ?? {};
-  const eiweiss = zahlOderNull(n['proteins_100g']);
+  // Gramm-Werte je 100 g in Dezigramm (×10) oder null, wenn nicht hinterlegt.
+  const dg = (schluessel: string): number | null => {
+    const wert = zahlOderNull(n[schluessel]);
+    return wert === null ? null : Math.round(wert * 10);
+  };
   return {
     code: (p.code ?? '').toString(),
     name: baueName(p),
     kcal_pro_100g: kcalPro100g(n),
-    eiweiss_dg_pro_100g: eiweiss === null ? null : Math.round(eiweiss * 10),
+    eiweiss_dg_pro_100g: dg('proteins_100g'),
+    fett_dg_pro_100g: dg('fat_100g'),
+    kohlenhydrate_dg_pro_100g: dg('carbohydrates_100g'),
+    ballaststoffe_dg_pro_100g: dg('fiber_100g'),
     packung_gramm: packungGramm(p),
   };
 }

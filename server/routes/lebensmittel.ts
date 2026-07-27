@@ -52,6 +52,15 @@ function leseInput(body: Record<string, unknown>): LebensmittelInput {
     name: requireString(body, 'name'),
     kcal_pro_100g: requireInteger(body, 'kcal_pro_100g'),
     eiweiss_dg_pro_100g: requireInteger(body, 'eiweiss_dg_pro_100g'),
+    fett_dg_pro_100g: optionalIntegerOrNull(body, 'fett_dg_pro_100g'),
+    kohlenhydrate_dg_pro_100g: optionalIntegerOrNull(
+      body,
+      'kohlenhydrate_dg_pro_100g',
+    ),
+    ballaststoffe_dg_pro_100g: optionalIntegerOrNull(
+      body,
+      'ballaststoffe_dg_pro_100g',
+    ),
     packung_gramm: optionalIntegerOrNull(body, 'packung_gramm'),
     bestand_gramm: optionalIntegerOrNull(body, 'bestand_gramm'),
   };

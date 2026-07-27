@@ -17,6 +17,27 @@ describe('Open-Food-Facts-Mapping', () => {
     expect(t.packung_gramm).toBe(500);
   });
 
+  it('mappt Fett, Kohlenhydrate und Ballaststoffe (in dg)', () => {
+    const t = mapOffProdukt({
+      product_name: 'Haferflocken',
+      nutriments: {
+        'energy-kcal_100g': 372,
+        proteins_100g: 13.5,
+        fat_100g: 7,
+        carbohydrates_100g: 58.9,
+        fiber_100g: 10,
+      },
+    });
+    expect(t.fett_dg_pro_100g).toBe(70);
+    expect(t.kohlenhydrate_dg_pro_100g).toBe(589);
+    expect(t.ballaststoffe_dg_pro_100g).toBe(100);
+    // Fehlende Werte bleiben null.
+    const leer = mapOffProdukt({ product_name: 'X', nutriments: {} });
+    expect(leer.fett_dg_pro_100g).toBeNull();
+    expect(leer.kohlenhydrate_dg_pro_100g).toBeNull();
+    expect(leer.ballaststoffe_dg_pro_100g).toBeNull();
+  });
+
   it('rechnet kJ in kcal um, wenn keine kcal vorliegen', () => {
     // 280 kJ / 4,184 = 66,9 -> 67
     const t = mapOffProdukt({

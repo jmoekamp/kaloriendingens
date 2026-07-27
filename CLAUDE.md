@@ -57,7 +57,9 @@ Port **3010**.
   Name (Marke vorangestellt), kcal/100 g, Eiweiß/100 g (kJ→kcal-Fallback) und
   Packungsgröße (g/kg; ml/l werden verworfen). EAN = 8–14 Ziffern
   (`istGueltigeEan`); unbekannte Barcodes → 404. Ein Treffer wird per
-  „Übernehmen" ins Anlege-Formular gereicht und dort vor dem Speichern
+  „Übernehmen" ins Formular gereicht – dabei werden NUR leere Felder gefüllt,
+  bereits eingegebene/bestehende Werte bleiben unverändert (auch der
+  Bearbeiten-Modus bleibt erhalten) – und vor dem Speichern
   geprüft/ergänzt. Das ist der einzige Außenkontakt der App (siehe Datenschutz).
 - **Tageserfassung:** Je Eintrag Uhrzeit, Lebensmittel (Auswahl), Menge in g und
   ein **„gegessen"-Häkchen**. kcal und Eiweiß eines Eintrags werden LIVE aus dem

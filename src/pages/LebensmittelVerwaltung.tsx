@@ -359,31 +359,53 @@ export default function LebensmittelVerwaltung() {
     setFehler(null);
   }
 
-  /** Werte eines OFF-Treffers ins Anlege-Formular uebernehmen (zum Pruefen). */
+  /**
+   * Werte eines OFF-Treffers ins Formular uebernehmen (zum Pruefen). Es werden
+   * NUR leere Felder gefuellt – bereits eingegebene bzw. beim Bearbeiten
+   * vorhandene Werte bleiben unveraendert (auch der Bearbeiten-Modus bleibt
+   * erhalten).
+   */
   function offUebernehmen(t: OffTreffer) {
-    setBearbeitetId(null);
-    setForm({
-      name: t.name,
-      kcal: t.kcal_pro_100g === null ? '' : String(t.kcal_pro_100g),
-      eiweiss:
+    // Bestehenden (nicht-leeren) Formularwert behalten, sonst OFF-Wert setzen.
+    const oderOff = (aktuell: string, off: string) =>
+      aktuell.trim() !== '' ? aktuell : off;
+    setForm((f) => ({
+      name: oderOff(f.name, t.name),
+      kcal: oderOff(
+        f.kcal,
+        t.kcal_pro_100g === null ? '' : String(t.kcal_pro_100g),
+      ),
+      eiweiss: oderOff(
+        f.eiweiss,
         t.eiweiss_dg_pro_100g === null
           ? ''
           : formatGramm(t.eiweiss_dg_pro_100g),
-      fett: t.fett_dg_pro_100g === null ? '' : formatGramm(t.fett_dg_pro_100g),
-      kh:
+      ),
+      fett: oderOff(
+        f.fett,
+        t.fett_dg_pro_100g === null ? '' : formatGramm(t.fett_dg_pro_100g),
+      ),
+      kh: oderOff(
+        f.kh,
         t.kohlenhydrate_dg_pro_100g === null
           ? ''
           : formatGramm(t.kohlenhydrate_dg_pro_100g),
-      ballast:
+      ),
+      ballast: oderOff(
+        f.ballast,
         t.ballaststoffe_dg_pro_100g === null
           ? ''
           : formatGramm(t.ballaststoffe_dg_pro_100g),
-      packung: t.packung_gramm === null ? '' : String(t.packung_gramm),
-      bestand: '',
-    });
+      ),
+      packung: oderOff(
+        f.packung,
+        t.packung_gramm === null ? '' : String(t.packung_gramm),
+      ),
+      bestand: f.bestand,
+    }));
     setFehler(null);
     setHinweis(
-      `„${t.name}" aus Open Food Facts übernommen – bitte prüfen und speichern.`,
+      `„${t.name}" aus Open Food Facts übernommen – nur leere Felder wurden gefüllt; bitte prüfen und speichern.`,
     );
   }
 

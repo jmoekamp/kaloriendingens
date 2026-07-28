@@ -1,5 +1,9 @@
-import { useEffect, useState } from 'react';
-import type { Lebensmittel, OffTreffer } from '../../shared/types.ts';
+import { Fragment, useEffect, useState } from 'react';
+import type {
+  Lebensmittel,
+  LebensmittelInput,
+  OffTreffer,
+} from '../../shared/types.ts';
 import { Banner, Button, Card, Field, TextInput } from '../components/ui.tsx';
 import {
   eiweissProKcal,
@@ -33,6 +37,227 @@ const LEER = {
   packung: '',
   bestand: '',
 };
+
+type LmForm = typeof LEER;
+
+/** Formularwerte aus einem bestehenden Lebensmittel (fuer die Bearbeitung). */
+function formVon(l: Lebensmittel): LmForm {
+  return {
+    name: l.name,
+    kcal: String(l.kcal_pro_100g),
+    eiweiss: formatGramm(l.eiweiss_dg_pro_100g),
+    fett: l.fett_dg_pro_100g == null ? '' : formatGramm(l.fett_dg_pro_100g),
+    kh:
+      l.kohlenhydrate_dg_pro_100g == null
+        ? ''
+        : formatGramm(l.kohlenhydrate_dg_pro_100g),
+    ballast:
+      l.ballaststoffe_dg_pro_100g == null
+        ? ''
+        : formatGramm(l.ballaststoffe_dg_pro_100g),
+    packung: l.packung_gramm == null ? '' : String(l.packung_gramm),
+    bestand: l.bestand_gramm == null ? '' : String(l.bestand_gramm),
+  };
+}
+
+/**
+ * Parst und validiert die Formularwerte. Bei ungueltiger Eingabe wird der
+ * Fehler gemeldet und null geliefert.
+ */
+function parseLmForm(
+  form: LmForm,
+  setFehler: (m: string) => void,
+): LebensmittelInput | null {
+  const kcal = parseGanzzahl(form.kcal);
+  const eiweissDg = parseGrammToDg(form.eiweiss);
+  if (form.name.trim() === '') {
+    setFehler('Name darf nicht leer sein.');
+    return null;
+  }
+  if (kcal === null) {
+    setFehler('kcal je 100 g muss eine ganze Zahl ≥ 0 sein.');
+    return null;
+  }
+  if (eiweissDg === null) {
+    setFehler('Eiweiß je 100 g muss eine Zahl ≥ 0 sein (z. B. 12,5).');
+    return null;
+  }
+  // Optionale Naehrwerte: leer = nicht erfasst, sonst Gramm-Zahl >= 0.
+  const optionalDg = (
+    eingabe: string,
+    label: string,
+  ): { ok: boolean; wert: number | null } => {
+    if (eingabe.trim() === '') return { ok: true, wert: null };
+    const dg = parseGrammToDg(eingabe);
+    if (dg === null) {
+      setFehler(`${label} je 100 g muss eine Zahl ≥ 0 sein (z. B. 3,2).`);
+      return { ok: false, wert: null };
+    }
+    return { ok: true, wert: dg };
+  };
+  const fett = optionalDg(form.fett, 'Fett');
+  if (!fett.ok) return null;
+  const kh = optionalDg(form.kh, 'Kohlenhydrate');
+  if (!kh.ok) return null;
+  const ballast = optionalDg(form.ballast, 'Ballaststoffe');
+  if (!ballast.ok) return null;
+  const packung =
+    form.packung.trim() === '' ? null : parseGanzzahl(form.packung);
+  if (packung === null && form.packung.trim() !== '') {
+    setFehler('Packungsgröße muss eine ganze Zahl > 0 sein (oder leer).');
+    return null;
+  }
+  // Bestand: leer = wird nicht gefuehrt. Ein durch Essen negativ gewordener
+  // Wert darf unveraendert wieder gespeichert werden (Number statt
+  // parseGanzzahl), neue negative Eingaben weist das Backend ab.
+  const bestand =
+    form.bestand.trim() === '' ? null : Number(form.bestand.trim());
+  if (bestand !== null && !Number.isInteger(bestand)) {
+    setFehler('Bestand muss eine ganze Zahl (g) sein – oder leer.');
+    return null;
+  }
+  return {
+    name: form.name.trim(),
+    kcal_pro_100g: kcal,
+    eiweiss_dg_pro_100g: eiweissDg,
+    fett_dg_pro_100g: fett.wert,
+    kohlenhydrate_dg_pro_100g: kh.wert,
+    ballaststoffe_dg_pro_100g: ballast.wert,
+    packung_gramm: packung,
+    bestand_gramm: bestand,
+  };
+}
+
+/**
+ * Die Eingabefelder eines Lebensmittels (inkl. Bestand-Eingabehilfe) – als
+ * Fragment, damit Anlege-Formular und Inline-Bearbeitung dasselbe Raster
+ * nutzen koennen. Der Grid-Container kommt vom umgebenden <form>.
+ */
+function LebensmittelFelder({
+  form,
+  set,
+  onFehler,
+}: {
+  form: LmForm;
+  set: (key: keyof LmForm, value: string) => void;
+  onFehler: (m: string) => void;
+}) {
+  const [packAnzahl, setPackAnzahl] = useState('');
+
+  /** Eingabehilfe: Bestand = Anzahl Packungen × Packungsgroesse (g). */
+  function bestandAusPackungen() {
+    const anzahl = parseGanzzahl(packAnzahl);
+    const packung = parseGanzzahl(form.packung);
+    if (anzahl === null || anzahl <= 0) {
+      onFehler('Bitte eine Packungsanzahl > 0 eingeben.');
+      return;
+    }
+    if (packung === null || packung <= 0) {
+      onFehler('Für die Eingabehilfe zuerst die Packungsgröße (g) ausfüllen.');
+      return;
+    }
+    set('bestand', String(anzahl * packung));
+  }
+
+  return (
+    <>
+      <Field label="Name">
+        <TextInput
+          value={form.name}
+          onChange={(e) => set('name', e.target.value)}
+          required
+        />
+      </Field>
+      <Field label="kcal je 100 g">
+        <TextInput
+          className="tabular"
+          value={form.kcal}
+          onChange={(e) => set('kcal', e.target.value)}
+          inputMode="numeric"
+          placeholder="z. B. 250"
+        />
+      </Field>
+      <Field label="Eiweiß je 100 g (g)">
+        <TextInput
+          className="tabular"
+          value={form.eiweiss}
+          onChange={(e) => set('eiweiss', e.target.value)}
+          inputMode="decimal"
+          placeholder="z. B. 12,5"
+        />
+      </Field>
+      <Field label="Fett je 100 g (g, optional)">
+        <TextInput
+          className="tabular"
+          value={form.fett}
+          onChange={(e) => set('fett', e.target.value)}
+          inputMode="decimal"
+          placeholder="z. B. 3,2"
+        />
+      </Field>
+      <Field label="Kohlenhydrate je 100 g (g, optional)">
+        <TextInput
+          className="tabular"
+          value={form.kh}
+          onChange={(e) => set('kh', e.target.value)}
+          inputMode="decimal"
+          placeholder="z. B. 4,1"
+        />
+      </Field>
+      <Field label="Ballaststoffe je 100 g (g, optional)">
+        <TextInput
+          className="tabular"
+          value={form.ballast}
+          onChange={(e) => set('ballast', e.target.value)}
+          inputMode="decimal"
+          placeholder="z. B. 1,0"
+        />
+      </Field>
+      <Field label="Packungsgröße (g, optional)">
+        <TextInput
+          className="tabular"
+          value={form.packung}
+          onChange={(e) => set('packung', e.target.value)}
+          inputMode="numeric"
+          placeholder="z. B. 500"
+        />
+      </Field>
+      <div className="flex flex-col gap-1">
+        <Field label="Bestand (g, optional)">
+          <TextInput
+            className="tabular"
+            value={form.bestand}
+            onChange={(e) => set('bestand', e.target.value)}
+            inputMode="numeric"
+            placeholder="z. B. 1500"
+          />
+        </Field>
+        <div className="flex items-center gap-1 text-xs text-text-muted">
+          <TextInput
+            className="w-14 tabular"
+            value={packAnzahl}
+            onChange={(e) => setPackAnzahl(e.target.value)}
+            inputMode="numeric"
+            placeholder="3"
+            title="Anzahl Packungen"
+          />
+          <span>×</span>
+          <span className="tabular">
+            {form.packung.trim() === '' ? 'Packung?' : `${form.packung} g`}
+          </span>
+          <button
+            type="button"
+            onClick={bestandAusPackungen}
+            className="text-accent hover:underline"
+            title="Bestand = Anzahl × Packungsgröße übernehmen"
+          >
+            = übernehmen
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
 
 type SortKey =
   | 'name'
@@ -276,7 +501,7 @@ export default function LebensmittelVerwaltung() {
   const [fehler, setFehler] = useState<string | null>(null);
   const [hinweis, setHinweis] = useState<string | null>(null);
   const [form, setForm] = useState(LEER);
-  const [packAnzahl, setPackAnzahl] = useState('');
+  const [editForm, setEditForm] = useState(LEER);
   const [bearbeitetId, setBearbeitetId] = useState<number | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('name');
@@ -312,49 +537,22 @@ export default function LebensmittelVerwaltung() {
   }
   useEffect(laden, []);
 
-  function set<K extends keyof typeof form>(key: K, value: string) {
+  function set(key: keyof LmForm, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  /** Eingabehilfe: Bestand = Anzahl Packungen × Packungsgroesse (g). */
-  function bestandAusPackungen() {
-    setFehler(null);
-    const anzahl = parseGanzzahl(packAnzahl);
-    const packung = parseGanzzahl(form.packung);
-    if (anzahl === null || anzahl <= 0) {
-      setFehler('Bitte eine Packungsanzahl > 0 eingeben.');
-      return;
-    }
-    if (packung === null || packung <= 0) {
-      setFehler('Für die Eingabehilfe zuerst die Packungsgröße (g) ausfüllen.');
-      return;
-    }
-    set('bestand', String(anzahl * packung));
+  function setEdit(key: keyof LmForm, value: string) {
+    setEditForm((f) => ({ ...f, [key]: value }));
   }
 
   function abbrechen() {
-    setForm(LEER);
     setBearbeitetId(null);
   }
 
+  /** Oeffnet die Inline-Bearbeitung direkt unter der Tabellenzeile. */
   function bearbeiten(l: Lebensmittel) {
     setBearbeitetId(l.id);
-    setForm({
-      name: l.name,
-      kcal: String(l.kcal_pro_100g),
-      eiweiss: formatGramm(l.eiweiss_dg_pro_100g),
-      fett: l.fett_dg_pro_100g == null ? '' : formatGramm(l.fett_dg_pro_100g),
-      kh:
-        l.kohlenhydrate_dg_pro_100g == null
-          ? ''
-          : formatGramm(l.kohlenhydrate_dg_pro_100g),
-      ballast:
-        l.ballaststoffe_dg_pro_100g == null
-          ? ''
-          : formatGramm(l.ballaststoffe_dg_pro_100g),
-      packung: l.packung_gramm == null ? '' : String(l.packung_gramm),
-      bestand: l.bestand_gramm == null ? '' : String(l.bestand_gramm),
-    });
+    setEditForm(formVon(l));
     setHinweis(null);
     setFehler(null);
   }
@@ -367,9 +565,11 @@ export default function LebensmittelVerwaltung() {
    */
   function offUebernehmen(t: OffTreffer) {
     // Bestehenden (nicht-leeren) Formularwert behalten, sonst OFF-Wert setzen.
+    // Gefuellt wird das gerade aktive Formular (Inline-Bearbeitung oder Anlegen).
     const oderOff = (aktuell: string, off: string) =>
       aktuell.trim() !== '' ? aktuell : off;
-    setForm((f) => ({
+    const ziel = bearbeitetId !== null ? setEditForm : setForm;
+    ziel((f) => ({
       name: oderOff(f.name, t.name),
       kcal: oderOff(
         f.kcal,
@@ -409,78 +609,37 @@ export default function LebensmittelVerwaltung() {
     );
   }
 
-  async function speichern(e: React.FormEvent) {
+  async function anlegen(e: React.FormEvent) {
     e.preventDefault();
     setFehler(null);
     setHinweis(null);
-    const kcal = parseGanzzahl(form.kcal);
-    const eiweissDg = parseGrammToDg(form.eiweiss);
-    if (form.name.trim() === '') {
-      setFehler('Name darf nicht leer sein.');
-      return;
-    }
-    if (kcal === null) {
-      setFehler('kcal je 100 g muss eine ganze Zahl ≥ 0 sein.');
-      return;
-    }
-    if (eiweissDg === null) {
-      setFehler('Eiweiß je 100 g muss eine Zahl ≥ 0 sein (z. B. 12,5).');
-      return;
-    }
-    // Optionale Naehrwerte: leer = nicht erfasst, sonst Gramm-Zahl >= 0.
-    const optionalDg = (
-      eingabe: string,
-      label: string,
-    ): { ok: boolean; wert: number | null } => {
-      if (eingabe.trim() === '') return { ok: true, wert: null };
-      const dg = parseGrammToDg(eingabe);
-      if (dg === null) {
-        setFehler(`${label} je 100 g muss eine Zahl ≥ 0 sein (z. B. 3,2).`);
-        return { ok: false, wert: null };
-      }
-      return { ok: true, wert: dg };
-    };
-    const fett = optionalDg(form.fett, 'Fett');
-    if (!fett.ok) return;
-    const kh = optionalDg(form.kh, 'Kohlenhydrate');
-    if (!kh.ok) return;
-    const ballast = optionalDg(form.ballast, 'Ballaststoffe');
-    if (!ballast.ok) return;
-    const packung =
-      form.packung.trim() === '' ? null : parseGanzzahl(form.packung);
-    if (packung === null && form.packung.trim() !== '') {
-      setFehler('Packungsgröße muss eine ganze Zahl > 0 sein (oder leer).');
-      return;
-    }
-    // Bestand: leer = wird nicht gefuehrt. Ein durch Essen negativ gewordener
-    // Wert darf unveraendert wieder gespeichert werden (Number statt
-    // parseGanzzahl), neue negative Eingaben weist das Backend ab.
-    const bestand =
-      form.bestand.trim() === '' ? null : Number(form.bestand.trim());
-    if (bestand !== null && !Number.isInteger(bestand)) {
-      setFehler('Bestand muss eine ganze Zahl (g) sein – oder leer.');
-      return;
-    }
-    const input = {
-      name: form.name.trim(),
-      kcal_pro_100g: kcal,
-      eiweiss_dg_pro_100g: eiweissDg,
-      fett_dg_pro_100g: fett.wert,
-      kohlenhydrate_dg_pro_100g: kh.wert,
-      ballaststoffe_dg_pro_100g: ballast.wert,
-      packung_gramm: packung,
-      bestand_gramm: bestand,
-    };
+    const input = parseLmForm(form, setFehler);
+    if (!input) return;
     setSpeichert(true);
     try {
-      if (bearbeitetId === null) {
-        await lebensmittelApi.create(input);
-        setHinweis(`„${input.name}" angelegt.`);
-      } else {
-        await lebensmittelApi.update(bearbeitetId, input);
-        setHinweis(`„${input.name}" gespeichert.`);
-      }
-      abbrechen();
+      await lebensmittelApi.create(input);
+      setHinweis(`„${input.name}" angelegt.`);
+      setForm(LEER);
+      laden();
+    } catch (err) {
+      setFehler(meldung(err));
+    } finally {
+      setSpeichert(false);
+    }
+  }
+
+  async function bearbeitenSpeichern(e: React.FormEvent) {
+    e.preventDefault();
+    if (bearbeitetId === null) return;
+    setFehler(null);
+    setHinweis(null);
+    const input = parseLmForm(editForm, setFehler);
+    if (!input) return;
+    setSpeichert(true);
+    try {
+      await lebensmittelApi.update(bearbeitetId, input);
+      setHinweis(`„${input.name}" gespeichert.`);
+      setBearbeitetId(null);
       laden();
     } catch (err) {
       setFehler(meldung(err));
@@ -517,124 +676,16 @@ export default function LebensmittelVerwaltung() {
 
       <OffImport onUebernehmen={offUebernehmen} />
 
-      <Card
-        title={
-          bearbeitetId === null
-            ? 'Neues Lebensmittel'
-            : 'Lebensmittel bearbeiten'
-        }
-      >
+      <Card title="Neues Lebensmittel">
         <form
-          onSubmit={speichern}
+          onSubmit={anlegen}
           className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-5"
         >
-          <Field label="Name">
-            <TextInput
-              value={form.name}
-              onChange={(e) => set('name', e.target.value)}
-              required
-            />
-          </Field>
-          <Field label="kcal je 100 g">
-            <TextInput
-              className="tabular"
-              value={form.kcal}
-              onChange={(e) => set('kcal', e.target.value)}
-              inputMode="numeric"
-              placeholder="z. B. 250"
-            />
-          </Field>
-          <Field label="Eiweiß je 100 g (g)">
-            <TextInput
-              className="tabular"
-              value={form.eiweiss}
-              onChange={(e) => set('eiweiss', e.target.value)}
-              inputMode="decimal"
-              placeholder="z. B. 12,5"
-            />
-          </Field>
-          <Field label="Fett je 100 g (g, optional)">
-            <TextInput
-              className="tabular"
-              value={form.fett}
-              onChange={(e) => set('fett', e.target.value)}
-              inputMode="decimal"
-              placeholder="z. B. 3,2"
-            />
-          </Field>
-          <Field label="Kohlenhydrate je 100 g (g, optional)">
-            <TextInput
-              className="tabular"
-              value={form.kh}
-              onChange={(e) => set('kh', e.target.value)}
-              inputMode="decimal"
-              placeholder="z. B. 4,1"
-            />
-          </Field>
-          <Field label="Ballaststoffe je 100 g (g, optional)">
-            <TextInput
-              className="tabular"
-              value={form.ballast}
-              onChange={(e) => set('ballast', e.target.value)}
-              inputMode="decimal"
-              placeholder="z. B. 1,0"
-            />
-          </Field>
-          <Field label="Packungsgröße (g, optional)">
-            <TextInput
-              className="tabular"
-              value={form.packung}
-              onChange={(e) => set('packung', e.target.value)}
-              inputMode="numeric"
-              placeholder="z. B. 500"
-            />
-          </Field>
-          <div className="flex flex-col gap-1">
-            <Field label="Bestand (g, optional)">
-              <TextInput
-                className="tabular"
-                value={form.bestand}
-                onChange={(e) => set('bestand', e.target.value)}
-                inputMode="numeric"
-                placeholder="z. B. 1500"
-              />
-            </Field>
-            <div className="flex items-center gap-1 text-xs text-text-muted">
-              <TextInput
-                className="w-14 tabular"
-                value={packAnzahl}
-                onChange={(e) => setPackAnzahl(e.target.value)}
-                inputMode="numeric"
-                placeholder="3"
-                title="Anzahl Packungen"
-              />
-              <span>×</span>
-              <span className="tabular">
-                {form.packung.trim() === '' ? 'Packung?' : `${form.packung} g`}
-              </span>
-              <button
-                type="button"
-                onClick={bestandAusPackungen}
-                className="text-accent hover:underline"
-                title="Bestand = Anzahl × Packungsgröße übernehmen"
-              >
-                = übernehmen
-              </button>
-            </div>
-          </div>
+          <LebensmittelFelder form={form} set={set} onFehler={setFehler} />
           <div className="flex gap-2">
             <Button type="submit" variant="primary" disabled={speichert}>
-              {speichert
-                ? 'Speichert …'
-                : bearbeitetId === null
-                  ? 'Anlegen'
-                  : 'Speichern'}
+              {speichert ? 'Speichert …' : 'Anlegen'}
             </Button>
-            {bearbeitetId !== null && (
-              <Button type="button" onClick={abbrechen}>
-                Abbrechen
-              </Button>
-            )}
           </div>
         </form>
         <p className="mt-3 text-xs text-text-muted">
@@ -675,81 +726,120 @@ export default function LebensmittelVerwaltung() {
             </thead>
             <tbody>
               {sortiert.map((l) => (
-                <tr key={l.id} className="border-b border-border/50">
-                  <td className="py-2 pr-3">{l.name}</td>
-                  <td className="py-2 pr-3 text-right tabular">
-                    {formatKcal(l.kcal_pro_100g)}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular">
-                    {formatGramm(l.eiweiss_dg_pro_100g)} g
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular">
-                    {l.fett_dg_pro_100g == null
-                      ? '—'
-                      : `${formatGramm(l.fett_dg_pro_100g)} g`}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular">
-                    {l.kohlenhydrate_dg_pro_100g == null
-                      ? '—'
-                      : `${formatGramm(l.kohlenhydrate_dg_pro_100g)} g`}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular">
-                    {l.ballaststoffe_dg_pro_100g == null
-                      ? '—'
-                      : `${formatGramm(l.ballaststoffe_dg_pro_100g)} g`}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular text-text-muted">
-                    {fmtOderStrich(
-                      eiweissProKcal(l.kcal_pro_100g, l.eiweiss_dg_pro_100g),
-                    )}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular text-text-muted">
-                    {fmtOderStrich(grammProKcal(l.kcal_pro_100g))}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular text-text-muted">
-                    {fmtOderStrich(grammProGrammEiweiss(l.eiweiss_dg_pro_100g))}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular">
-                    {l.packung_gramm == null ? '—' : `${l.packung_gramm} g`}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular">
-                    {kcalGanzePackung(l) === null
-                      ? '—'
-                      : formatKcal(kcalGanzePackung(l) as number)}
-                  </td>
-                  <td
-                    className={`py-2 pr-3 text-right tabular ${
-                      l.bestand_gramm !== null && l.bestand_gramm < 0
-                        ? 'text-danger'
-                        : ''
-                    }`}
-                    title={
-                      l.bestand_gramm !== null &&
-                      l.packung_gramm != null &&
-                      l.packung_gramm > 0
-                        ? `≈ ${formatDezimal(l.bestand_gramm / l.packung_gramm, 1)} Packung(en)`
-                        : undefined
-                    }
-                  >
-                    {l.bestand_gramm === null ? '—' : `${l.bestand_gramm} g`}
-                  </td>
-                  <td className="py-2">
-                    <div className="flex justify-end gap-2">
-                      <Button onClick={() => bearbeiten(l)}>Bearbeiten</Button>
-                      <Button
-                        variant="danger"
-                        onClick={() => loeschen(l)}
-                        title={
-                          (l.eintrag_anzahl ?? 0) > 0
-                            ? `Wird von ${l.eintrag_anzahl} Eintrag/Einträgen verwendet`
-                            : undefined
-                        }
-                      >
-                        Löschen
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
+                <Fragment key={l.id}>
+                  <tr className="border-b border-border/50">
+                    <td className="py-2 pr-3">{l.name}</td>
+                    <td className="py-2 pr-3 text-right tabular">
+                      {formatKcal(l.kcal_pro_100g)}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular">
+                      {formatGramm(l.eiweiss_dg_pro_100g)} g
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular">
+                      {l.fett_dg_pro_100g == null
+                        ? '—'
+                        : `${formatGramm(l.fett_dg_pro_100g)} g`}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular">
+                      {l.kohlenhydrate_dg_pro_100g == null
+                        ? '—'
+                        : `${formatGramm(l.kohlenhydrate_dg_pro_100g)} g`}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular">
+                      {l.ballaststoffe_dg_pro_100g == null
+                        ? '—'
+                        : `${formatGramm(l.ballaststoffe_dg_pro_100g)} g`}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular text-text-muted">
+                      {fmtOderStrich(
+                        eiweissProKcal(l.kcal_pro_100g, l.eiweiss_dg_pro_100g),
+                      )}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular text-text-muted">
+                      {fmtOderStrich(grammProKcal(l.kcal_pro_100g))}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular text-text-muted">
+                      {fmtOderStrich(
+                        grammProGrammEiweiss(l.eiweiss_dg_pro_100g),
+                      )}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular">
+                      {l.packung_gramm == null ? '—' : `${l.packung_gramm} g`}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular">
+                      {kcalGanzePackung(l) === null
+                        ? '—'
+                        : formatKcal(kcalGanzePackung(l) as number)}
+                    </td>
+                    <td
+                      className={`py-2 pr-3 text-right tabular ${
+                        l.bestand_gramm !== null && l.bestand_gramm < 0
+                          ? 'text-danger'
+                          : ''
+                      }`}
+                      title={
+                        l.bestand_gramm !== null &&
+                        l.packung_gramm != null &&
+                        l.packung_gramm > 0
+                          ? `≈ ${formatDezimal(l.bestand_gramm / l.packung_gramm, 1)} Packung(en)`
+                          : undefined
+                      }
+                    >
+                      {l.bestand_gramm === null ? '—' : `${l.bestand_gramm} g`}
+                    </td>
+                    <td className="py-2">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          onClick={() =>
+                            bearbeitetId === l.id ? abbrechen() : bearbeiten(l)
+                          }
+                        >
+                          Bearbeiten
+                        </Button>
+                        <Button
+                          variant="danger"
+                          onClick={() => loeschen(l)}
+                          title={
+                            (l.eintrag_anzahl ?? 0) > 0
+                              ? `Wird von ${l.eintrag_anzahl} Eintrag/Einträgen verwendet`
+                              : undefined
+                          }
+                        >
+                          Löschen
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                  {/* Inline-Bearbeitung: klappt direkt unter der Zeile auf. */}
+                  {bearbeitetId === l.id && (
+                    <tr className="border-b border-border/50 bg-surface-2/50">
+                      <td colSpan={SPALTEN.length + 1} className="p-3">
+                        <form
+                          onSubmit={bearbeitenSpeichern}
+                          className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-4"
+                        >
+                          <LebensmittelFelder
+                            form={editForm}
+                            set={setEdit}
+                            onFehler={setFehler}
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              type="submit"
+                              variant="primary"
+                              disabled={speichert}
+                            >
+                              {speichert ? 'Speichert …' : 'Speichern'}
+                            </Button>
+                            <Button type="button" onClick={abbrechen}>
+                              Abbrechen
+                            </Button>
+                          </div>
+                        </form>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>

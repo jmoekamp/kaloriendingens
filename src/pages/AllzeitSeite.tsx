@@ -25,6 +25,9 @@ function baueTsv(zeilen: AllzeitTag[]): string {
     'Aufnahme (kcal)',
     'Defizit (kcal)',
     'Eiweiß (g)',
+    'Fett (g)',
+    'Kohlenhydrate (g)',
+    'Ballaststoffe (g)',
   ].join('\t');
   const koerper = zeilen.map((z) =>
     [
@@ -36,6 +39,9 @@ function baueTsv(zeilen: AllzeitTag[]): string {
       z.aufnahme_kcal === null ? '' : String(z.aufnahme_kcal),
       z.defizit_kcal === null ? '' : String(z.defizit_kcal),
       z.eiweiss_dg === null ? '' : formatGramm(z.eiweiss_dg),
+      z.fett_dg === null ? '' : formatGramm(z.fett_dg),
+      z.kohlenhydrate_dg === null ? '' : formatGramm(z.kohlenhydrate_dg),
+      z.ballaststoffe_dg === null ? '' : formatGramm(z.ballaststoffe_dg),
     ].join('\t'),
   );
   return [kopf, ...koerper].join('\n');
@@ -307,6 +313,11 @@ export default function AllzeitSeite() {
                 <th className="py-1.5 pr-3 text-right font-normal">
                   Eiweiß (g)
                 </th>
+                <th className="py-1.5 pr-3 text-right font-normal">Fett (g)</th>
+                <th className="py-1.5 pr-3 text-right font-normal">KH (g)</th>
+                <th className="py-1.5 pr-3 text-right font-normal">
+                  Ballastst. (g)
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -345,6 +356,19 @@ export default function AllzeitSeite() {
                   </td>
                   <td className="py-1.5 pr-3 text-right tabular">
                     {z.eiweiss_dg === null ? '' : formatGramm(z.eiweiss_dg)}
+                  </td>
+                  <td className="py-1.5 pr-3 text-right tabular">
+                    {z.fett_dg === null ? '' : formatGramm(z.fett_dg)}
+                  </td>
+                  <td className="py-1.5 pr-3 text-right tabular">
+                    {z.kohlenhydrate_dg === null
+                      ? ''
+                      : formatGramm(z.kohlenhydrate_dg)}
+                  </td>
+                  <td className="py-1.5 pr-3 text-right tabular">
+                    {z.ballaststoffe_dg === null
+                      ? ''
+                      : formatGramm(z.ballaststoffe_dg)}
                   </td>
                 </tr>
               ))}

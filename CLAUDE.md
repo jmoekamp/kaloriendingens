@@ -204,7 +204,10 @@ Port **3010**.
 - **Allzeitreport (eigene Seite „Allzeit"):** Eine Tabelle mit einer Zeile je
   Kalendertag von der ersten Erfassung (Eintrag, Bewegung oder Gewicht) bis
   heute: Datum, gemessenes Gewicht, Gesamtumsatz, Bewegung, Verbrauch
-  (Umsatz + Bewegung), Kalorien- und Eiweißaufnahme (nur gegessene Mahlzeiten).
+  (Umsatz + Bewegung), Kalorien- und Eiweißaufnahme sowie Fett, Kohlenhydrate
+  und Ballaststoffe (alle nur gegessene Mahlzeiten; die drei optionalen
+  Nährwerte werden über die Einträge mit hinterlegtem Wert summiert –
+  NULL-Werte fallen aus der Summe, ein Tag ganz ohne Werte bleibt leer).
   Für Copy & Paste gedacht; ein Button „Tabelle kopieren" legt den Report als
   TSV (Tab-getrennt, deutsche Dezimalkommas, ohne Tausenderpunkte) in die
   Zwischenablage. `getAllzeitReport` in `server/repos/auswertung.ts`,

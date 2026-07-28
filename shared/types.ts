@@ -397,6 +397,12 @@ export interface AllzeitTag {
   defizit_kcal: number | null;
   /** Eiweissaufnahme (nur gegessene Eintraege, Dezigramm) oder null (keine). */
   eiweiss_dg: number | null;
+  /** Fettaufnahme (dg, nur gegessene Eintraege mit hinterlegtem Wert) oder null. */
+  fett_dg: number | null;
+  /** Kohlenhydrataufnahme (dg, wie Fett) oder null. */
+  kohlenhydrate_dg: number | null;
+  /** Ballaststoffaufnahme (dg, wie Fett) oder null. */
+  ballaststoffe_dg: number | null;
 }
 
 /** Eine Mahlzeit-Zeile des Detailreports. */

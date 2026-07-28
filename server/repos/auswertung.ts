@@ -473,17 +473,36 @@ export function getAllzeitReport(db: Database, heute: string): AllzeitTag[] {
   const gewichtMap = new Map(
     alleGewichteAsc(db).map((g) => [g.datum, g.gramm]),
   );
+  // Fett/KH/Ballaststoffe wie Eiweiss summieren; NULL-Werte (Naehrwert beim
+  // Lebensmittel nicht erfasst) fallen aus der Summe, ein Tag ganz ohne Werte
+  // liefert NULL (SQLite-SUM ueber lauter NULLs).
+  const TAG_FETT =
+    'CAST(ROUND(l.fett_dg_pro_100g * e.menge_gramm / 100.0) AS INTEGER)';
+  const TAG_KH =
+    'CAST(ROUND(l.kohlenhydrate_dg_pro_100g * e.menge_gramm / 100.0) AS INTEGER)';
+  const TAG_BALLAST =
+    'CAST(ROUND(l.ballaststoffe_dg_pro_100g * e.menge_gramm / 100.0) AS INTEGER)';
   const aufnahmeRows = db
     .prepare(
       `SELECT e.datum AS datum, SUM(${TAG_KCAL}) AS kcal,
-              SUM(${TAG_EIW}) AS eiweiss_dg
+              SUM(${TAG_EIW}) AS eiweiss_dg,
+              SUM(${TAG_FETT}) AS fett_dg,
+              SUM(${TAG_KH}) AS kohlenhydrate_dg,
+              SUM(${TAG_BALLAST}) AS ballaststoffe_dg
          FROM eintraege e
          JOIN lebensmittel l ON l.id = e.lebensmittel_id
         WHERE e.mandant_id = @mandant AND e.gegessen = 1
           AND e.datum BETWEEN @von AND @bis
         GROUP BY e.datum`,
     )
-    .all({ mandant, von, bis: heute }) as TagAggRow[];
+    .all({ mandant, von, bis: heute }) as {
+    datum: string;
+    kcal: number;
+    eiweiss_dg: number;
+    fett_dg: number | null;
+    kohlenhydrate_dg: number | null;
+    ballaststoffe_dg: number | null;
+  }[];
   const aufnahmeMap = new Map(aufnahmeRows.map((r) => [r.datum, r]));
 
   const zeilen: AllzeitTag[] = [];
@@ -501,6 +520,9 @@ export function getAllzeitReport(db: Database, heute: string): AllzeitTag[] {
       // App-Konvention: Defizit = Verbrauch − Aufnahme (positiv = Defizit).
       defizit_kcal: auf ? g + bew - auf.kcal : null,
       eiweiss_dg: auf ? auf.eiweiss_dg : null,
+      fett_dg: auf ? auf.fett_dg : null,
+      kohlenhydrate_dg: auf ? auf.kohlenhydrate_dg : null,
+      ballaststoffe_dg: auf ? auf.ballaststoffe_dg : null,
     });
   }
   return zeilen;

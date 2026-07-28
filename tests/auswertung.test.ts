@@ -213,6 +213,9 @@ describe('Allzeitreport', () => {
       aufnahme_kcal: null,
       defizit_kcal: null,
       eiweiss_dg: null,
+      fett_dg: null,
+      kohlenhydrate_dg: null,
+      ballaststoffe_dg: null,
     });
     expect(r[1]).toEqual({
       datum: '2026-07-14',
@@ -223,8 +226,38 @@ describe('Allzeitreport', () => {
       aufnahme_kcal: 168,
       defizit_kcal: 2700 - 168, // Verbrauch − Aufnahme (positiv = Defizit)
       eiweiss_dg: 300,
+      fett_dg: null, // Quark ohne hinterlegte Fett/KH/Ballast-Werte
+      kohlenhydrate_dg: null,
+      ballaststoffe_dg: null,
     });
     expect(r[2].aufnahme_kcal).toBeNull(); // nur geplante Eintraege
+  });
+
+  it('summiert Fett/KH/Ballaststoffe wie Eiweiss (nur gegessene Eintraege)', () => {
+    vorgabe({ gesamtumsatz: 2400 });
+    const haferId = createLebensmittel(db, {
+      name: 'Haferflocken',
+      kcal_pro_100g: 372,
+      eiweiss_dg_pro_100g: 135,
+      fett_dg_pro_100g: 70, // 7,0 g
+      kohlenhydrate_dg_pro_100g: 589, // 58,9 g
+      ballaststoffe_dg_pro_100g: 100, // 10,0 g
+      packung_gramm: null,
+    }).id;
+    createEintrag(db, {
+      datum: '2026-07-15',
+      uhrzeit: '08:00',
+      lebensmittel_id: haferId,
+      menge_gramm: 50, // halbe Werte
+    });
+    iss('2026-07-15', 100, '12:00'); // Quark ohne Fett/KH/Ballast-Werte
+    const tag = getAllzeitReport(db, '2026-07-15').find(
+      (z) => z.datum === '2026-07-15',
+    );
+    expect(tag?.fett_dg).toBe(35); // 3,5 g – nur Hafer, Quark-NULL ignoriert
+    expect(tag?.kohlenhydrate_dg).toBe(295); // ROUND(294,5)
+    expect(tag?.ballaststoffe_dg).toBe(50); // 5,0 g
+    expect(tag?.eiweiss_dg).toBe(68 + 120); // Hafer 67,5->68 + Quark 120
   });
 
   it('liefert eine leere Liste ohne jegliche Erfassung', () => {

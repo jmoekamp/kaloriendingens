@@ -2,7 +2,7 @@
  * Gesamtumsatz-Berechnung. Grundumsatz nach Mifflin-St Jeor, Gesamtumsatz
  * (TDEE) = Grundumsatz × Aktivitaetsfaktor (PAL). Zentral und getestet.
  */
-import type { Geschlecht } from './types.ts';
+import type { BmiFormel, Geschlecht } from './types.ts';
 
 /**
  * Aktivitaetsstufen (PAL) nach den Referenzwerten der Deutschen Gesellschaft
@@ -76,6 +76,25 @@ export function grundumsatzKatchMcArdle(
 ): number {
   const magermasseKg = (gewichtGramm / 1000) * (1 - fettPromille / 1000);
   return 370 + 21.6 * magermasseKg;
+}
+
+/**
+ * Gewicht (Gramm), bei dem ein bestimmter BMI erreicht ist.
+ * - 'standard' (WHO): BMI = kg / m²        -> kg = BMI × m²
+ * - 'trefethen' (Nick Trefethen, 2013): BMI = 1,3 × kg / m^2,5
+ *                                          -> kg = BMI × m^2,5 / 1,3
+ * Die Trefethen-Korrektur gleicht aus, dass der klassische BMI grosse Menschen
+ * zu dick und kleine zu duenn rechnet.
+ */
+export function gewichtBeiBmi(
+  bmi: number,
+  groesseCm: number,
+  formel: BmiFormel,
+): number {
+  const m = groesseCm / 100;
+  const kg =
+    formel === 'trefethen' ? (bmi * Math.pow(m, 2.5)) / 1.3 : bmi * m * m;
+  return Math.round(kg * 1000);
 }
 
 /** Gesamtumsatz (kcal/Tag, gerundet) nach Katch-McArdle × Aktivitaetsfaktor. */

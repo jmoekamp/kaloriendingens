@@ -5,6 +5,7 @@ import type {
   Koerperdaten,
   KoerperdatenInput,
   UmsatzFormel,
+  BmiFormel,
 } from '../../shared/types.ts';
 import { aktuellerMandant } from '../db/index.ts';
 
@@ -19,6 +20,7 @@ export const KOERPERDATEN_DEFAULTS: Koerperdaten = {
   aktivitaetsfaktor: 1.5,
   modus: 'manuell',
   formel: 'mifflin',
+  bmi_formel: 'standard',
 };
 
 export function getKoerperdaten(db: Database): Koerperdaten {
@@ -41,6 +43,8 @@ export function getKoerperdaten(db: Database): Koerperdaten {
     map.get('gesamtumsatz_modus') === 'berechnet' ? 'berechnet' : 'manuell';
   const formel: UmsatzFormel =
     map.get('gesamtumsatz_formel') === 'katch' ? 'katch' : 'mifflin';
+  const bmi_formel: BmiFormel =
+    map.get('bmi_formel') === 'trefethen' ? 'trefethen' : 'standard';
 
   return {
     groesse_cm: ganz('koerper_groesse_cm', KOERPERDATEN_DEFAULTS.groesse_cm),
@@ -52,6 +56,7 @@ export function getKoerperdaten(db: Database): Koerperdaten {
     ),
     modus,
     formel,
+    bmi_formel,
   };
 }
 
@@ -78,6 +83,7 @@ export function updateKoerperdaten(
       setze('koerper_aktivitaetsfaktor', String(input.aktivitaetsfaktor));
     if (input.modus !== undefined) setze('gesamtumsatz_modus', input.modus);
     if (input.formel !== undefined) setze('gesamtumsatz_formel', input.formel);
+    if (input.bmi_formel !== undefined) setze('bmi_formel', input.bmi_formel);
   });
   tx();
 

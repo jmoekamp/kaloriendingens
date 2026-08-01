@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   gesamtumsatzBerechnet,
   gesamtumsatzKatch,
+  gewichtBeiBmi,
   grundumsatzKatchMcArdle,
   grundumsatzMifflin,
 } from '../shared/umsatz.ts';
@@ -29,6 +30,28 @@ describe('Grundumsatz (Katch-McArdle)', () => {
   it('sinkt mit steigendem Fettanteil (weniger Magermasse)', () => {
     expect(grundumsatzKatchMcArdle(80000, 300)).toBeLessThan(
       grundumsatzKatchMcArdle(80000, 200),
+    );
+  });
+});
+
+describe('Gewicht bei BMI (Standard vs. Trefethen)', () => {
+  it('rechnet Standard: BMI × m² (in Gramm)', () => {
+    // 25 × 1,8² = 81,0 kg
+    expect(gewichtBeiBmi(25, 180, 'standard')).toBe(81000);
+    // 25 × 1,6² = 64,0 kg
+    expect(gewichtBeiBmi(25, 160, 'standard')).toBe(64000);
+  });
+
+  it('rechnet Trefethen: BMI × m^2,5 / 1,3', () => {
+    // 25 × 1,8^2,5 / 1,3 = 83,594... kg -> 83595 g
+    expect(gewichtBeiBmi(25, 180, 'trefethen')).toBe(83595);
+    // Trefethen erlaubt Grossen mehr Gewicht als der Standard-BMI ...
+    expect(gewichtBeiBmi(25, 190, 'trefethen')).toBeGreaterThan(
+      gewichtBeiBmi(25, 190, 'standard'),
+    );
+    // ... und Kleinen weniger.
+    expect(gewichtBeiBmi(25, 150, 'trefethen')).toBeLessThan(
+      gewichtBeiBmi(25, 150, 'standard'),
     );
   });
 });

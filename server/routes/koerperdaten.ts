@@ -89,5 +89,14 @@ koerperdatenRouter.put('/', (req, res) => {
     input.formel = body.formel;
   }
 
+  if (body.bmi_formel !== undefined) {
+    if (body.bmi_formel !== 'standard' && body.bmi_formel !== 'trefethen') {
+      throw badRequest(
+        'Feld "bmi_formel" muss "standard" oder "trefethen" sein.',
+      );
+    }
+    input.bmi_formel = body.bmi_formel;
+  }
+
   res.json(toAnsicht(updateKoerperdaten(getDb(), input)));
 });

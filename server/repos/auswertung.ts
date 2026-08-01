@@ -26,6 +26,7 @@ import {
 import {
   gesamtumsatzBerechnet,
   gesamtumsatzKatch,
+  gewichtBeiBmi,
 } from '../../shared/umsatz.ts';
 import { listEintraegeFuerTag } from './eintraege.ts';
 import { bewegungKcalProTag } from './bewegung.ts';
@@ -743,14 +744,17 @@ export function getAbnehmFortschritt(
       meilensteinGramms.push(m);
     }
   }
-  // Zusatz-Meilenstein: Gewicht bei BMI 25 (Obergrenze Normalgewicht),
-  // 25 × Groesse² – sofern die Groesse in den Koerperdaten gesetzt ist und der
-  // Wert unter dem Startgewicht liegt. Er wird unabhaengig vom Zielgewicht
+  // Zusatz-Meilenstein: Gewicht bei BMI 25 (Obergrenze Normalgewicht) nach
+  // der in den Koerperdaten gewaehlten BMI-Formel (Standard kg/m² oder
+  // Trefethen 1,3·kg/m^2,5) – sofern die Groesse gesetzt ist und der Wert
+  // unter dem Startgewicht liegt. Er wird unabhaengig vom Zielgewicht
   // einsortiert (kann also auch hinter dem Ziel liegen) und laeuft wie alle
   // Meilensteine durch die Prognose-Einfrierung.
-  const groesseCm = getKoerperdaten(db).groesse_cm;
+  const koerper = getKoerperdaten(db);
   const bmi25_gramm =
-    groesseCm > 0 ? Math.round(25 * (groesseCm / 100) ** 2 * 1000) : null;
+    koerper.groesse_cm > 0
+      ? gewichtBeiBmi(25, koerper.groesse_cm, koerper.bmi_formel)
+      : null;
   if (
     bmi25_gramm !== null &&
     start_gewicht_gramm !== null &&

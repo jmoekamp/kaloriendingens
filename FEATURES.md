@@ -146,10 +146,15 @@ beim selben Zielgewicht 100 % erreichen.
 **5-kg-Meilenstein-Übersicht** (`meilensteine`): je durch 5 teilbarem ganzen
 Kilo bis zum Ziel die Prognose bzw. – wenn erreicht – das tatsächliche Datum
 plus „X Tage früher/später". Zusätzlich enthält die Liste das **Gewicht bei
-BMI 25** (Obergrenze Normalgewicht, 25 × Größe² aus den Körperdaten) als
-markierten Meilenstein („(BMI 25)", Feld `ist_bmi25`) – absteigend
-einsortiert, sofern die Größe gesetzt ist und der Wert unter dem Startgewicht
-liegt; er kann auch hinter dem Zielgewicht liegen. Eine **zweite Karte „Defizit-Median (gleitend,
+BMI 25** (Obergrenze Normalgewicht) als markierten Meilenstein („(BMI 25)",
+Feld `ist_bmi25`) – absteigend einsortiert, sofern die Größe gesetzt ist und
+der Wert unter dem Startgewicht liegt; er kann auch hinter dem Zielgewicht
+liegen. Die **BMI-Formel ist in den Körperdaten wählbar** (`bmi_formel`):
+**Standard** (WHO, kg/m² → Gewicht = 25 × m²) oder **Trefethen-Korrektur**
+(Nick Trefethen, 2013: BMI = 1,3 · kg / m^2,5 → Gewicht = 25 × m^2,5 / 1,3;
+gleicht aus, dass der klassische BMI große Menschen zu dick und kleine zu dünn
+rechnet). `gewichtBeiBmi` in `shared/umsatz.ts`; ein Formelwechsel ändert die
+Meilenstein-Liste und löst damit das Neu-Festhalten der Prognosen aus. Eine **zweite Karte „Defizit-Median (gleitend,
 7 Tage)"** zeigt dieselbe Tabelle (gemeinsame Komponente
 `MeilensteinTabelle`), aber die Prognose stammt aus dem **gleitenden
 7-Tage-Median des Tagesdefizits**: Abnahmerate = Median_kcal / 7

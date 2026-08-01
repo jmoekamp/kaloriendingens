@@ -6,6 +6,7 @@ import type {
   GesamtumsatzModus,
   KoerperdatenAnsicht,
   UmsatzFormel,
+  BmiFormel,
   Vorgabe,
   ZielTyp,
 } from '../../shared/types.ts';
@@ -421,6 +422,7 @@ function KoerperdatenKarte({
 }) {
   const [modus, setModus] = useState<GesamtumsatzModus>(initial.modus);
   const [formel, setFormel] = useState<UmsatzFormel>(initial.formel);
+  const [bmiFormel, setBmiFormel] = useState<BmiFormel>(initial.bmi_formel);
   const [groesse, setGroesse] = useState(
     initial.groesse_cm === 0 ? '' : String(initial.groesse_cm),
   );
@@ -477,6 +479,7 @@ function KoerperdatenKarte({
       const k = await koerperdatenApi.update({
         modus,
         formel,
+        bmi_formel: bmiFormel,
         groesse_cm: groesseNum ?? 0,
         geschlecht,
         geburtsjahr: jahrNum ?? 0,
@@ -607,6 +610,24 @@ function KoerperdatenKarte({
             </p>
           </>
         )}
+
+        <Field label="BMI-Formel (für den BMI-25-Meilenstein)">
+          <Select
+            className="w-72"
+            value={bmiFormel}
+            onChange={(e) => setBmiFormel(e.target.value as BmiFormel)}
+          >
+            <option value="standard">Standard (WHO: kg / m²)</option>
+            <option value="trefethen">
+              Trefethen-Korrektur (1,3 · kg / m^2,5)
+            </option>
+          </Select>
+        </Field>
+        <p className="text-sm text-text-muted">
+          Bestimmt, bei welchem Gewicht der „(BMI 25)"-Meilenstein liegt. Die
+          Trefethen-Korrektur gleicht aus, dass der klassische BMI große
+          Menschen zu dick und kleine zu dünn rechnet. Braucht die Größe (cm).
+        </p>
 
         <div>
           <Button type="submit" variant="primary" disabled={speichert}>

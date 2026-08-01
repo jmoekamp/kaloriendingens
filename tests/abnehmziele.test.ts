@@ -343,6 +343,19 @@ describe('Abnehmfortschritt', () => {
     expect(f.meilensteine.filter((m) => m.ist_bmi25)).toHaveLength(1);
   });
 
+  it('nutzt fuer den BMI-Meilenstein die gewaehlte Trefethen-Formel', () => {
+    updateKoerperdaten(db, { groesse_cm: 180, bmi_formel: 'trefethen' });
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 15000 });
+    upsertGewicht(db, { datum: '2026-06-01', gramm: 90000, aus_trend: false });
+    const f = getAbnehmFortschritt(db, '2026-06-20');
+    // Trefethen: 25 × 1,8^2,5 / 1,3 = 83,595 kg (statt 81,0 kg Standard).
+    const bmi = f.meilensteine.find((m) => m.ist_bmi25);
+    expect(bmi?.gramm).toBe(83595);
+    expect(f.meilensteine.map((m) => m.gramm)).toEqual([
+      85000, 83595, 80000, 75000,
+    ]);
+  });
+
   it('laesst den BMI-Meilenstein ohne Groesse weg', () => {
     upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 10000 });
     upsertGewicht(db, { datum: '2026-06-01', gramm: 90000, aus_trend: false });

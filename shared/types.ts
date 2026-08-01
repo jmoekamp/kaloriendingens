@@ -465,6 +465,13 @@ export type GesamtumsatzModus = 'manuell' | 'berechnet';
 export type UmsatzFormel = 'mifflin' | 'katch';
 
 /**
+ * BMI-Formel fuer den BMI-25-Meilenstein: 'standard' (WHO, kg/m²) oder
+ * 'trefethen' (Nick Trefethen, 2013: BMI = 1,3 · kg / m^2,5 – korrigiert die
+ * Verzerrung des klassischen BMI bei grossen und kleinen Menschen).
+ */
+export type BmiFormel = 'standard' | 'trefethen';
+
+/**
  * Koerperdaten fuer die Gesamtumsatz-Berechnung. Nicht versioniert; das
  * taegliche Gewicht (und ggf. der Fettanteil) kommt aus den Messungen. Bei
  * modus = 'berechnet' und vollstaendigen Daten wird der Gesamtumsatz je Tag
@@ -479,6 +486,8 @@ export interface Koerperdaten {
   aktivitaetsfaktor: number; // z. B. 1.55
   modus: GesamtumsatzModus;
   formel: UmsatzFormel;
+  /** Formel fuer den BMI-25-Meilenstein (Standard: WHO kg/m²). */
+  bmi_formel: BmiFormel;
 }
 
 /** Teilweise Aktualisierung der Koerperdaten. */

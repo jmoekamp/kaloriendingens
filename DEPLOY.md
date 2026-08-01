@@ -215,7 +215,9 @@ Alles über Umgebungsvariablen bzw. Build-Args steuerbar:
 
 ### Privates Git-Repository
 
-Verlangt das Repository eine Anmeldung, die Zugangsdaten in `GIT_REPO`
+**Bei einem öffentlichen Repository ist für den Build KEINE Anmeldung nötig** –
+die Standard-URL genügt (ein Token braucht nur, wer pusht). Nur falls das
+Repository privat ist, die Zugangsdaten in `GIT_REPO`
 mitgeben (am besten ein **lesendes** GitHub-Token (Fine-grained PAT, Contents: Read)):
 
 ```yaml

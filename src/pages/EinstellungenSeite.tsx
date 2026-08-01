@@ -844,12 +844,13 @@ function PasswortKarte() {
             required
           />
         </Field>
-        <Field label="Neues Passwort">
+        <Field label="Neues Passwort (min. 8 Zeichen)">
           <TextInput
             type="password"
             value={neu}
             onChange={(e) => setNeu(e.target.value)}
             autoComplete="new-password"
+            minLength={8}
             required
           />
         </Field>
@@ -859,6 +860,7 @@ function PasswortKarte() {
             value={neu2}
             onChange={(e) => setNeu2(e.target.value)}
             autoComplete="new-password"
+            minLength={8}
             required
           />
         </Field>

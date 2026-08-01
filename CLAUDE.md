@@ -239,7 +239,11 @@ mit Index. Login per Benutzername/Passwort (scrypt), Session als httpOnly-Cookie
 (`cal_session`) mit serverseitiger `sessions`-Tabelle. Der Mandant des Nutzers wird
 je Request über einen `AsyncLocalStorage` geführt (`aktuellerMandant()`), sodass
 jede Query automatisch filtert. Admin-Realm = Mandant 0 (nur Nutzerverwaltung,
-kein Zugriff auf Fachdaten). Erst-Accounts beim ersten Start: `admin/admin`
+kein Zugriff auf Fachdaten). **Neue Passwörter** (Passwortwechsel, Nutzer
+anlegen, Admin setzt Passwort) müssen mindestens 8 Zeichen lang sein
+(`requireNeuesPasswort`/`PASSWORT_MINDESTLAENGE` in `server/validation.ts`;
+bestehende Passwörter und der Login sind davon unberührt). Erst-Accounts beim
+ersten Start: `admin/admin`
 (Mandant 0) und `joerg/joerg` (Mandant 1) – Passwörter nach dem ersten Login ändern.
 
 ## Tech-Stack

@@ -2,7 +2,12 @@ import { Router } from 'express';
 import { getDb } from '../db/index.ts';
 import { badRequest, conflict } from '../errors.ts';
 import type { AuthRequest } from '../auth/middleware.ts';
-import { requireInteger, requireString, parseId } from '../validation.ts';
+import {
+  parseId,
+  requireInteger,
+  requireNeuesPasswort,
+  requireString,
+} from '../validation.ts';
 import {
   createUser,
   deleteUser,
@@ -28,19 +33,16 @@ usersRouter.post('/', (req, res) => {
   if (mandant_id < 0) {
     throw badRequest('mandant_id muss >= 0 sein (0 = Admin).');
   }
-  const passwort = body.passwort;
-  if (typeof passwort !== 'string' || passwort === '') {
-    throw badRequest('Feld "passwort" ist erforderlich.');
-  }
+  const passwort = requireNeuesPasswort(body, 'passwort');
   res.status(201).json(createUser(getDb(), { username, mandant_id, passwort }));
 });
 
 usersRouter.put('/:id/passwort', (req, res) => {
   const id = parseId(req.params.id);
-  const passwort = (req.body as Record<string, unknown>).passwort;
-  if (typeof passwort !== 'string' || passwort === '') {
-    throw badRequest('Feld "passwort" ist erforderlich.');
-  }
+  const passwort = requireNeuesPasswort(
+    (req.body ?? {}) as Record<string, unknown>,
+    'passwort',
+  );
   setPasswort(getDb(), id, passwort);
   deleteSessionsForUser(getDb(), id); // bestehende Sessions des Nutzers verwerfen
   res.status(204).end();

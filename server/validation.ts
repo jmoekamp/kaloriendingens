@@ -95,6 +95,29 @@ export function optionalNonNegativeInteger(
   return n;
 }
 
+/** Mindestlaenge fuer NEU gesetzte Passwoerter (bestehende bleiben gueltig). */
+export const PASSWORT_MINDESTLAENGE = 8;
+
+/**
+ * Liest ein NEUES Passwort und erzwingt die Mindestlaenge. Bewusst OHNE
+ * trim(): Leerzeichen duerfen Teil des Passworts sein.
+ */
+export function requireNeuesPasswort(
+  body: Record<string, unknown>,
+  feld: string,
+): string {
+  const wert = body[feld];
+  if (typeof wert !== 'string' || wert === '') {
+    throw badRequest(`Feld "${feld}" ist erforderlich.`);
+  }
+  if (wert.length < PASSWORT_MINDESTLAENGE) {
+    throw badRequest(
+      `Das neue Passwort muss mindestens ${PASSWORT_MINDESTLAENGE} Zeichen lang sein.`,
+    );
+  }
+  return wert;
+}
+
 /** Parst eine Pfad-/Query-ID; wirft 400 bei Unsinn. */
 export function parseId(roh: string | undefined, was = 'id'): number {
   const n = Number(roh);

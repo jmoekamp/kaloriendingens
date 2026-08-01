@@ -21,6 +21,7 @@ import {
   deleteSessionsForUser,
 } from '../repos/sessions.ts';
 import { getUserById, getUserByUsername, setPasswort } from '../repos/users.ts';
+import { requireNeuesPasswort } from '../validation.ts';
 
 /** Liest ein Pflicht-Passwortfeld (NICHT getrimmt – Leerzeichen koennen Teil sein). */
 function requirePasswort(body: Record<string, unknown>, feld: string): string {
@@ -107,7 +108,9 @@ authAuthedRouter.post('/passwort', async (req: AuthRequest, res, next) => {
   try {
     const body = req.body as Record<string, unknown>;
     const altesPasswort = requirePasswort(body, 'altes_passwort');
-    const neuesPasswort = requirePasswort(body, 'neues_passwort');
+    // Nur das NEUE Passwort unterliegt der Mindestlaenge (alte Passwoerter
+    // koennen aus der Zeit vor der Regel stammen).
+    const neuesPasswort = requireNeuesPasswort(body, 'neues_passwort');
 
     const user = getUserById(getDb(), req.user!.userId);
     if (

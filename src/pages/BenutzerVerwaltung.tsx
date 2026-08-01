@@ -63,7 +63,7 @@ export default function BenutzerVerwaltung({ aktiver }: { aktiver: AuthUser }) {
   }
 
   async function passwortSetzen(u: User) {
-    const neu = prompt(`Neues Passwort für „${u.username}":`);
+    const neu = prompt(`Neues Passwort für „${u.username}" (min. 8 Zeichen):`);
     if (neu == null || neu === '') return;
     setFehler(null);
     setHinweis(null);
@@ -109,12 +109,13 @@ export default function BenutzerVerwaltung({ aktiver }: { aktiver: AuthUser }) {
               required
             />
           </Field>
-          <Field label="Passwort">
+          <Field label="Passwort (min. 8 Zeichen)">
             <TextInput
               type="password"
               value={passwort}
               onChange={(e) => setPasswort(e.target.value)}
               autoComplete="new-password"
+              minLength={8}
               required
             />
           </Field>

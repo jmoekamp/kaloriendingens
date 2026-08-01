@@ -69,7 +69,8 @@ http://<host>:3010
 **Erste Anmeldung:** Beim allerersten Start werden zwei Nutzer angelegt:
 
 - `admin` / `admin` – Administrator (Mandant 0): nur Nutzerverwaltung, kein Datenzugriff.
-- `joerg` / `joerg` – Daten-Nutzer (Mandant 1): arbeitet mit den Belegen.
+- `joerg` / `joerg` – Daten-Nutzer (Mandant 1): erfasst Lebensmittel, Mahlzeiten,
+  Bewegung und Gewicht.
 
 Beide Standard-Passwörter direkt nach dem ersten Login in den Einstellungen ändern
 (Karte „Passwort ändern"). Sicherheitshinweis: Der Login läuft über lokales HTTP; bei
@@ -113,8 +114,8 @@ docker compose up -d
 ```bash
 # Datum des laufenden Images
 docker compose images
-# Stichprobe im laufenden Container (Beispiel: eine neuere Datei/Zeile)
-docker compose exec app grep -c aus_trend server/repos/gewicht.ts   # > 0 = neuer Stand
+# Stichprobe im laufenden Container (Beispiel: ein Merkmal des neuen Stands)
+docker compose exec app grep -c meilenstein_prognosen server/db/schema.ts   # > 0 = neuer Stand
 ```
 
 **Wichtig:** beim Update **kein `--no-cache`** verwenden. So bleibt die

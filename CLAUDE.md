@@ -58,7 +58,8 @@ Port **3010**.
   Server ruft OFF ab (`GET /api/lebensmittel/off-suche?q=` über Search-a-licious
   bzw. `GET /api/lebensmittel/off-produkt?code=` über die API v2; `server/off.ts`,
   `sucheOpenFoodFacts`/`holeOffProdukt`/`mapOffProdukt`), liefert Treffer mit
-  Name (Marke vorangestellt), kcal/100 g, Eiweiß/100 g (kJ→kcal-Fallback) und
+  Name (Marke vorangestellt), kcal/100 g (kJ→kcal-Fallback), Eiweiß, Fett,
+  Kohlenhydraten und Ballaststoffen je 100 g sowie
   Packungsgröße (g/kg; ml/l werden verworfen). EAN = 8–14 Ziffern
   (`istGueltigeEan`); unbekannte Barcodes → 404. Ein Treffer wird per
   „Übernehmen" ins Formular gereicht – dabei werden NUR leere Felder gefüllt,
@@ -118,7 +119,7 @@ Port **3010**.
   Fortschritt in Prozent gezeigt: erreichtes Defizit seit dem Stichtag (nur Tage
   mit Einträgen, je Tag mit dem damals gültigen Gesamtumsatz) / nötiges Defizit.
   Das erste angelegte Abnehmziel bekommt als Startdatum standardmäßig „heute − 1
-  Monat" (damit der bereits erfasste Vormonat einzahlt). Zusätzlich werden zwei
+  Monat" (damit der bereits erfasste Vormonat einzahlt). Zusätzlich werden drei
   Prognosen für das Erreichen des Restdefizits gezeigt: beim Median-Tagesdefizit
   seit Festlegung, beim Defizit wie am Vortag und – rein messbasiert – **aus dem
   Gewichtstrend** (lineare Regression über die nicht ausgeschlossenen Messungen:
@@ -160,10 +161,12 @@ Port **3010**.
   Über der Zusammenfassung stehen vier Kacheln: **Kalorien (gegessen)** und
   **Eiweiß (gegessen)** mit Zielbewertung sowie **Kalorien (geplant)** und
   **Eiweiß (geplant)** als reine Summen der noch nicht gegessenen Einträge. Die
-  Mahlzeiten-Tabelle zeigt im Fuß zwei Summenzeilen: **Summe (gegessen)** und
-  **Summe (geplant)**.
+  Mahlzeiten-Tabelle zeigt im Fuß drei Summenzeilen: **Summe (gegessen)**,
+  **Summe (geplant)** und **Summe (gegessen + geplant)**.
   Eine **Zusammenfassungs-Karte** zeigt „Gesamtumsatz + Bewegung − Aufnahme =
-  Defizit" für den Tag (`getTagesAuswertung` liefert `gesamtumsatz`, `bewegung`,
+  Defizit" für den Tag in zwei Zeilen: „gegessen:" (nur gegessene Aufnahme, wie
+  in der Statistik) und „inkl. geplant:" (Aufnahme = gegessen + geplant)
+  (`getTagesAuswertung` liefert `gesamtumsatz`, `bewegung`,
   `defizit`; Gewicht/Bewegung-Änderungen laden den Tag neu). Die Eiweiß-Zielkarte
   zeigt zusätzlich das **Eiweiß je kg Körpergewicht** des Tages (g/kg, Richtwert
   1,6–2,0 g/kg) auf Basis des tagesgültigen (Carry-forward-)Gewichts; ohne Gewicht
@@ -261,7 +264,11 @@ jede Query automatisch filtert. Admin-Realm = Mandant 0 (nur Nutzerverwaltung,
 kein Zugriff auf Fachdaten). **Neue Passwörter** (Passwortwechsel, Nutzer
 anlegen, Admin setzt Passwort) müssen mindestens 8 Zeichen lang sein
 (`requireNeuesPasswort`/`PASSWORT_MINDESTLAENGE` in `server/validation.ts`;
-bestehende Passwörter und der Login sind davon unberührt). Erst-Accounts beim
+bestehende Passwörter und der Login sind davon unberührt). Weitere Härtung
+(`server/index.ts`): Login-Rate-Limit (5 Fehlversuche/min/IP), Dummy-Hash gegen
+Username-Enumeration, `X-Powered-By` deaktiviert, Header
+`X-Content-Type-Options: nosniff` / `X-Frame-Options: DENY` /
+`Referrer-Policy: no-referrer`, kaputtes JSON im Body → 400. Erst-Accounts beim
 ersten Start: `admin/admin`
 (Mandant 0) und `joerg/joerg` (Mandant 1) – Passwörter nach dem ersten Login ändern.
 
@@ -277,8 +284,8 @@ ersten Start: `admin/admin`
 
 ```
 /src
-  /components   – wiederverwendbare React-Komponenten (inkl. LinienChart)
-  /pages        – Seiten (Tag, Langfrist/Auswertung, Lebensmittel, Einstellungen, Benutzer)
+  /components   – wiederverwendbare React-Komponenten (LinienChart, SpaltenWahl, ui)
+  /pages        – Seiten (Tag, Langfrist/Auswertung, Allzeit, Lebensmittel, Einstellungen, Benutzer)
   /lib          – API-Client und Hilfsfunktionen
 /server
   /routes       – Express-Routen (lebensmittel, eintraege, einstellungen, auswertung, auth, ...)
@@ -315,7 +322,13 @@ ersten Start: `admin/admin`
   254), aus_trend (0/1: aus der Trendlinie
   ausgeschlossen). Ein Tagesgewicht je (mandant_id, datum); Quelle für das
   Gewichts-Liniendiagramm.
-- `einstellungen`: Legacy-Key-Value, nur noch Migrationsquelle für `vorgaben`.
+- `meilenstein_prognosen`: mandant_id, quelle ('trend'|'median'), gramm,
+  prognose, erreicht, festgehalten_am. Eingefrorene Meilenstein-/
+  Zieltermin-Prognosen (PK mandant+quelle+gramm); Update nur beim Erreichen
+  eines Zwischenziels bzw. bei geänderter Meilenstein-Liste.
+- `einstellungen`: Key-Value je Mandant – Migrationsquelle für `vorgaben` UND
+  Speicher der Körperdaten (`koerper_*`, `gesamtumsatz_modus`,
+  `gesamtumsatz_formel`).
 - `users`, `sessions`: mandant-übergreifend (Auth-Verwaltung).
 
 ## Befehle

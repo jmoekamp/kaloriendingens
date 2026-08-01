@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3';
 
 /**
- * Vollstaendiges SQLite-Schema fuer cal-o-matic.
+ * Vollstaendiges SQLite-Schema fuer Kaloriendingens.
  *
  * Konventionen:
  * - kcal als ganze Kilokalorien (INTEGER), Eiweiss in Dezigramm (0,1 g),

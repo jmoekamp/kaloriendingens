@@ -14,7 +14,8 @@ const OFF_SUCHE_URL = 'https://search.openfoodfacts.org/search';
 // Produkt-Einzelabruf per Barcode/EAN (API v2; deutlich mildere Rate-Limits).
 const OFF_PRODUKT_URL = 'https://world.openfoodfacts.org/api/v2/product';
 // OFF bittet um einen identifizierenden User-Agent.
-const USER_AGENT = 'cal-o-matic/1.0 (self-hosted; lokale Naehrwertverwaltung)';
+const USER_AGENT =
+  'kaloriendingens/1.0 (self-hosted; lokale Naehrwertverwaltung)';
 const TIMEOUT_MS = 10_000;
 const MAX_TREFFER = 20;
 

@@ -8,8 +8,8 @@ services:
         # Updates kann GIT_REF auf einen Tag oder Commit gesetzt werden.
         GIT_REPO: https://github.com/jmoekamp/kaloriendingens.git
         GIT_REF: main
-    image: cal-o-matic:latest
-    container_name: cal-o-matic
+    image: kaloriendingens:latest
+    container_name: kaloriendingens
     restart: unless-stopped
     ports:
       # Host-Port : Container-Port. Links den Host-Port nach Wunsch ändern.

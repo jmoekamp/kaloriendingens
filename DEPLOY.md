@@ -33,7 +33,7 @@ auf dem Docker-Host am besten einen eigenen Ordner an und kopiere nur diese
 beiden Dateien hinein, z. B.:
 
 ```
-~/docker/cal-o-matic/
+~/docker/kaloriendingens/
 ├── Dockerfile
 └── compose.yaml
 ```

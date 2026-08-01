@@ -824,7 +824,8 @@ export default function LangfristSeite({
           <span className="text-xs text-text-muted">
             gemessene Steigung − erwartete Steigung aus Defizit (gleitend, 14
             Tage) · <span className="text-[#d0654f]">rot</span> = langsamer als
-            erwartet, <span className="text-[#63b784]">grün</span> = schneller
+            erwartet, <span className="text-[#63b784]">grün</span> = schneller ·
+            gestrichelt: Normalband ±0,25 / ±0,5 kg/Woche
           </span>
         </div>
         <LinienChart
@@ -844,6 +845,14 @@ export default function LangfristSeite({
             ueberFarbe: '#d0654f',
             unterFarbe: '#63b784',
           }}
+          hilfslinien={[
+            // Inneres Band (sehr gute Uebereinstimmung) dezent, aeusseres
+            // (normales Rauschen) etwas kraeftiger; Werte = Gramm je Woche.
+            { wert: 250, label: '+0,25', farbe: '#4a5666' },
+            { wert: -250, label: '−0,25', farbe: '#4a5666' },
+            { wert: 500, label: '+0,5', farbe: '#8a97a6' },
+            { wert: -500, label: '−0,5', farbe: '#8a97a6' },
+          ]}
         />
       </Card>
 

@@ -26,6 +26,14 @@ export interface Serie {
   verbinden?: boolean;
 }
 
+/** Horizontale Hilfslinie (gestrichelt) bei einem festen y-Wert. */
+export interface Hilfslinie {
+  wert: number;
+  /** Beschriftung am rechten Rand; ohne Angabe formatWert(wert). */
+  label?: string;
+  farbe?: string;
+}
+
 function kurz(iso: string): string {
   return `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
 }
@@ -64,6 +72,7 @@ export function LinienChart({
   flaeche = true,
   differenz,
   punktLabel,
+  hilfslinien,
 }: {
   von: string;
   bis: string;
@@ -97,6 +106,11 @@ export function LinienChart({
    * gegenueber der vorherigen Messung.
    */
   punktLabel?: (wert: number, vorher: number | null) => string;
+  /**
+   * Gestrichelte horizontale Hilfslinien (z. B. ein Normalband). Die Werte
+   * fliessen in die y-Skalierung ein, damit das Band immer sichtbar ist.
+   */
+  hilfslinien?: Hilfslinie[];
 }) {
   if (punkte.length === 0) {
     return (
@@ -123,12 +137,14 @@ export function LinienChart({
       ? padL + innerB / 2
       : padL + (innerB * (tagNummer(iso) - d0)) / spanTage;
 
-  // y-Achse: Skalierung an der Spanne aller Werte (inkl. Prognose + Serien).
+  // y-Achse: Skalierung an der Spanne aller Werte (inkl. Prognose, Serien und
+  // Hilfslinien).
   const werte = [
     ...punkte,
     ...(prognose ?? []),
     ...(serien ?? []).flatMap((s) => s.punkte),
   ].map((p) => p.wert);
+  werte.push(...(hilfslinien ?? []).map((h) => h.wert));
   const rohMax = Math.max(...werte, 1);
   const rohMin = nullbasis ? 0 : Math.min(...werte);
   const spanne = Math.max(1, rohMax - rohMin);
@@ -263,6 +279,31 @@ export function LinienChart({
             fontSize={11}
           >
             {formatWert(Math.round(t))}
+          </text>
+        </g>
+      ))}
+
+      {/* Gestrichelte Hilfslinien (z. B. Normalband) mit Beschriftung rechts. */}
+      {(hilfslinien ?? []).map((h, i) => (
+        <g key={`hilf-${i}`}>
+          <line
+            x1={padL}
+            x2={breite - padR}
+            y1={y(h.wert)}
+            y2={y(h.wert)}
+            stroke={h.farbe ?? '#6b7784'}
+            strokeWidth={1}
+            strokeDasharray="4 4"
+            opacity={0.7}
+          />
+          <text
+            x={breite - padR}
+            y={y(h.wert) - 3}
+            textAnchor="end"
+            className="fill-text-muted"
+            fontSize={9}
+          >
+            {h.label ?? formatWert(h.wert)}
           </text>
         </g>
       ))}

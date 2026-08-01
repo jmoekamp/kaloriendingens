@@ -218,9 +218,12 @@ echten Datum, an Tagen ohne Daten wird nichts gezeichnet:
    die letzten 14 Tage, ohne ausgeschlossene Messungen) und der aus dem
    Defizit erwarteten Steigung (−Median-Tagesdefizit / 7 im selben Fenster),
    als Linie gegen eine Null-Linie: rot (> 0) = Abnahme langsamer als das
-   Defizit erwarten ließe, grün (< 0) = schneller. Tage ohne zweite Messung
-   bzw. ohne Defizit-Tag im Fenster entfallen (`steigungsAbweichung` in
-   `shared/naehrwerte.ts`).
+   Defizit erwarten ließe, grün (< 0) = schneller. Gestrichelte Hilfslinien
+   markieren das Normalband ±0,25 (sehr gute Übereinstimmung) und ±0,5
+   kg/Woche (normales Rauschen); erst dauerhafte Abweichungen darüber hinaus
+   sind ein Kalibrier-Signal (`hilfslinien`-Prop des LinienChart). Tage ohne
+   zweite Messung bzw. ohne Defizit-Tag im Fenster entfallen
+   (`steigungsAbweichung` in `shared/naehrwerte.ts`).
 
 Zusätzlich: Liste der letzten 7 Tage mit Sprung zur jeweiligen Tagesseite
 sowie das Kaloriendefizit für Tag, letzte 7 Tage, letzte 30 Tage und den

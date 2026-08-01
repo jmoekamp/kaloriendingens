@@ -22,5 +22,9 @@ services:
 
 volumes:
   cal-data:
-    # Fester Name, damit Backup-/Restore-Befehle vorhersehbar sind.
+    # Fester Name, damit Backup-/Restore-Befehle vorhersehbar sind. external,
+    # weil das Volume noch unter dem frueheren Projektnamen angelegt wurde und
+    # Compose sonst bei jedem `up` eine Besitz-Warnung ausgibt. Bei einer
+    # FRISCHEN Installation einmalig anlegen: docker volume create cal-data
     name: cal-data
+    external: true

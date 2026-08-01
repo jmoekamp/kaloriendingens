@@ -47,12 +47,18 @@ beiden Dateien hinein, z. B.:
 Im Ordner mit `compose.yaml`:
 
 ```bash
+docker volume create cal-data   # einmalig (Volume ist als external deklariert)
 docker compose up -d --build
 ```
 
-Das klont die App aus Git, baut das Image, legt das Volume `cal-data` an und
-startet den Container. Beim ersten Start wird die leere SQLite-Datenbank samt
+Das klont die App aus Git, baut das Image und startet den Container mit dem
+Volume `cal-data`. Beim ersten Start wird die leere SQLite-Datenbank samt
 Schema automatisch angelegt.
+
+> Das Volume ist in der `compose.yaml` als `external` deklariert, weil es auf
+> Bestandssystemen noch unter dem früheren Projektnamen angelegt wurde –
+> Compose würde sonst bei jedem `up` eine Besitz-Warnung ausgeben. Existiert
+> es bereits (Update/Umbenennung), entfällt das `docker volume create`.
 
 Aufrufen im Browser:
 

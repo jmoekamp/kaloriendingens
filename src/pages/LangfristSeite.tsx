@@ -26,6 +26,7 @@ import {
   formatProzent,
   kumulierteAbnahme,
   lineareRegression,
+  steigungsAbweichung,
 } from '../../shared/naehrwerte.ts';
 import {
   formatDatum,
@@ -388,6 +389,17 @@ export default function LangfristSeite({
   const gemessenVerlustPunkte: ChartPunkt[] = abnahme.gemessen.map((p) => ({
     datum: p.datum,
     wert: p.verlust_gramm,
+  }));
+
+  // Abweichung der gemessenen Trend-Steigung von der Defizit-Erwartung
+  // (gleitend, 14 Tage), umgerechnet in Gramm je WOCHE fuer die Anzeige.
+  const abweichungPunkte: ChartPunkt[] = steigungsAbweichung(
+    gewicht,
+    defizitTage,
+  ).map((p) => ({ datum: p.datum, wert: p.abweichung_gramm_pro_tag * 7 }));
+  const abweichungNull: ChartPunkt[] = abweichungPunkte.map((p) => ({
+    datum: p.datum,
+    wert: 0,
   }));
 
   // Trend-Zugehoerigkeit einer Messung direkt vom Report aus umschalten.
@@ -803,6 +815,35 @@ export default function LangfristSeite({
               verbinden: true,
             },
           ]}
+        />
+
+        <div className="mb-2 mt-6 flex flex-wrap items-baseline justify-between gap-2">
+          <span className="text-sm font-bold text-text-muted">
+            Abweichung Trend vs. Defizitprognose (kg/Woche)
+          </span>
+          <span className="text-xs text-text-muted">
+            gemessene Steigung − erwartete Steigung aus Defizit (gleitend, 14
+            Tage) · <span className="text-[#d0654f]">rot</span> = langsamer als
+            erwartet, <span className="text-[#63b784]">grün</span> = schneller
+          </span>
+        </div>
+        <LinienChart
+          von={von}
+          bis={bis}
+          punkte={abweichungPunkte}
+          farbe="#dfe6ee"
+          formatWert={(g) => formatKg(g)}
+          nullbasis={false}
+          flaeche={false}
+          verbinden
+          serien={[
+            { punkte: abweichungNull, farbe: '#6b7784', verbinden: true },
+          ]}
+          differenz={{
+            serie: 0,
+            ueberFarbe: '#d0654f',
+            unterFarbe: '#63b784',
+          }}
         />
       </Card>
 

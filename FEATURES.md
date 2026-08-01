@@ -213,6 +213,14 @@ echten Datum, an Tagen ohne Daten wird nichts gezeichnet:
    Defizit (÷ 7000 kcal/kg) vs. gemessener Verlust (Anker − Messung), beide
    als Abnahme ab der ersten nicht ausgeschlossenen Messung
    (`kumulierteAbnahme` in `shared/naehrwerte.ts`).
+6. **Abweichung Trend vs. Defizitprognose (kg/Woche)** – je Messtag die
+   Differenz zwischen der gemessenen Trend-Steigung (gleitende Regression über
+   die letzten 14 Tage, ohne ausgeschlossene Messungen) und der aus dem
+   Defizit erwarteten Steigung (−Median-Tagesdefizit / 7 im selben Fenster),
+   als Linie gegen eine Null-Linie: rot (> 0) = Abnahme langsamer als das
+   Defizit erwarten ließe, grün (< 0) = schneller. Tage ohne zweite Messung
+   bzw. ohne Defizit-Tag im Fenster entfallen (`steigungsAbweichung` in
+   `shared/naehrwerte.ts`).
 
 Zusätzlich: Liste der letzten 7 Tage mit Sprung zur jeweiligen Tagesseite
 sowie das Kaloriendefizit für Tag, letzte 7 Tage, letzte 30 Tage und den

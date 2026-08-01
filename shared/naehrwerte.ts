@@ -133,6 +133,70 @@ export function gleitenderMedian(werte: number[], fenster: number): number[] {
   );
 }
 
+/** Tagesnummer (Tage seit Epoche, UTC) fuer Fenster-/Regressionsrechnung. */
+function tagesNummer(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number);
+  return Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
+}
+
+/** Ein Punkt der Steigungs-Abweichung (gemessen vs. Defizit-Erwartung). */
+export interface SteigungsAbweichungPunkt {
+  datum: string;
+  /**
+   * Gemessene Trend-Steigung minus aus dem Defizit erwartete Steigung, in
+   * Gramm/Tag. Positiv = Abnahme LANGSAMER als das Defizit erwarten liesse
+   * (oder Zunahme), negativ = schneller.
+   */
+  abweichung_gramm_pro_tag: number;
+}
+
+/**
+ * Abweichung der Gewichts-Steigung von der Defizit-Erwartung, gleitend je
+ * Messtag: Fuer jeden nicht ausgeschlossenen Messpunkt wird ueber die letzten
+ * `fensterTage` Tage (a) die Regressions-Steigung der Messungen und (b) die aus
+ * dem Median-Tagesdefizit erwartete Steigung (−Median/7, 7000 kcal/kg)
+ * berechnet; die Differenz (a − b) ist der Punktwert. Tage ohne mindestens
+ * zwei Messungen bzw. ohne Defizit-Tag im Fenster werden uebersprungen.
+ */
+export function steigungsAbweichung(
+  gewichte: { datum: string; gramm: number; aus_trend: boolean }[],
+  defizitTage: { datum: string; defizit: number }[],
+  fensterTage = 14,
+): SteigungsAbweichungPunkt[] {
+  const messungen = gewichte
+    .filter((g) => !g.aus_trend)
+    .sort((a, b) => (a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0));
+  const punkte: SteigungsAbweichungPunkt[] = [];
+  for (const m of messungen) {
+    const bis = tagesNummer(m.datum);
+    const von = bis - fensterTage + 1;
+    const fensterMessungen = messungen.filter((w) => {
+      const t = tagesNummer(w.datum);
+      return t >= von && t <= bis;
+    });
+    if (fensterMessungen.length < 2) continue;
+    const reg = lineareRegression(
+      fensterMessungen.map((w) => tagesNummer(w.datum)),
+      fensterMessungen.map((w) => w.gramm),
+    );
+    if (!reg) continue;
+    const fensterDefizite = defizitTage
+      .filter((d) => {
+        const t = tagesNummer(d.datum);
+        return t >= von && t <= bis;
+      })
+      .map((d) => d.defizit);
+    if (fensterDefizite.length === 0) continue;
+    // Erwartete Steigung aus dem Defizit: Median_kcal/7 Gramm Abnahme je Tag.
+    const erwartet = -medianVon(fensterDefizite) / 7;
+    punkte.push({
+      datum: m.datum,
+      abweichung_gramm_pro_tag: reg.steigung - erwartet,
+    });
+  }
+  return punkte;
+}
+
 /** Ein kumulierter Abnahme-Wert (Gramm Verlust ab dem Startpunkt) an einem Tag. */
 export interface AbnahmePunkt {
   datum: string;

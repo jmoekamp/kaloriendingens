@@ -13,6 +13,7 @@ import {
   grammProKcal,
   kumulierteAbnahme,
   lineareRegression,
+  steigungsAbweichung,
   parseGanzzahl,
   parseGrammToDg,
   parseKgToGramm,
@@ -176,6 +177,56 @@ describe('Gleitender Median', () => {
   it('begrenzt das Fenster auf mindestens 1 und behandelt Leereingabe', () => {
     expect(gleitenderMedian([5, 7, 9], 0)).toEqual([5, 7, 9]);
     expect(gleitenderMedian([], 5)).toEqual([]);
+  });
+});
+
+describe('Steigungs-Abweichung (Trend vs. Defizit-Erwartung)', () => {
+  /** Tagesreihe: taeglich ein Gewicht mit fester Abnahme + festes Defizit. */
+  function reihe(tage: number, abnahmeProTag: number, defizit: number) {
+    const gewichte = [];
+    const defizite = [];
+    for (let i = 0; i < tage; i++) {
+      const datum = `2026-07-${String(i + 1).padStart(2, '0')}`;
+      gewichte.push({
+        datum,
+        gramm: 90000 - i * abnahmeProTag,
+        aus_trend: false,
+      });
+      defizite.push({ datum, defizit });
+    }
+    return { gewichte, defizite };
+  }
+
+  it('liefert 0, wenn die Abnahme exakt dem Defizit entspricht', () => {
+    // −100 g/Tag gemessen; Defizit 700 kcal -> erwartet ebenfalls −100 g/Tag.
+    const { gewichte, defizite } = reihe(10, 100, 700);
+    const p = steigungsAbweichung(gewichte, defizite, 7);
+    expect(p.length).toBeGreaterThan(0);
+    for (const x of p) expect(x.abweichung_gramm_pro_tag).toBeCloseTo(0, 6);
+  });
+
+  it('zeigt +100 g/Tag, wenn die Abnahme langsamer ist als das Defizit erwartet', () => {
+    // Gemessen −100 g/Tag, Defizit 1400 kcal -> erwartet −200 g/Tag.
+    const { gewichte, defizite } = reihe(10, 100, 1400);
+    const p = steigungsAbweichung(gewichte, defizite, 7);
+    for (const x of p) expect(x.abweichung_gramm_pro_tag).toBeCloseTo(100, 6);
+  });
+
+  it('ueberspringt Tage ohne zweite Messung im Fenster und ignoriert aus_trend', () => {
+    const defizite = [
+      { datum: '2026-07-01', defizit: 700 },
+      { datum: '2026-07-02', defizit: 700 },
+    ];
+    // Nur eine (gueltige) Messung -> keine Regression moeglich.
+    const p = steigungsAbweichung(
+      [
+        { datum: '2026-07-01', gramm: 90000, aus_trend: true },
+        { datum: '2026-07-02', gramm: 89900, aus_trend: false },
+      ],
+      defizite,
+      7,
+    );
+    expect(p).toEqual([]);
   });
 });
 

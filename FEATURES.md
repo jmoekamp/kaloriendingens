@@ -216,13 +216,18 @@ echten Datum, an Tagen ohne Daten wird nichts gezeichnet:
 6. **Abweichung Trend vs. Defizitprognose (kg/Woche)** – je Messtag die
    Differenz zwischen der gemessenen Trend-Steigung (gleitende Regression über
    die letzten 14 Tage, ohne ausgeschlossene Messungen) und der aus dem
-   Defizit erwarteten Steigung (−Median-Tagesdefizit / 7 im selben Fenster),
-   als Linie gegen eine Null-Linie: rot (> 0) = Abnahme langsamer als das
-   Defizit erwarten ließe, grün (< 0) = schneller. Gestrichelte Hilfslinien
-   markieren das Normalband ±0,25 (sehr gute Übereinstimmung) und ±0,5
-   kg/Woche (normales Rauschen); erst dauerhafte Abweichungen darüber hinaus
-   sind ein Kalibrier-Signal (`hilfslinien`-Prop des LinienChart). Tage ohne
-   zweite Messung bzw. ohne Defizit-Tag im Fenster entfallen
+   Defizit erwarteten Steigung. Die Erwartung wird bewusst mit **demselben
+   Schätzer an denselben Stützstellen** berechnet: Regression über die
+   projizierte Gewichtskurve aus dem kumulierten Defizit (−kum/7,
+   7000 kcal/kg) an den Messtagen des Fensters – dadurch erzeugt eine
+   Defizit-Änderung (z. B. 1500 → 1000 kcal) KEINEN Übergangs-Artefakt;
+   verbleibende Ausschläge sind real (Wasser/Glykogen, Erfassung, Umsatz).
+   Anzeige als Linie gegen eine Null-Linie: rot (> 0) = Abnahme langsamer als
+   das Defizit erwarten ließe, grün (< 0) = schneller. Gestrichelte
+   Hilfslinien markieren das Normalband ±0,25 (sehr gute Übereinstimmung) und
+   ±0,5 kg/Woche (normales Rauschen); erst dauerhafte Abweichungen darüber
+   hinaus sind ein Kalibrier-Signal (`hilfslinien`-Prop des LinienChart). Tage
+   ohne zweite Messung bzw. ohne Defizit-Tag im Fenster entfallen
    (`steigungsAbweichung` in `shared/naehrwerte.ts`).
 
 Zusätzlich: Liste der letzten 7 Tage mit Sprung zur jeweiligen Tagesseite

@@ -212,6 +212,26 @@ describe('Steigungs-Abweichung (Trend vs. Defizit-Erwartung)', () => {
     for (const x of p) expect(x.abweichung_gramm_pro_tag).toBeCloseTo(100, 6);
   });
 
+  it('erzeugt bei einer Defizit-Aenderung KEINEN Uebergangs-Artefakt', () => {
+    // Defizit faellt von 1400 auf 700 kcal (Tag 8); das Gewicht folgt der
+    // Projektion exakt (w = 90000 − kum/7). Da beide Seiten mit demselben
+    // Schaetzer (Regression an den Messtagen) gerechnet werden, muss die
+    // Abweichung auch IM Uebergangsfenster exakt 0 sein.
+    const gewichte = [];
+    const defizite = [];
+    let kum = 0;
+    for (let i = 1; i <= 20; i++) {
+      const datum = `2026-07-${String(i).padStart(2, '0')}`;
+      const defizit = i <= 7 ? 1400 : 700;
+      kum += defizit;
+      defizite.push({ datum, defizit });
+      gewichte.push({ datum, gramm: 90000 - kum / 7, aus_trend: false });
+    }
+    const p = steigungsAbweichung(gewichte, defizite, 14);
+    expect(p.length).toBeGreaterThan(5);
+    for (const x of p) expect(x.abweichung_gramm_pro_tag).toBeCloseTo(0, 6);
+  });
+
   it('ueberspringt Tage ohne zweite Messung im Fenster und ignoriert aus_trend', () => {
     const defizite = [
       { datum: '2026-07-01', defizit: 700 },

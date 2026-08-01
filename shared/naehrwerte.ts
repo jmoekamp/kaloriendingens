@@ -153,10 +153,13 @@ export interface SteigungsAbweichungPunkt {
 /**
  * Abweichung der Gewichts-Steigung von der Defizit-Erwartung, gleitend je
  * Messtag: Fuer jeden nicht ausgeschlossenen Messpunkt wird ueber die letzten
- * `fensterTage` Tage (a) die Regressions-Steigung der Messungen und (b) die aus
- * dem Median-Tagesdefizit erwartete Steigung (−Median/7, 7000 kcal/kg)
- * berechnet; die Differenz (a − b) ist der Punktwert. Tage ohne mindestens
- * zwei Messungen bzw. ohne Defizit-Tag im Fenster werden uebersprungen.
+ * `fensterTage` Tage die Regressions-Steigung (a) der Messungen und (b) der
+ * PROJIZIERTEN Gewichtskurve aus dem kumulierten Defizit (−kum/7,
+ * 7000 kcal/kg) berechnet – bewusst mit DEMSELBEN Schaetzer an DENSELBEN
+ * Stuetzstellen (Messtage), damit eine Defizit-Aenderung beide Seiten synchron
+ * durchlaeuft und KEINEN Uebergangs-Artefakt erzeugt. Die Differenz (a − b)
+ * ist der Punktwert. Tage ohne mindestens zwei Messungen bzw. ohne
+ * Defizit-Tag im Fenster werden uebersprungen.
  */
 export function steigungsAbweichung(
   gewichte: { datum: string; gramm: number; aus_trend: boolean }[],
@@ -166,6 +169,25 @@ export function steigungsAbweichung(
   const messungen = gewichte
     .filter((g) => !g.aus_trend)
     .sort((a, b) => (a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0));
+  const defSortiert = [...defizitTage].sort((a, b) =>
+    a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0,
+  );
+  // Kumuliertes Defizit je Defizit-Tag (Praefixsummen).
+  let acc = 0;
+  const kum = defSortiert.map((d) => ({
+    datum: d.datum,
+    kum: (acc += d.defizit),
+  }));
+  // Kumuliertes Defizit bis einschliesslich `datum` (Carry-forward, 0 davor).
+  const kumBis = (datum: string): number => {
+    let wert = 0;
+    for (const k of kum) {
+      if (k.datum <= datum) wert = k.kum;
+      else break;
+    }
+    return wert;
+  };
+
   const punkte: SteigungsAbweichungPunkt[] = [];
   for (const m of messungen) {
     const bis = tagesNummer(m.datum);
@@ -175,23 +197,28 @@ export function steigungsAbweichung(
       return t >= von && t <= bis;
     });
     if (fensterMessungen.length < 2) continue;
-    const reg = lineareRegression(
-      fensterMessungen.map((w) => tagesNummer(w.datum)),
+    const xs = fensterMessungen.map((w) => tagesNummer(w.datum));
+    const regMess = lineareRegression(
+      xs,
       fensterMessungen.map((w) => w.gramm),
     );
-    if (!reg) continue;
-    const fensterDefizite = defizitTage
-      .filter((d) => {
-        const t = tagesNummer(d.datum);
-        return t >= von && t <= bis;
-      })
-      .map((d) => d.defizit);
-    if (fensterDefizite.length === 0) continue;
-    // Erwartete Steigung aus dem Defizit: Median_kcal/7 Gramm Abnahme je Tag.
-    const erwartet = -medianVon(fensterDefizite) / 7;
+    if (!regMess) continue;
+    // Ohne Defizit-Tag im Fenster waere die Erwartung inhaltsleer (Steigung 0).
+    const hatDefizit = defSortiert.some((d) => {
+      const t = tagesNummer(d.datum);
+      return t >= von && t <= bis;
+    });
+    if (!hatDefizit) continue;
+    // Erwartung: dieselbe Regression ueber die projizierte Kurve −kum/7 an den
+    // Messtagen (der konstante Offset kuerzt sich in der Steigung heraus).
+    const regProj = lineareRegression(
+      xs,
+      fensterMessungen.map((w) => -kumBis(w.datum) / 7),
+    );
+    if (!regProj) continue;
     punkte.push({
       datum: m.datum,
-      abweichung_gramm_pro_tag: reg.steigung - erwartet,
+      abweichung_gramm_pro_tag: regMess.steigung - regProj.steigung,
     });
   }
   return punkte;

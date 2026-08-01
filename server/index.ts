@@ -30,6 +30,17 @@ const PORT = Number(process.env.PORT ?? 3010);
 const isProd = process.env.NODE_ENV === 'production';
 
 const app = express();
+// Kein Framework-Fingerprinting (X-Powered-By: Express).
+app.disable('x-powered-by');
+// Schadensbegrenzende Standard-Header, ohne zusaetzliche Abhaengigkeit.
+// (Eine volle CSP wuerde wegen React-Inline-Styles 'unsafe-inline' brauchen
+// und ist fuer die LAN-App bewusst weggelassen.)
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff'); // kein MIME-Sniffing
+  res.setHeader('X-Frame-Options', 'DENY'); // kein Einbetten (Clickjacking)
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  next();
+});
 app.use(express.json());
 
 // DB beim Start oeffnen (legt Datei + Schema an) und Erst-Accounts seeden.
@@ -83,6 +94,12 @@ if (isProd) {
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof AppError) {
     res.status(err.status).json({ error: err.message });
+    return;
+  }
+  // Kaputtes JSON im Request-Body ist ein Client-Fehler (400), kein 500 –
+  // und soll das Log nicht mit Stacktraces fuellen.
+  if (err instanceof SyntaxError && 'body' in err) {
+    res.status(400).json({ error: 'Ungültiger JSON-Body.' });
     return;
   }
   // eslint-disable-next-line no-console

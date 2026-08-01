@@ -514,6 +514,13 @@ export default function LangfristSeite({
             )}
           </p>
 
+          {abnehmen.prognosen_stand_trend && (
+            <p className="mb-3 text-xs text-text-muted">
+              Prognosen festgehalten am{' '}
+              {formatDatum(abnehmen.prognosen_stand_trend)} – sie aktualisieren
+              sich erst, wenn das nächste Zwischenziel erreicht ist.
+            </p>
+          )}
           <MeilensteinTabelle
             id="meilensteine-trend"
             meilensteine={abnehmen.meilensteine}
@@ -553,6 +560,13 @@ export default function LangfristSeite({
             )}
           </p>
 
+          {abnehmen.prognosen_stand_median && (
+            <p className="mb-3 text-xs text-text-muted">
+              Prognosen festgehalten am{' '}
+              {formatDatum(abnehmen.prognosen_stand_median)} – sie aktualisieren
+              sich erst, wenn das nächste Zwischenziel erreicht ist.
+            </p>
+          )}
           <MeilensteinTabelle
             id="meilensteine-median"
             meilensteine={abnehmen.meilensteine_defizit_median}

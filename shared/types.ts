@@ -375,6 +375,13 @@ export interface AbnehmFortschritt {
   prognose_defizit_median: string | null;
   /** Meilensteine (5 kg) mit Prognose aus dem gleitenden Defizit-Median. */
   meilensteine_defizit_median: GewichtsMeilenstein[];
+  /**
+   * Datum, an dem die Trend-Prognosen zuletzt festgehalten wurden (sie aendern
+   * sich nur beim Erreichen eines Zwischenziels); null ohne Prognosen.
+   */
+  prognosen_stand_trend: string | null;
+  /** Wie prognosen_stand_trend, fuer die Defizit-Median-Prognosen. */
+  prognosen_stand_median: string | null;
 }
 
 /**

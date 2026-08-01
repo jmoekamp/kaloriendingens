@@ -121,6 +121,22 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_abnehmziele_mandant_datum
 CREATE INDEX IF NOT EXISTS ix_abnehmziele_mandant
   ON abnehmziele (mandant_id);
 
+-- Festgehaltene ("eingefrorene") Meilenstein-Prognosen je Quelle
+-- ('trend' = Gewichtstrend-Regression, 'median' = gleitender Defizit-Median).
+-- Prognose-Daten aendern sich NUR, wenn ein Zwischenziel erreicht wird (oder
+-- sich die Meilenstein-Liste selbst aendert) - so bleibt der vorhergesagte
+-- Termin als Vergleichsbasis stehen, statt taeglich zu wandern. Erreichte
+-- Meilensteine behalten ihre damals festgehaltene Prognose dauerhaft.
+CREATE TABLE IF NOT EXISTS meilenstein_prognosen (
+  mandant_id      INTEGER NOT NULL DEFAULT 1,
+  quelle          TEXT    NOT NULL,
+  gramm           INTEGER NOT NULL,
+  prognose        TEXT,
+  erreicht        INTEGER NOT NULL DEFAULT 0,
+  festgehalten_am TEXT    NOT NULL,
+  PRIMARY KEY (mandant_id, quelle, gramm)
+);
+
 -- Legacy: fruehere (nicht versionierte) Einstellungen als Key-Value. Bleibt als
 -- Migrationsquelle erhalten; neue Werte laufen ueber die Tabelle vorgaben.
 CREATE TABLE IF NOT EXISTS einstellungen (

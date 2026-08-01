@@ -42,6 +42,7 @@ import {
   mifflinDatenVollstaendig,
 } from './koerperdaten.ts';
 import { aktivesAbnehmziel } from './abnehmziele.ts';
+import { frierePrognosenEin } from './prognosen.ts';
 import {
   getVorgabeFuerTag,
   ladeVersionenAsc,
@@ -661,6 +662,8 @@ export function getAbnehmFortschritt(
       defizit_median_gramm_pro_woche: null,
       prognose_defizit_median: null,
       meilensteine_defizit_median: [],
+      prognosen_stand_trend: null,
+      prognosen_stand_median: null,
     };
   }
   const umsatz = ladeUmsatzKontext(db);
@@ -723,13 +726,12 @@ export function getAbnehmFortschritt(
     const x = (zielgewicht - reg.achsenabschnitt) / reg.steigung;
     return Number.isFinite(x) ? fromTag(Math.round(x)) : null;
   };
-  const prognose_gewichtstrend =
-    start_gewicht_gramm !== null
-      ? trendDatumFuer(start_gewicht_gramm - ziel.ziel_gramm)
-      : null;
-
-  // Meilensteine: durch 5 teilbare ganze Kilo unter dem Startgewicht bis zum Ziel.
-  const meilensteine: GewichtsMeilenstein[] = [];
+  // Meilensteine: durch 5 teilbare ganze Kilo unter dem Startgewicht bis zum
+  // Ziel. Die PROGNOSEN dazu werden festgehalten (frierePrognosenEin) und
+  // aendern sich nur, wenn ein Zwischenziel erreicht wird – so bleibt der
+  // vorhergesagte Termin als Vergleichsbasis stehen, statt mit jeder Messung
+  // zu wandern.
+  const meilensteinGramms: number[] = [];
   if (start_gewicht_gramm !== null) {
     const zielgewicht = start_gewicht_gramm - ziel.ziel_gramm;
     for (
@@ -738,22 +740,53 @@ export function getAbnehmFortschritt(
       m -= 5000
     ) {
       if (m >= start_gewicht_gramm) continue; // Startgewicht selbst ist kein Meilenstein
-      // Erste (nicht ausgeschlossene) Messung <= m gilt als erreicht.
-      const treffer = trendW.find((w) => w.gramm <= m);
-      const erreicht_am = treffer ? treffer.datum : null;
-      const prognose = trendDatumFuer(m);
-      const differenz_tage =
-        erreicht_am && prognose
-          ? tagNummer(erreicht_am) - tagNummer(prognose)
-          : null;
-      meilensteine.push({
+      meilensteinGramms.push(m);
+    }
+  }
+  // Erste (nicht ausgeschlossene) Messung <= m gilt als erreicht.
+  const erreichtAm = (m: number): string | null =>
+    trendW.find((w) => w.gramm <= m)?.datum ?? null;
+  const baueMeilensteine = (
+    fest: Map<number, string | null>,
+  ): GewichtsMeilenstein[] =>
+    meilensteinGramms.map((m) => {
+      const erreicht_am = erreichtAm(m);
+      const prognose = fest.get(m) ?? null;
+      return {
         gramm: m,
         erreicht: erreicht_am !== null,
         erreicht_am,
         prognose,
-        differenz_tage,
-      });
-    }
+        differenz_tage:
+          erreicht_am && prognose
+            ? tagNummer(erreicht_am) - tagNummer(prognose)
+            : null,
+      };
+    });
+
+  let prognose_gewichtstrend: string | null = null;
+  let prognosen_stand_trend: string | null = null;
+  let meilensteine: GewichtsMeilenstein[] = [];
+  if (start_gewicht_gramm !== null) {
+    const zielgewicht = start_gewicht_gramm - ziel.ziel_gramm;
+    // Das Zielgewicht laeuft als zusaetzlicher "Meilenstein" mit, damit auch
+    // der Zieltermin eingefroren wird (sofern nicht ohnehin ein 5-kg-Schritt).
+    const alleGramm = meilensteinGramms.includes(zielgewicht)
+      ? meilensteinGramms
+      : [...meilensteinGramms, zielgewicht];
+    const fest = frierePrognosenEin(
+      db,
+      'trend',
+      heute,
+      alleGramm.map((g) => ({
+        gramm: g,
+        erreicht: erreichtAm(g) !== null,
+        live: trendDatumFuer(g),
+      })),
+    );
+    meilensteine = baueMeilensteine(fest.prognosen);
+    prognose_gewichtstrend = fest.prognosen.get(zielgewicht) ?? null;
+    prognosen_stand_trend = fest.stand;
   }
 
   // Prognose auf Basis des gleitenden 7-Tage-Medians des Tagesdefizits: die
@@ -763,7 +796,8 @@ export function getAbnehmFortschritt(
   const MEDIAN_FENSTER = 7;
   let defizit_median_kcal: number | null = null;
   let prognose_defizit_median: string | null = null;
-  const meilensteine_defizit_median: GewichtsMeilenstein[] = [];
+  let prognosen_stand_median: string | null = null;
+  let meilensteine_defizit_median: GewichtsMeilenstein[] = [];
   if (startG) {
     const anker = startG;
     const defz = tagesDefiziteMitDatum(db, umsatz, anker.datum, heute, heute);
@@ -795,29 +829,25 @@ export function getAbnehmFortschritt(
         Math.ceil((noetig - lossHeute) / rateProTag),
       );
     };
-    prognose_defizit_median = medianDatumFuer(anker.gramm - ziel.ziel_gramm);
+    // Wie beim Trend: Prognosen einfrieren, Zieltermin laeuft als
+    // zusaetzlicher "Meilenstein" mit.
     const zielgewicht = anker.gramm - ziel.ziel_gramm;
-    for (
-      let m = Math.floor(anker.gramm / 5000) * 5000;
-      m >= zielgewicht;
-      m -= 5000
-    ) {
-      if (m >= anker.gramm) continue;
-      const treffer = trendW.find((w) => w.gramm <= m);
-      const erreicht_am = treffer ? treffer.datum : null;
-      const prognose = medianDatumFuer(m);
-      const differenz_tage =
-        erreicht_am && prognose
-          ? tagNummer(erreicht_am) - tagNummer(prognose)
-          : null;
-      meilensteine_defizit_median.push({
-        gramm: m,
-        erreicht: erreicht_am !== null,
-        erreicht_am,
-        prognose,
-        differenz_tage,
-      });
-    }
+    const alleGramm = meilensteinGramms.includes(zielgewicht)
+      ? meilensteinGramms
+      : [...meilensteinGramms, zielgewicht];
+    const fest = frierePrognosenEin(
+      db,
+      'median',
+      heute,
+      alleGramm.map((g) => ({
+        gramm: g,
+        erreicht: erreichtAm(g) !== null,
+        live: medianDatumFuer(g),
+      })),
+    );
+    meilensteine_defizit_median = baueMeilensteine(fest.prognosen);
+    prognose_defizit_median = fest.prognosen.get(zielgewicht) ?? null;
+    prognosen_stand_median = fest.stand;
   }
   const defizit_median_gramm_pro_woche =
     defizit_median_kcal !== null ? -defizit_median_kcal : null;
@@ -850,5 +880,7 @@ export function getAbnehmFortschritt(
     defizit_median_gramm_pro_woche,
     prognose_defizit_median,
     meilensteine_defizit_median,
+    prognosen_stand_trend,
+    prognosen_stand_median,
   };
 }

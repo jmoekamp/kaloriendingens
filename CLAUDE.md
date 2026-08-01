@@ -127,6 +127,16 @@ Port **3010**.
   eigenen Karte samt **5-kg-Meilenstein-Übersicht** (`meilensteine`): je durch 5
   teilbarem ganzen Kilo bis zum Ziel die Trend-Prognose bzw. – wenn erreicht – das
   tatsächliche Datum plus „X Tage früher/später" gegenüber der Trend-Prognose.
+  **Eingefrorene Prognosen:** Die Meilenstein- und Zieltermin-Prognosen beider
+  Karten (Trend UND Defizit-Median) werden festgehalten (Tabelle
+  `meilenstein_prognosen`, `frierePrognosenEin` in `server/repos/prognosen.ts`)
+  und ändern sich NUR, wenn ein Zwischenziel erreicht wird (oder sich die
+  Meilenstein-Liste ändert, z. B. neues Abnehmziel) – sonst würde der
+  vorhergesagte Termin mit jeder Messung wandern und taugte nicht als
+  Vergleichsbasis. Erreichte Meilensteine behalten ihre damals festgehaltene
+  Prognose dauerhaft; „früher/später" rechnet gegen sie. Die Raten (kg/Woche,
+  Median kcal/Tag) bleiben live. Felder `prognosen_stand_trend`/`_median`
+  zeigen das Festhalte-Datum.
   Eine **zweite Karte „Defizit-Median (gleitend, 7 Tage)"** zeigt dieselbe
   5-kg-Meilenstein-Tabelle (gemeinsame Komponente `MeilensteinTabelle`), aber die
   Prognose stammt aus dem **gleitenden 7-Tage-Median des Tagesdefizits**: die

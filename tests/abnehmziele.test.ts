@@ -323,6 +323,51 @@ describe('Abnehmfortschritt', () => {
     expect(f.prognose_defizit_median).toBe(verschiebeDatum('2026-07-15', 90));
   });
 
+  it('friert Prognosen ein und aktualisiert sie erst beim Zwischenziel', () => {
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 10000 });
+    // -1000 g in 14 Tagen: m80 (2 kg) in 28 Tagen ab 01.06. -> 29.06.
+    upsertGewicht(db, { datum: '2026-06-01', gramm: 82000, aus_trend: false });
+    upsertGewicht(db, { datum: '2026-06-15', gramm: 81000, aus_trend: false });
+    const f1 = getAbnehmFortschritt(db, '2026-06-20');
+    const p80 = verschiebeDatum('2026-06-01', 28);
+    expect(f1.meilensteine.find((m) => m.gramm === 80000)?.prognose).toBe(p80);
+    const p75v1 = f1.meilensteine.find((m) => m.gramm === 75000)?.prognose;
+    expect(f1.prognosen_stand_trend).toBe('2026-06-20');
+
+    // Neue Messung veraendert die Regression – die Prognosen bleiben aber
+    // eingefroren (kein Zwischenziel erreicht).
+    upsertGewicht(db, { datum: '2026-06-19', gramm: 81600, aus_trend: false });
+    const f2 = getAbnehmFortschritt(db, '2026-06-22');
+    expect(f2.meilensteine.find((m) => m.gramm === 80000)?.prognose).toBe(p80);
+    expect(f2.meilensteine.find((m) => m.gramm === 75000)?.prognose).toBe(
+      p75v1,
+    );
+    expect(f2.prognose_gewichtstrend).toBe(f1.prognose_gewichtstrend);
+    expect(f2.prognosen_stand_trend).toBe('2026-06-20'); // unveraendert
+
+    // Zwischenziel 80 kg erreicht: der erreichte Meilenstein behaelt seine
+    // festgehaltene Prognose (Vergleichsbasis), die offenen werden neu
+    // festgehalten.
+    upsertGewicht(db, { datum: '2026-06-25', gramm: 79800, aus_trend: false });
+    const f3 = getAbnehmFortschritt(db, '2026-06-26');
+    const m80 = f3.meilensteine.find((m) => m.gramm === 80000);
+    expect(m80?.erreicht).toBe(true);
+    expect(m80?.erreicht_am).toBe('2026-06-25');
+    expect(m80?.prognose).toBe(p80); // alte Prognose als Vergleichsbasis
+    expect(m80?.differenz_tage).toBe(-4); // 25.06. vs. 29.06. -> 4 Tage frueher
+    const p75v2 = f3.meilensteine.find((m) => m.gramm === 75000)?.prognose;
+    expect(p75v2).not.toBeNull();
+    expect(p75v2).not.toBe(p75v1); // neu festgehalten
+    expect(f3.prognosen_stand_trend).toBe('2026-06-26');
+
+    // Und wieder stabil, bis das naechste Zwischenziel faellt.
+    upsertGewicht(db, { datum: '2026-06-27', gramm: 79900, aus_trend: false });
+    const f4 = getAbnehmFortschritt(db, '2026-06-28');
+    expect(f4.meilensteine.find((m) => m.gramm === 75000)?.prognose).toBe(
+      p75v2,
+    );
+  });
+
   it('liefert keinen Defizit-Median ohne Tagesdaten', () => {
     upsertAbnehmziel(db, { gueltig_ab: '2026-07-01', ziel_gramm: 5000 });
     upsertGewicht(db, { datum: '2026-07-01', gramm: 90000, aus_trend: false });

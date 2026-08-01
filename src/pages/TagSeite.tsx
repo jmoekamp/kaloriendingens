@@ -34,6 +34,7 @@ import { eintraegeApi } from '../lib/eintraege.ts';
 import { bewegungApi } from '../lib/bewegung.ts';
 import { gewichtApi } from '../lib/gewicht.ts';
 import { lebensmittelApi } from '../lib/lebensmittel.ts';
+import { useSpaltenWahl } from '../components/SpaltenWahl.tsx';
 
 function meldung(e: unknown): string {
   return e instanceof Error ? e.message : 'Unbekannter Fehler';
@@ -130,6 +131,21 @@ export default function TagSeite({
   const [bearbeiteId, setBearbeiteId] = useState<number | null>(null);
   const [editUhrzeit, setEditUhrzeit] = useState('');
   const [editMenge, setEditMenge] = useState('');
+
+  // Spalten der Mahlzeiten-Tabelle ein-/ausblendbar (Default: alle sichtbar).
+  const sw = useSpaltenWahl('mahlzeiten', [
+    { key: 'gegessen', label: 'gegessen' },
+    { key: 'uhrzeit', label: 'Uhrzeit' },
+    { key: 'lebensmittel', label: 'Lebensmittel' },
+    { key: 'menge', label: 'Menge' },
+    { key: 'kcal', label: 'kcal' },
+    { key: 'eiweiss', label: 'Eiweiß' },
+  ]);
+  // Breite der Summen-Beschriftung = sichtbare Spalten vor der Menge-Spalte.
+  const summeSpan = Math.max(
+    1,
+    sw.anzahlSichtbar(['gegessen', 'uhrzeit', 'lebensmittel']),
+  );
 
   const ladeTag = useCallback(() => {
     auswertungApi
@@ -465,153 +481,205 @@ export default function TagSeite({
         {!auswertung || auswertung.eintraege.length === 0 ? (
           <p className="text-text-muted">Für diesen Tag ist nichts erfasst.</p>
         ) : (
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-text-muted">
-                <th className="py-2 pr-3 text-center font-normal">gegessen</th>
-                <th className="py-2 pr-3 font-normal">Uhrzeit</th>
-                <th className="py-2 pr-3 font-normal">Lebensmittel</th>
-                <th className="py-2 pr-3 text-right font-normal">Menge</th>
-                <th className="py-2 pr-3 text-right font-normal">kcal</th>
-                <th className="py-2 pr-3 text-right font-normal">Eiweiß</th>
-                <th className="py-2 font-normal"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {auswertung.eintraege.map((e) => {
-                const imEdit = bearbeiteId === e.id;
-                return (
-                  <tr
-                    key={e.id}
-                    className={`border-b border-border/50 ${
-                      e.gegessen ? '' : 'text-text-muted'
-                    }`}
-                  >
-                    <td className="py-2 pr-3 text-center">
-                      <div className="flex justify-center">
-                        <Checkbox
-                          checked={e.gegessen}
-                          onChange={(c) => gegessenUmschalten(e, c)}
-                        />
-                      </div>
-                    </td>
-                    <td className="py-2 pr-3 tabular">
-                      {imEdit ? (
-                        <TextInput
-                          type="time"
-                          value={editUhrzeit}
-                          onChange={(ev) => setEditUhrzeit(ev.target.value)}
-                          className="w-28 tabular"
-                        />
-                      ) : (
-                        e.uhrzeit
+          <>
+            {sw.auswahl}
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-text-muted">
+                  {sw.sichtbar('gegessen') && (
+                    <th className="py-2 pr-3 text-center font-normal">
+                      gegessen
+                    </th>
+                  )}
+                  {sw.sichtbar('uhrzeit') && (
+                    <th className="py-2 pr-3 font-normal">Uhrzeit</th>
+                  )}
+                  {sw.sichtbar('lebensmittel') && (
+                    <th className="py-2 pr-3 font-normal">Lebensmittel</th>
+                  )}
+                  {sw.sichtbar('menge') && (
+                    <th className="py-2 pr-3 text-right font-normal">Menge</th>
+                  )}
+                  {sw.sichtbar('kcal') && (
+                    <th className="py-2 pr-3 text-right font-normal">kcal</th>
+                  )}
+                  {sw.sichtbar('eiweiss') && (
+                    <th className="py-2 pr-3 text-right font-normal">Eiweiß</th>
+                  )}
+                  <th className="py-2 font-normal"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {auswertung.eintraege.map((e) => {
+                  const imEdit = bearbeiteId === e.id;
+                  return (
+                    <tr
+                      key={e.id}
+                      className={`border-b border-border/50 ${
+                        e.gegessen ? '' : 'text-text-muted'
+                      }`}
+                    >
+                      {sw.sichtbar('gegessen') && (
+                        <td className="py-2 pr-3 text-center">
+                          <div className="flex justify-center">
+                            <Checkbox
+                              checked={e.gegessen}
+                              onChange={(c) => gegessenUmschalten(e, c)}
+                            />
+                          </div>
+                        </td>
                       )}
-                    </td>
-                    <td className="py-2 pr-3">{e.lebensmittel_name}</td>
-                    <td className="py-2 pr-3 text-right tabular">
-                      {imEdit ? (
-                        <TextInput
-                          value={editMenge}
-                          onChange={(ev) => setEditMenge(ev.target.value)}
-                          inputMode="numeric"
-                          className="w-24 tabular"
-                        />
-                      ) : (
-                        `${e.menge_gramm} g`
+                      {sw.sichtbar('uhrzeit') && (
+                        <td className="py-2 pr-3 tabular">
+                          {imEdit ? (
+                            <TextInput
+                              type="time"
+                              value={editUhrzeit}
+                              onChange={(ev) => setEditUhrzeit(ev.target.value)}
+                              className="w-28 tabular"
+                            />
+                          ) : (
+                            e.uhrzeit
+                          )}
+                        </td>
                       )}
-                    </td>
+                      {sw.sichtbar('lebensmittel') && (
+                        <td className="py-2 pr-3">{e.lebensmittel_name}</td>
+                      )}
+                      {sw.sichtbar('menge') && (
+                        <td className="py-2 pr-3 text-right tabular">
+                          {imEdit ? (
+                            <TextInput
+                              value={editMenge}
+                              onChange={(ev) => setEditMenge(ev.target.value)}
+                              inputMode="numeric"
+                              className="w-24 tabular"
+                            />
+                          ) : (
+                            `${e.menge_gramm} g`
+                          )}
+                        </td>
+                      )}
+                      {sw.sichtbar('kcal') && (
+                        <td className="py-2 pr-3 text-right tabular">
+                          {formatKcal(e.kcal ?? 0)}
+                        </td>
+                      )}
+                      {sw.sichtbar('eiweiss') && (
+                        <td className="py-2 pr-3 text-right tabular">
+                          {formatGramm(e.eiweiss_dg ?? 0)} g
+                        </td>
+                      )}
+                      <td className="py-2 text-right">
+                        <div className="flex justify-end gap-2">
+                          {imEdit ? (
+                            <>
+                              <Button
+                                variant="primary"
+                                onClick={() => bearbeitenSpeichern(e)}
+                              >
+                                Speichern
+                              </Button>
+                              <Button onClick={() => setBearbeiteId(null)}>
+                                Abbrechen
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button onClick={() => bearbeitenStart(e)}>
+                                Bearbeiten
+                              </Button>
+                              <Button
+                                variant="danger"
+                                onClick={() => loeschen(e)}
+                              >
+                                Löschen
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-border font-bold">
+                  <td className="py-2 pr-3" colSpan={summeSpan}>
+                    Summe (gegessen)
+                  </td>
+                  {sw.sichtbar('menge') && (
                     <td className="py-2 pr-3 text-right tabular">
-                      {formatKcal(e.kcal ?? 0)}
+                      {auswertung.eintraege
+                        .filter((e) => e.gegessen)
+                        .reduce((s, e) => s + e.menge_gramm, 0)}{' '}
+                      g
                     </td>
+                  )}
+                  {sw.sichtbar('kcal') && (
                     <td className="py-2 pr-3 text-right tabular">
-                      {formatGramm(e.eiweiss_dg ?? 0)} g
+                      {formatKcal(auswertung.summe_kcal)}
                     </td>
-                    <td className="py-2 text-right">
-                      <div className="flex justify-end gap-2">
-                        {imEdit ? (
-                          <>
-                            <Button
-                              variant="primary"
-                              onClick={() => bearbeitenSpeichern(e)}
-                            >
-                              Speichern
-                            </Button>
-                            <Button onClick={() => setBearbeiteId(null)}>
-                              Abbrechen
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button onClick={() => bearbeitenStart(e)}>
-                              Bearbeiten
-                            </Button>
-                            <Button
-                              variant="danger"
-                              onClick={() => loeschen(e)}
-                            >
-                              Löschen
-                            </Button>
-                          </>
-                        )}
-                      </div>
+                  )}
+                  {sw.sichtbar('eiweiss') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {formatGramm(auswertung.summe_eiweiss_dg)} g
                     </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-border font-bold">
-                <td className="py-2 pr-3" colSpan={3}>
-                  Summe (gegessen)
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {auswertung.eintraege
-                    .filter((e) => e.gegessen)
-                    .reduce((s, e) => s + e.menge_gramm, 0)}{' '}
-                  g
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {formatKcal(auswertung.summe_kcal)}
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {formatGramm(auswertung.summe_eiweiss_dg)} g
-                </td>
-                <td></td>
-              </tr>
-              <tr className="font-bold text-text-muted">
-                <td className="py-2 pr-3" colSpan={3}>
-                  Summe (geplant)
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {geplantMenge} g
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {formatKcal(geplantKcal)}
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {formatGramm(geplantEiweissDg)} g
-                </td>
-                <td></td>
-              </tr>
-              <tr className="border-t border-border font-bold">
-                <td className="py-2 pr-3" colSpan={3}>
-                  Summe (gegessen + geplant)
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {auswertung.eintraege.reduce((s, e) => s + e.menge_gramm, 0)}{' '}
-                  g
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {formatKcal(auswertung.summe_kcal + geplantKcal)}
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {formatGramm(auswertung.summe_eiweiss_dg + geplantEiweissDg)}{' '}
-                  g
-                </td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
+                  )}
+                  <td></td>
+                </tr>
+                <tr className="font-bold text-text-muted">
+                  <td className="py-2 pr-3" colSpan={summeSpan}>
+                    Summe (geplant)
+                  </td>
+                  {sw.sichtbar('menge') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {geplantMenge} g
+                    </td>
+                  )}
+                  {sw.sichtbar('kcal') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {formatKcal(geplantKcal)}
+                    </td>
+                  )}
+                  {sw.sichtbar('eiweiss') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {formatGramm(geplantEiweissDg)} g
+                    </td>
+                  )}
+                  <td></td>
+                </tr>
+                <tr className="border-t border-border font-bold">
+                  <td className="py-2 pr-3" colSpan={summeSpan}>
+                    Summe (gegessen + geplant)
+                  </td>
+                  {sw.sichtbar('menge') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {auswertung.eintraege.reduce(
+                        (s, e) => s + e.menge_gramm,
+                        0,
+                      )}{' '}
+                      g
+                    </td>
+                  )}
+                  {sw.sichtbar('kcal') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {formatKcal(auswertung.summe_kcal + geplantKcal)}
+                    </td>
+                  )}
+                  {sw.sichtbar('eiweiss') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {formatGramm(
+                        auswertung.summe_eiweiss_dg + geplantEiweissDg,
+                      )}{' '}
+                      g
+                    </td>
+                  )}
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </>
         )}
       </Card>
 
@@ -770,6 +838,11 @@ function BewegungAbschnitt({
   const [kcal, setKcal] = useState('');
   const [speichert, setSpeichert] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
+  const sw = useSpaltenWahl('bewegung', [
+    { key: 'uhrzeit', label: 'Uhrzeit' },
+    { key: 'beschreibung', label: 'Beschreibung' },
+    { key: 'kcal', label: 'kcal' },
+  ]);
 
   const laden = useCallback(() => {
     bewegungApi
@@ -876,43 +949,66 @@ function BewegungAbschnitt({
           Für diesen Tag ist keine Bewegung erfasst.
         </p>
       ) : (
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-text-muted">
-              <th className="py-2 pr-3 font-normal">Uhrzeit</th>
-              <th className="py-2 pr-3 font-normal">Beschreibung</th>
-              <th className="py-2 pr-3 text-right font-normal">kcal</th>
-              <th className="py-2 font-normal"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {liste.map((b) => (
-              <tr key={b.id} className="border-b border-border/50">
-                <td className="py-2 pr-3 tabular">{b.uhrzeit}</td>
-                <td className="py-2 pr-3">{b.beschreibung}</td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {formatKcal(b.kcal)}
-                </td>
-                <td className="py-2 text-right">
-                  <Button variant="danger" onClick={() => loeschen(b)}>
-                    Löschen
-                  </Button>
-                </td>
+        <>
+          {sw.auswahl}
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-text-muted">
+                {sw.sichtbar('uhrzeit') && (
+                  <th className="py-2 pr-3 font-normal">Uhrzeit</th>
+                )}
+                {sw.sichtbar('beschreibung') && (
+                  <th className="py-2 pr-3 font-normal">Beschreibung</th>
+                )}
+                {sw.sichtbar('kcal') && (
+                  <th className="py-2 pr-3 text-right font-normal">kcal</th>
+                )}
+                <th className="py-2 font-normal"></th>
               </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="border-t border-border font-bold">
-              <td className="py-2 pr-3" colSpan={2}>
-                Summe
-              </td>
-              <td className="py-2 pr-3 text-right tabular">
-                {formatKcal(summe)}
-              </td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </table>
+            </thead>
+            <tbody>
+              {liste.map((b) => (
+                <tr key={b.id} className="border-b border-border/50">
+                  {sw.sichtbar('uhrzeit') && (
+                    <td className="py-2 pr-3 tabular">{b.uhrzeit}</td>
+                  )}
+                  {sw.sichtbar('beschreibung') && (
+                    <td className="py-2 pr-3">{b.beschreibung}</td>
+                  )}
+                  {sw.sichtbar('kcal') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {formatKcal(b.kcal)}
+                    </td>
+                  )}
+                  <td className="py-2 text-right">
+                    <Button variant="danger" onClick={() => loeschen(b)}>
+                      Löschen
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-border font-bold">
+                <td
+                  className="py-2 pr-3"
+                  colSpan={Math.max(
+                    1,
+                    sw.anzahlSichtbar(['uhrzeit', 'beschreibung']),
+                  )}
+                >
+                  Summe
+                </td>
+                {sw.sichtbar('kcal') && (
+                  <td className="py-2 pr-3 text-right tabular">
+                    {formatKcal(summe)}
+                  </td>
+                )}
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </>
       )}
     </Card>
   );

@@ -224,6 +224,15 @@ Port **3010**.
   „Tabelle kopieren"-Button (TSV). `getDetailReport`,
   `GET /api/auswertung/detail`.
 
+- **Spalten ein-/ausblenden:** Über jeder Tabelle sitzt ein per Default
+  EINGEKLAPPTES „Spalten ein-/ausblenden"-Element (`<details>`) mit einer
+  Checkbox je Spalte; Standard: alle sichtbar. Die Auswahl wird je Tabelle in
+  localStorage gemerkt (`spalten.<id>`, gespeichert werden nur die
+  ausgeblendeten Schlüssel). Aktions-Spalten (Buttons) sind immer sichtbar;
+  Summenzeilen passen ihre colSpans dynamisch an. Die TSV-Exporte der
+  Allzeit-/Detailreports enthalten unabhängig von der Auswahl immer ALLE
+  Spalten. (`useSpaltenWahl` in `src/components/SpaltenWahl.tsx`.)
+
 ## Einheiten-Konvention
 
 Analog zum Cent-Prinzip: alles als Ganzzahl halten, erst zur Anzeige formatieren.

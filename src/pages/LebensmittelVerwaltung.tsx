@@ -22,6 +22,7 @@ function fmtOderStrich(n: number | null): string {
   return n === null ? '—' : formatDezimal(n);
 }
 import { lebensmittelApi } from '../lib/lebensmittel.ts';
+import { useSpaltenWahl } from '../components/SpaltenWahl.tsx';
 
 function meldung(e: unknown): string {
   return e instanceof Error ? e.message : 'Unbekannter Fehler';
@@ -343,6 +344,15 @@ function OffImport({
   const [suchtEan, setSuchtEan] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [gesucht, setGesucht] = useState(false);
+  const sw = useSpaltenWahl('off-treffer', [
+    { key: 'name', label: 'Name' },
+    { key: 'kcal', label: 'kcal / 100 g' },
+    { key: 'eiweiss', label: 'Eiweiß / 100 g' },
+    { key: 'fett', label: 'Fett' },
+    { key: 'kh', label: 'KH' },
+    { key: 'ballast', label: 'Ballaststoffe' },
+    { key: 'packung', label: 'Packung' },
+  ]);
 
   async function suchen(e: React.FormEvent) {
     e.preventDefault();
@@ -438,58 +448,98 @@ function OffImport({
         <p className="text-sm text-text-muted">Keine Treffer gefunden.</p>
       )}
       {treffer.length > 0 && (
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-text-muted">
-              <th className="py-2 pr-3 font-normal">Name</th>
-              <th className="py-2 pr-3 text-right font-normal">kcal / 100 g</th>
-              <th className="py-2 pr-3 text-right font-normal">
-                Eiweiß / 100 g
-              </th>
-              <th className="py-2 pr-3 text-right font-normal">Fett</th>
-              <th className="py-2 pr-3 text-right font-normal">KH</th>
-              <th className="py-2 pr-3 text-right font-normal">Ballastst.</th>
-              <th className="py-2 pr-3 text-right font-normal">Packung</th>
-              <th className="py-2 font-normal"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {treffer.map((t, i) => (
-              <tr key={`${t.code}-${i}`} className="border-b border-border/50">
-                <td className="py-2 pr-3">{t.name}</td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {t.kcal_pro_100g === null ? '—' : formatKcal(t.kcal_pro_100g)}
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {t.eiweiss_dg_pro_100g === null
-                    ? '—'
-                    : `${formatGramm(t.eiweiss_dg_pro_100g)} g`}
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {t.fett_dg_pro_100g === null
-                    ? '—'
-                    : `${formatGramm(t.fett_dg_pro_100g)} g`}
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {t.kohlenhydrate_dg_pro_100g === null
-                    ? '—'
-                    : `${formatGramm(t.kohlenhydrate_dg_pro_100g)} g`}
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {t.ballaststoffe_dg_pro_100g === null
-                    ? '—'
-                    : `${formatGramm(t.ballaststoffe_dg_pro_100g)} g`}
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {t.packung_gramm === null ? '—' : `${t.packung_gramm} g`}
-                </td>
-                <td className="py-2 text-right">
-                  <Button onClick={() => onUebernehmen(t)}>Übernehmen</Button>
-                </td>
+        <>
+          {sw.auswahl}
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-text-muted">
+                {sw.sichtbar('name') && (
+                  <th className="py-2 pr-3 font-normal">Name</th>
+                )}
+                {sw.sichtbar('kcal') && (
+                  <th className="py-2 pr-3 text-right font-normal">
+                    kcal / 100 g
+                  </th>
+                )}
+                {sw.sichtbar('eiweiss') && (
+                  <th className="py-2 pr-3 text-right font-normal">
+                    Eiweiß / 100 g
+                  </th>
+                )}
+                {sw.sichtbar('fett') && (
+                  <th className="py-2 pr-3 text-right font-normal">Fett</th>
+                )}
+                {sw.sichtbar('kh') && (
+                  <th className="py-2 pr-3 text-right font-normal">KH</th>
+                )}
+                {sw.sichtbar('ballast') && (
+                  <th className="py-2 pr-3 text-right font-normal">
+                    Ballastst.
+                  </th>
+                )}
+                {sw.sichtbar('packung') && (
+                  <th className="py-2 pr-3 text-right font-normal">Packung</th>
+                )}
+                <th className="py-2 font-normal"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {treffer.map((t, i) => (
+                <tr
+                  key={`${t.code}-${i}`}
+                  className="border-b border-border/50"
+                >
+                  {sw.sichtbar('name') && (
+                    <td className="py-2 pr-3">{t.name}</td>
+                  )}
+                  {sw.sichtbar('kcal') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {t.kcal_pro_100g === null
+                        ? '—'
+                        : formatKcal(t.kcal_pro_100g)}
+                    </td>
+                  )}
+                  {sw.sichtbar('eiweiss') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {t.eiweiss_dg_pro_100g === null
+                        ? '—'
+                        : `${formatGramm(t.eiweiss_dg_pro_100g)} g`}
+                    </td>
+                  )}
+                  {sw.sichtbar('fett') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {t.fett_dg_pro_100g === null
+                        ? '—'
+                        : `${formatGramm(t.fett_dg_pro_100g)} g`}
+                    </td>
+                  )}
+                  {sw.sichtbar('kh') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {t.kohlenhydrate_dg_pro_100g === null
+                        ? '—'
+                        : `${formatGramm(t.kohlenhydrate_dg_pro_100g)} g`}
+                    </td>
+                  )}
+                  {sw.sichtbar('ballast') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {t.ballaststoffe_dg_pro_100g === null
+                        ? '—'
+                        : `${formatGramm(t.ballaststoffe_dg_pro_100g)} g`}
+                    </td>
+                  )}
+                  {sw.sichtbar('packung') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {t.packung_gramm === null ? '—' : `${t.packung_gramm} g`}
+                    </td>
+                  )}
+                  <td className="py-2 text-right">
+                    <Button onClick={() => onUebernehmen(t)}>Übernehmen</Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </Card>
   );
@@ -506,6 +556,8 @@ export default function LebensmittelVerwaltung() {
   const [speichert, setSpeichert] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortAsc, setSortAsc] = useState(true);
+  const sw = useSpaltenWahl('lebensmittel', SPALTEN);
+  const sichtbareSpalten = SPALTEN.filter((s) => sw.sichtbar(s.key));
 
   function sortiereNach(key: SortKey) {
     if (key === sortKey) setSortAsc((a) => !a);
@@ -698,151 +750,190 @@ export default function LebensmittelVerwaltung() {
         {liste.length === 0 ? (
           <p className="text-text-muted">Noch keine Lebensmittel angelegt.</p>
         ) : (
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-text-muted">
-                {SPALTEN.map((s) => (
-                  <th
-                    key={s.key}
-                    className={`py-2 pr-3 font-normal ${s.rechts ? 'text-right' : ''}`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => sortiereNach(s.key)}
-                      className={`inline-flex items-center gap-1 hover:text-text ${
-                        s.rechts ? 'flex-row-reverse' : ''
-                      } ${sortKey === s.key ? 'text-text' : ''}`}
-                      title="Nach dieser Spalte sortieren"
+          <>
+            {sw.auswahl}
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-text-muted">
+                  {sichtbareSpalten.map((s) => (
+                    <th
+                      key={s.key}
+                      className={`py-2 pr-3 font-normal ${s.rechts ? 'text-right' : ''}`}
                     >
-                      {s.label}
-                      <span className="text-[10px]">
-                        {sortKey === s.key ? (sortAsc ? '▲' : '▼') : '↕'}
-                      </span>
-                    </button>
-                  </th>
-                ))}
-                <th className="py-2 font-normal"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortiert.map((l) => (
-                <Fragment key={l.id}>
-                  <tr className="border-b border-border/50">
-                    <td className="py-2 pr-3">{l.name}</td>
-                    <td className="py-2 pr-3 text-right tabular">
-                      {formatKcal(l.kcal_pro_100g)}
-                    </td>
-                    <td className="py-2 pr-3 text-right tabular">
-                      {formatGramm(l.eiweiss_dg_pro_100g)} g
-                    </td>
-                    <td className="py-2 pr-3 text-right tabular">
-                      {l.fett_dg_pro_100g == null
-                        ? '—'
-                        : `${formatGramm(l.fett_dg_pro_100g)} g`}
-                    </td>
-                    <td className="py-2 pr-3 text-right tabular">
-                      {l.kohlenhydrate_dg_pro_100g == null
-                        ? '—'
-                        : `${formatGramm(l.kohlenhydrate_dg_pro_100g)} g`}
-                    </td>
-                    <td className="py-2 pr-3 text-right tabular">
-                      {l.ballaststoffe_dg_pro_100g == null
-                        ? '—'
-                        : `${formatGramm(l.ballaststoffe_dg_pro_100g)} g`}
-                    </td>
-                    <td className="py-2 pr-3 text-right tabular text-text-muted">
-                      {fmtOderStrich(
-                        eiweissProKcal(l.kcal_pro_100g, l.eiweiss_dg_pro_100g),
+                      <button
+                        type="button"
+                        onClick={() => sortiereNach(s.key)}
+                        className={`inline-flex items-center gap-1 hover:text-text ${
+                          s.rechts ? 'flex-row-reverse' : ''
+                        } ${sortKey === s.key ? 'text-text' : ''}`}
+                        title="Nach dieser Spalte sortieren"
+                      >
+                        {s.label}
+                        <span className="text-[10px]">
+                          {sortKey === s.key ? (sortAsc ? '▲' : '▼') : '↕'}
+                        </span>
+                      </button>
+                    </th>
+                  ))}
+                  <th className="py-2 font-normal"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortiert.map((l) => (
+                  <Fragment key={l.id}>
+                    <tr className="border-b border-border/50">
+                      {sw.sichtbar('name') && (
+                        <td className="py-2 pr-3">{l.name}</td>
                       )}
-                    </td>
-                    <td className="py-2 pr-3 text-right tabular text-text-muted">
-                      {fmtOderStrich(grammProKcal(l.kcal_pro_100g))}
-                    </td>
-                    <td className="py-2 pr-3 text-right tabular text-text-muted">
-                      {fmtOderStrich(
-                        grammProGrammEiweiss(l.eiweiss_dg_pro_100g),
+                      {sw.sichtbar('kcal') && (
+                        <td className="py-2 pr-3 text-right tabular">
+                          {formatKcal(l.kcal_pro_100g)}
+                        </td>
                       )}
-                    </td>
-                    <td className="py-2 pr-3 text-right tabular">
-                      {l.packung_gramm == null ? '—' : `${l.packung_gramm} g`}
-                    </td>
-                    <td className="py-2 pr-3 text-right tabular">
-                      {kcalGanzePackung(l) === null
-                        ? '—'
-                        : formatKcal(kcalGanzePackung(l) as number)}
-                    </td>
-                    <td
-                      className={`py-2 pr-3 text-right tabular ${
-                        l.bestand_gramm !== null && l.bestand_gramm < 0
-                          ? 'text-danger'
-                          : ''
-                      }`}
-                      title={
-                        l.bestand_gramm !== null &&
-                        l.packung_gramm != null &&
-                        l.packung_gramm > 0
-                          ? `≈ ${formatDezimal(l.bestand_gramm / l.packung_gramm, 1)} Packung(en)`
-                          : undefined
-                      }
-                    >
-                      {l.bestand_gramm === null ? '—' : `${l.bestand_gramm} g`}
-                    </td>
-                    <td className="py-2">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          onClick={() =>
-                            bearbeitetId === l.id ? abbrechen() : bearbeiten(l)
-                          }
-                        >
-                          Bearbeiten
-                        </Button>
-                        <Button
-                          variant="danger"
-                          onClick={() => loeschen(l)}
+                      {sw.sichtbar('eiweiss') && (
+                        <td className="py-2 pr-3 text-right tabular">
+                          {formatGramm(l.eiweiss_dg_pro_100g)} g
+                        </td>
+                      )}
+                      {sw.sichtbar('fett') && (
+                        <td className="py-2 pr-3 text-right tabular">
+                          {l.fett_dg_pro_100g == null
+                            ? '—'
+                            : `${formatGramm(l.fett_dg_pro_100g)} g`}
+                        </td>
+                      )}
+                      {sw.sichtbar('kh') && (
+                        <td className="py-2 pr-3 text-right tabular">
+                          {l.kohlenhydrate_dg_pro_100g == null
+                            ? '—'
+                            : `${formatGramm(l.kohlenhydrate_dg_pro_100g)} g`}
+                        </td>
+                      )}
+                      {sw.sichtbar('ballast') && (
+                        <td className="py-2 pr-3 text-right tabular">
+                          {l.ballaststoffe_dg_pro_100g == null
+                            ? '—'
+                            : `${formatGramm(l.ballaststoffe_dg_pro_100g)} g`}
+                        </td>
+                      )}
+                      {sw.sichtbar('eiweiss_kcal') && (
+                        <td className="py-2 pr-3 text-right tabular text-text-muted">
+                          {fmtOderStrich(
+                            eiweissProKcal(
+                              l.kcal_pro_100g,
+                              l.eiweiss_dg_pro_100g,
+                            ),
+                          )}
+                        </td>
+                      )}
+                      {sw.sichtbar('g_kcal') && (
+                        <td className="py-2 pr-3 text-right tabular text-text-muted">
+                          {fmtOderStrich(grammProKcal(l.kcal_pro_100g))}
+                        </td>
+                      )}
+                      {sw.sichtbar('g_eiweiss') && (
+                        <td className="py-2 pr-3 text-right tabular text-text-muted">
+                          {fmtOderStrich(
+                            grammProGrammEiweiss(l.eiweiss_dg_pro_100g),
+                          )}
+                        </td>
+                      )}
+                      {sw.sichtbar('packung') && (
+                        <td className="py-2 pr-3 text-right tabular">
+                          {l.packung_gramm == null
+                            ? '—'
+                            : `${l.packung_gramm} g`}
+                        </td>
+                      )}
+                      {sw.sichtbar('kcal_packung') && (
+                        <td className="py-2 pr-3 text-right tabular">
+                          {kcalGanzePackung(l) === null
+                            ? '—'
+                            : formatKcal(kcalGanzePackung(l) as number)}
+                        </td>
+                      )}
+                      {sw.sichtbar('bestand') && (
+                        <td
+                          className={`py-2 pr-3 text-right tabular ${
+                            l.bestand_gramm !== null && l.bestand_gramm < 0
+                              ? 'text-danger'
+                              : ''
+                          }`}
                           title={
-                            (l.eintrag_anzahl ?? 0) > 0
-                              ? `Wird von ${l.eintrag_anzahl} Eintrag/Einträgen verwendet`
+                            l.bestand_gramm !== null &&
+                            l.packung_gramm != null &&
+                            l.packung_gramm > 0
+                              ? `≈ ${formatDezimal(l.bestand_gramm / l.packung_gramm, 1)} Packung(en)`
                               : undefined
                           }
                         >
-                          Löschen
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                  {/* Inline-Bearbeitung: klappt direkt unter der Zeile auf. */}
-                  {bearbeitetId === l.id && (
-                    <tr className="border-b border-border/50 bg-surface-2/50">
-                      <td colSpan={SPALTEN.length + 1} className="p-3">
-                        <form
-                          onSubmit={bearbeitenSpeichern}
-                          className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-4"
-                        >
-                          <LebensmittelFelder
-                            form={editForm}
-                            set={setEdit}
-                            onFehler={setFehler}
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              type="submit"
-                              variant="primary"
-                              disabled={speichert}
-                            >
-                              {speichert ? 'Speichert …' : 'Speichern'}
-                            </Button>
-                            <Button type="button" onClick={abbrechen}>
-                              Abbrechen
-                            </Button>
-                          </div>
-                        </form>
+                          {l.bestand_gramm === null
+                            ? '—'
+                            : `${l.bestand_gramm} g`}
+                        </td>
+                      )}
+                      <td className="py-2">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            onClick={() =>
+                              bearbeitetId === l.id
+                                ? abbrechen()
+                                : bearbeiten(l)
+                            }
+                          >
+                            Bearbeiten
+                          </Button>
+                          <Button
+                            variant="danger"
+                            onClick={() => loeschen(l)}
+                            title={
+                              (l.eintrag_anzahl ?? 0) > 0
+                                ? `Wird von ${l.eintrag_anzahl} Eintrag/Einträgen verwendet`
+                                : undefined
+                            }
+                          >
+                            Löschen
+                          </Button>
+                        </div>
                       </td>
                     </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
+                    {/* Inline-Bearbeitung: klappt direkt unter der Zeile auf. */}
+                    {bearbeitetId === l.id && (
+                      <tr className="border-b border-border/50 bg-surface-2/50">
+                        <td
+                          colSpan={sichtbareSpalten.length + 1}
+                          className="p-3"
+                        >
+                          <form
+                            onSubmit={bearbeitenSpeichern}
+                            className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-4"
+                          >
+                            <LebensmittelFelder
+                              form={editForm}
+                              set={setEdit}
+                              onFehler={setFehler}
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                type="submit"
+                                variant="primary"
+                                disabled={speichert}
+                              >
+                                {speichert ? 'Speichert …' : 'Speichern'}
+                              </Button>
+                              <Button type="button" onClick={abbrechen}>
+                                Abbrechen
+                              </Button>
+                            </div>
+                          </form>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </Card>
     </div>

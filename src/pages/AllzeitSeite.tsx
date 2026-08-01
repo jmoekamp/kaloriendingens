@@ -5,6 +5,7 @@ import { formatGramm, formatKcal, formatKg } from '../../shared/naehrwerte.ts';
 import { formatDatum } from '../lib/format.ts';
 import { auswertungApi } from '../lib/auswertung.ts';
 import { kopiereText } from '../lib/zwischenablage.ts';
+import { useSpaltenWahl } from '../components/SpaltenWahl.tsx';
 
 function meldung(e: unknown): string {
   return e instanceof Error ? e.message : 'Unbekannter Fehler';
@@ -68,6 +69,21 @@ const DETAIL_KOPF = [
   'Aufnahme (kcal)',
   'Defizit (kcal)',
   'Eiweiß (g)',
+];
+
+/** Stabile Schluessel je Detailreport-Spalte (gleiche Reihenfolge wie KOPF). */
+const DETAIL_KEYS = [
+  'datum',
+  'uhrzeit',
+  'eintrag',
+  'menge',
+  'gewicht',
+  'umsatz',
+  'bewegung',
+  'verbrauch',
+  'aufnahme',
+  'defizit',
+  'eiweiss',
 ];
 
 /**
@@ -150,6 +166,12 @@ function DetailReportKarte() {
   const [geladen, setGeladen] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [kopiert, setKopiert] = useState(false);
+  const sw = useSpaltenWahl(
+    'detailreport',
+    DETAIL_KEYS.map((key, i) => ({ key, label: DETAIL_KOPF[i] })),
+  );
+  // Sichtbarkeits-Maske je Spaltenposition (zellen sind positionsbasiert).
+  const maske = DETAIL_KEYS.map((k) => sw.sichtbar(k));
 
   useEffect(() => {
     auswertungApi
@@ -200,45 +222,134 @@ function DetailReportKarte() {
       ) : tage.length === 0 ? (
         <p className="text-text-muted">Noch keine Daten erfasst.</p>
       ) : (
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-text-muted">
-              {DETAIL_KOPF.map((k, i) => (
-                <th
-                  key={k}
-                  className={`py-1.5 pr-3 font-normal ${i >= 3 ? 'text-right' : ''}`}
-                >
-                  {k}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {zeilen.map((z, i) => (
-              <tr
-                key={i}
-                className={
-                  z.art === 'tag'
-                    ? 'border-t border-border bg-surface-2/50 font-bold'
-                    : 'text-text-muted'
-                }
-              >
-                {z.zellen.map((wert, si) => (
-                  <td
-                    key={si}
-                    className={`py-1 pr-3 tabular ${si >= 3 ? 'text-right' : ''}`}
-                  >
-                    {wert}
-                  </td>
-                ))}
+        <>
+          {sw.auswahl}
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-text-muted">
+                {DETAIL_KOPF.map((k, i) =>
+                  maske[i] ? (
+                    <th
+                      key={k}
+                      className={`py-1.5 pr-3 font-normal ${i >= 3 ? 'text-right' : ''}`}
+                    >
+                      {k}
+                    </th>
+                  ) : null,
+                )}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {zeilen.map((z, i) => (
+                <tr
+                  key={i}
+                  className={
+                    z.art === 'tag'
+                      ? 'border-t border-border bg-surface-2/50 font-bold'
+                      : 'text-text-muted'
+                  }
+                >
+                  {z.zellen.map((wert, si) =>
+                    maske[si] ? (
+                      <td
+                        key={si}
+                        className={`py-1 pr-3 tabular ${si >= 3 ? 'text-right' : ''}`}
+                      >
+                        {wert}
+                      </td>
+                    ) : null,
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </Card>
   );
 }
+
+/**
+ * Spaltendefinition des Allzeitreports (nur Anzeige – der TSV-Export enthaelt
+ * immer ALLE Spalten, unabhaengig von der Auswahl).
+ */
+const ALLZEIT_SPALTEN: {
+  key: string;
+  label: string;
+  rechts?: boolean;
+  zelle: (z: AllzeitTag) => string;
+  klasse?: (z: AllzeitTag) => string;
+}[] = [
+  { key: 'datum', label: 'Datum', zelle: (z) => formatDatum(z.datum) },
+  {
+    key: 'gewicht',
+    label: 'Gewicht (kg)',
+    rechts: true,
+    zelle: (z) => (z.gewicht_gramm === null ? '' : formatKg(z.gewicht_gramm)),
+  },
+  {
+    key: 'umsatz',
+    label: 'Gesamtumsatz',
+    rechts: true,
+    zelle: (z) => formatKcal(z.gesamtumsatz),
+  },
+  {
+    key: 'bewegung',
+    label: 'Bewegung',
+    rechts: true,
+    zelle: (z) => (z.bewegung === 0 ? '' : formatKcal(z.bewegung)),
+  },
+  {
+    key: 'verbrauch',
+    label: 'Verbrauch',
+    rechts: true,
+    zelle: (z) => formatKcal(z.verbrauch),
+  },
+  {
+    key: 'aufnahme',
+    label: 'Aufnahme',
+    rechts: true,
+    zelle: (z) => (z.aufnahme_kcal === null ? '' : formatKcal(z.aufnahme_kcal)),
+  },
+  {
+    key: 'defizit',
+    label: 'Defizit',
+    rechts: true,
+    zelle: (z) => (z.defizit_kcal === null ? '' : formatKcal(z.defizit_kcal)),
+    klasse: (z) =>
+      z.defizit_kcal === null
+        ? ''
+        : z.defizit_kcal >= 0
+          ? 'text-success'
+          : 'text-danger',
+  },
+  {
+    key: 'eiweiss',
+    label: 'Eiweiß (g)',
+    rechts: true,
+    zelle: (z) => (z.eiweiss_dg === null ? '' : formatGramm(z.eiweiss_dg)),
+  },
+  {
+    key: 'fett',
+    label: 'Fett (g)',
+    rechts: true,
+    zelle: (z) => (z.fett_dg === null ? '' : formatGramm(z.fett_dg)),
+  },
+  {
+    key: 'kh',
+    label: 'KH (g)',
+    rechts: true,
+    zelle: (z) =>
+      z.kohlenhydrate_dg === null ? '' : formatGramm(z.kohlenhydrate_dg),
+  },
+  {
+    key: 'ballast',
+    label: 'Ballastst. (g)',
+    rechts: true,
+    zelle: (z) =>
+      z.ballaststoffe_dg === null ? '' : formatGramm(z.ballaststoffe_dg),
+  },
+];
 
 /** Allzeitreport: eine Zeile je Tag (erste Erfassung bis heute), Copy & Paste. */
 export default function AllzeitSeite() {
@@ -246,6 +357,8 @@ export default function AllzeitSeite() {
   const [geladen, setGeladen] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [kopiert, setKopiert] = useState(false);
+  const sw = useSpaltenWahl('allzeit', ALLZEIT_SPALTEN);
+  const sichtbare = ALLZEIT_SPALTEN.filter((s) => sw.sichtbar(s.key));
 
   useEffect(() => {
     auswertungApi
@@ -294,86 +407,41 @@ export default function AllzeitSeite() {
         ) : zeilen.length === 0 ? (
           <p className="text-text-muted">Noch keine Daten erfasst.</p>
         ) : (
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-text-muted">
-                <th className="py-1.5 pr-3 font-normal">Datum</th>
-                <th className="py-1.5 pr-3 text-right font-normal">
-                  Gewicht (kg)
-                </th>
-                <th className="py-1.5 pr-3 text-right font-normal">
-                  Gesamtumsatz
-                </th>
-                <th className="py-1.5 pr-3 text-right font-normal">Bewegung</th>
-                <th className="py-1.5 pr-3 text-right font-normal">
-                  Verbrauch
-                </th>
-                <th className="py-1.5 pr-3 text-right font-normal">Aufnahme</th>
-                <th className="py-1.5 pr-3 text-right font-normal">Defizit</th>
-                <th className="py-1.5 pr-3 text-right font-normal">
-                  Eiweiß (g)
-                </th>
-                <th className="py-1.5 pr-3 text-right font-normal">Fett (g)</th>
-                <th className="py-1.5 pr-3 text-right font-normal">KH (g)</th>
-                <th className="py-1.5 pr-3 text-right font-normal">
-                  Ballastst. (g)
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {zeilen.map((z) => (
-                <tr key={z.datum} className="border-b border-border/50">
-                  <td className="py-1.5 pr-3 tabular">
-                    {formatDatum(z.datum)}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular">
-                    {z.gewicht_gramm === null ? '' : formatKg(z.gewicht_gramm)}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular">
-                    {formatKcal(z.gesamtumsatz)}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular">
-                    {z.bewegung === 0 ? '' : formatKcal(z.bewegung)}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular">
-                    {formatKcal(z.verbrauch)}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular">
-                    {z.aufnahme_kcal === null
-                      ? ''
-                      : formatKcal(z.aufnahme_kcal)}
-                  </td>
-                  <td
-                    className={`py-1.5 pr-3 text-right tabular ${
-                      z.defizit_kcal === null
-                        ? ''
-                        : z.defizit_kcal >= 0
-                          ? 'text-success'
-                          : 'text-danger'
-                    }`}
-                  >
-                    {z.defizit_kcal === null ? '' : formatKcal(z.defizit_kcal)}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular">
-                    {z.eiweiss_dg === null ? '' : formatGramm(z.eiweiss_dg)}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular">
-                    {z.fett_dg === null ? '' : formatGramm(z.fett_dg)}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular">
-                    {z.kohlenhydrate_dg === null
-                      ? ''
-                      : formatGramm(z.kohlenhydrate_dg)}
-                  </td>
-                  <td className="py-1.5 pr-3 text-right tabular">
-                    {z.ballaststoffe_dg === null
-                      ? ''
-                      : formatGramm(z.ballaststoffe_dg)}
-                  </td>
+          <>
+            {sw.auswahl}
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-text-muted">
+                  {sichtbare.map((s) => (
+                    <th
+                      key={s.key}
+                      className={`py-1.5 pr-3 font-normal ${
+                        s.rechts ? 'text-right' : ''
+                      }`}
+                    >
+                      {s.label}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {zeilen.map((z) => (
+                  <tr key={z.datum} className="border-b border-border/50">
+                    {sichtbare.map((s) => (
+                      <td
+                        key={s.key}
+                        className={`py-1.5 pr-3 tabular ${
+                          s.rechts ? 'text-right' : ''
+                        } ${s.klasse ? s.klasse(z) : ''}`}
+                      >
+                        {s.zelle(z)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </Card>
 

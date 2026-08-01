@@ -37,6 +37,7 @@ import { koerperdatenApi } from '../lib/koerperdaten.ts';
 import { abnehmzieleApi } from '../lib/abnehmziele.ts';
 import { eintraegeApi } from '../lib/eintraege.ts';
 import { authApi } from '../lib/auth.ts';
+import { useSpaltenWahl } from '../components/SpaltenWahl.tsx';
 
 function meldung(e: unknown): string {
   return e instanceof Error ? e.message : 'Unbekannter Fehler';
@@ -78,6 +79,12 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
   const [fehler, setFehler] = useState<string | null>(null);
   const [gespeichert, setGespeichert] = useState(false);
   const [speichert, setSpeichert] = useState(false);
+  const swVorgaben = useSpaltenWahl('vorgaben-verlauf', [
+    { key: 'gueltig_ab', label: 'gültig ab' },
+    { key: 'kcal_ziel', label: 'Kalorienziel' },
+    { key: 'eiweiss_ziel', label: 'Eiweißziel' },
+    { key: 'gesamtumsatz', label: 'Gesamtumsatz' },
+  ]);
 
   function laden() {
     vorgabenApi
@@ -293,61 +300,83 @@ export default function EinstellungenSeite({ aktiver }: { aktiver: AuthUser }) {
             {versionen.length === 0 ? (
               <p className="text-text-muted">Noch keine Vorgabe gesetzt.</p>
             ) : (
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-text-muted">
-                    <th className="py-2 pr-3 font-normal">gültig ab</th>
-                    <th className="py-2 pr-3 text-right font-normal">
-                      Kalorienziel
-                    </th>
-                    <th className="py-2 pr-3 text-right font-normal">
-                      Eiweißziel
-                    </th>
-                    <th className="py-2 pr-3 text-right font-normal">
-                      Gesamtumsatz
-                    </th>
-                    <th className="py-2 font-normal"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {versionen.map((v) => (
-                    <tr key={v.id} className="border-b border-border/50">
-                      <td className="py-2 pr-3 tabular">
-                        {formatDatum(v.gueltig_ab)}
-                      </td>
-                      <td className="py-2 pr-3 text-right tabular">
-                        {zielText(
-                          v.kcal_ziel,
-                          v.kcal_ziel_typ,
-                          (n) => `${formatKcal(n)} kcal`,
-                        )}
-                      </td>
-                      <td className="py-2 pr-3 text-right tabular">
-                        {zielText(
-                          v.eiweiss_ziel_dg,
-                          v.eiweiss_ziel_typ,
-                          (n) => `${formatGramm(n)} g`,
-                        )}
-                      </td>
-                      <td className="py-2 pr-3 text-right tabular">
-                        {v.gesamtumsatz === 0
-                          ? '—'
-                          : `${formatKcal(v.gesamtumsatz)} kcal`}
-                      </td>
-                      <td className="py-2">
-                        <div className="flex justify-end gap-2">
-                          <Button onClick={() => bearbeiten(v)}>
-                            Bearbeiten
-                          </Button>
-                          <Button variant="danger" onClick={() => loeschen(v)}>
-                            Löschen
-                          </Button>
-                        </div>
-                      </td>
+              <>
+                {swVorgaben.auswahl}
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-text-muted">
+                      {swVorgaben.sichtbar('gueltig_ab') && (
+                        <th className="py-2 pr-3 font-normal">gültig ab</th>
+                      )}
+                      {swVorgaben.sichtbar('kcal_ziel') && (
+                        <th className="py-2 pr-3 text-right font-normal">
+                          Kalorienziel
+                        </th>
+                      )}
+                      {swVorgaben.sichtbar('eiweiss_ziel') && (
+                        <th className="py-2 pr-3 text-right font-normal">
+                          Eiweißziel
+                        </th>
+                      )}
+                      {swVorgaben.sichtbar('gesamtumsatz') && (
+                        <th className="py-2 pr-3 text-right font-normal">
+                          Gesamtumsatz
+                        </th>
+                      )}
+                      <th className="py-2 font-normal"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {versionen.map((v) => (
+                      <tr key={v.id} className="border-b border-border/50">
+                        {swVorgaben.sichtbar('gueltig_ab') && (
+                          <td className="py-2 pr-3 tabular">
+                            {formatDatum(v.gueltig_ab)}
+                          </td>
+                        )}
+                        {swVorgaben.sichtbar('kcal_ziel') && (
+                          <td className="py-2 pr-3 text-right tabular">
+                            {zielText(
+                              v.kcal_ziel,
+                              v.kcal_ziel_typ,
+                              (n) => `${formatKcal(n)} kcal`,
+                            )}
+                          </td>
+                        )}
+                        {swVorgaben.sichtbar('eiweiss_ziel') && (
+                          <td className="py-2 pr-3 text-right tabular">
+                            {zielText(
+                              v.eiweiss_ziel_dg,
+                              v.eiweiss_ziel_typ,
+                              (n) => `${formatGramm(n)} g`,
+                            )}
+                          </td>
+                        )}
+                        {swVorgaben.sichtbar('gesamtumsatz') && (
+                          <td className="py-2 pr-3 text-right tabular">
+                            {v.gesamtumsatz === 0
+                              ? '—'
+                              : `${formatKcal(v.gesamtumsatz)} kcal`}
+                          </td>
+                        )}
+                        <td className="py-2">
+                          <div className="flex justify-end gap-2">
+                            <Button onClick={() => bearbeiten(v)}>
+                              Bearbeiten
+                            </Button>
+                            <Button
+                              variant="danger"
+                              onClick={() => loeschen(v)}
+                            >
+                              Löschen
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
             )}
           </Card>
         </>
@@ -595,6 +624,11 @@ function AbnehmzielKarte() {
   const [kg, setKg] = useState('');
   const [gueltigAb, setGueltigAb] = useState('');
   const [fehler, setFehler] = useState<string | null>(null);
+  const sw = useSpaltenWahl('abnehmziele', [
+    { key: 'gueltig_ab', label: 'gültig ab' },
+    { key: 'abnehmen', label: 'Abnehmen' },
+    { key: 'defizit', label: 'nötiges Defizit' },
+  ]);
   const [ok, setOk] = useState(false);
   const [speichert, setSpeichert] = useState(false);
 
@@ -700,38 +734,53 @@ function AbnehmzielKarte() {
       </form>
 
       {liste.length > 0 && (
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-text-muted">
-              <th className="py-2 pr-3 font-normal">gültig ab</th>
-              <th className="py-2 pr-3 text-right font-normal">Abnehmen</th>
-              <th className="py-2 pr-3 text-right font-normal">
-                nötiges Defizit
-              </th>
-              <th className="py-2 font-normal"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {liste.map((z) => (
-              <tr key={z.id} className="border-b border-border/50">
-                <td className="py-2 pr-3 tabular">
-                  {formatDatum(z.gueltig_ab)}
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {formatKg(z.ziel_gramm)} kg
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {formatKcal(benoetigtesDefizitKcal(z.ziel_gramm))} kcal
-                </td>
-                <td className="py-2 text-right">
-                  <Button variant="danger" onClick={() => loeschen(z)}>
-                    Löschen
-                  </Button>
-                </td>
+        <>
+          {sw.auswahl}
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-text-muted">
+                {sw.sichtbar('gueltig_ab') && (
+                  <th className="py-2 pr-3 font-normal">gültig ab</th>
+                )}
+                {sw.sichtbar('abnehmen') && (
+                  <th className="py-2 pr-3 text-right font-normal">Abnehmen</th>
+                )}
+                {sw.sichtbar('defizit') && (
+                  <th className="py-2 pr-3 text-right font-normal">
+                    nötiges Defizit
+                  </th>
+                )}
+                <th className="py-2 font-normal"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {liste.map((z) => (
+                <tr key={z.id} className="border-b border-border/50">
+                  {sw.sichtbar('gueltig_ab') && (
+                    <td className="py-2 pr-3 tabular">
+                      {formatDatum(z.gueltig_ab)}
+                    </td>
+                  )}
+                  {sw.sichtbar('abnehmen') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {formatKg(z.ziel_gramm)} kg
+                    </td>
+                  )}
+                  {sw.sichtbar('defizit') && (
+                    <td className="py-2 pr-3 text-right tabular">
+                      {formatKcal(benoetigtesDefizitKcal(z.ziel_gramm))} kcal
+                    </td>
+                  )}
+                  <td className="py-2 text-right">
+                    <Button variant="danger" onClick={() => loeschen(z)}>
+                      Löschen
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </Card>
   );

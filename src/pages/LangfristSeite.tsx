@@ -35,6 +35,7 @@ import {
 } from '../lib/format.ts';
 import { auswertungApi } from '../lib/auswertung.ts';
 import { gewichtApi } from '../lib/gewicht.ts';
+import { useSpaltenWahl } from '../components/SpaltenWahl.tsx';
 
 function meldung(e: unknown): string {
   return e instanceof Error ? e.message : 'Unbekannter Fehler';
@@ -158,12 +159,20 @@ function Prognose({
 
 /** Tabelle der 5-kg-Meilensteine (Gewicht · Status · früher/später). */
 function MeilensteinTabelle({
+  id,
   meilensteine,
   gleichText,
 }: {
+  /** Stabiler Schluessel fuer die Spalten-Auswahl (zwei Instanzen der Karte). */
+  id: string;
   meilensteine: GewichtsMeilenstein[];
   gleichText: string;
 }) {
+  const sw = useSpaltenWahl(id, [
+    { key: 'gewicht', label: 'Gewicht' },
+    { key: 'status', label: 'Status' },
+    { key: 'differenz', label: 'früher / später' },
+  ]);
   if (meilensteine.length === 0) {
     return (
       <p className="text-sm text-text-muted">
@@ -172,56 +181,73 @@ function MeilensteinTabelle({
     );
   }
   return (
-    <table className="w-full border-collapse text-sm">
-      <thead>
-        <tr className="border-b border-border text-left text-text-muted">
-          <th className="py-2 pr-3 font-normal">Gewicht</th>
-          <th className="py-2 pr-3 font-normal">Status</th>
-          <th className="py-2 pr-3 text-right font-normal">früher / später</th>
-        </tr>
-      </thead>
-      <tbody>
-        {meilensteine.map((m) => (
-          <tr key={m.gramm} className="border-b border-border/50">
-            <td className="py-2 pr-3 tabular font-bold">
-              {formatKg(m.gramm)} kg
-            </td>
-            <td className="py-2 pr-3">
-              {m.erreicht ? (
-                <span className="text-success">
-                  erreicht am {formatDatum(m.erreicht_am ?? '')}
-                </span>
-              ) : m.prognose ? (
-                <span className="text-text-muted">
-                  voraussichtlich {formatDatum(m.prognose)}
-                </span>
-              ) : (
-                <span className="text-text-muted">nicht absehbar</span>
-              )}
-            </td>
-            <td className="py-2 pr-3 text-right tabular">
-              {m.erreicht && m.differenz_tage !== null ? (
-                m.differenz_tage === 0 ? (
-                  <span className="text-text-muted">{gleichText}</span>
-                ) : (
-                  <span
-                    className={
-                      m.differenz_tage < 0 ? 'text-success' : 'text-danger'
-                    }
-                  >
-                    {m.differenz_tage < 0
-                      ? `${-m.differenz_tage} Tage früher`
-                      : `${m.differenz_tage} Tage später`}
-                  </span>
-                )
-              ) : (
-                '—'
-              )}
-            </td>
+    <>
+      {sw.auswahl}
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-border text-left text-text-muted">
+            {sw.sichtbar('gewicht') && (
+              <th className="py-2 pr-3 font-normal">Gewicht</th>
+            )}
+            {sw.sichtbar('status') && (
+              <th className="py-2 pr-3 font-normal">Status</th>
+            )}
+            {sw.sichtbar('differenz') && (
+              <th className="py-2 pr-3 text-right font-normal">
+                früher / später
+              </th>
+            )}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {meilensteine.map((m) => (
+            <tr key={m.gramm} className="border-b border-border/50">
+              {sw.sichtbar('gewicht') && (
+                <td className="py-2 pr-3 tabular font-bold">
+                  {formatKg(m.gramm)} kg
+                </td>
+              )}
+              {sw.sichtbar('status') && (
+                <td className="py-2 pr-3">
+                  {m.erreicht ? (
+                    <span className="text-success">
+                      erreicht am {formatDatum(m.erreicht_am ?? '')}
+                    </span>
+                  ) : m.prognose ? (
+                    <span className="text-text-muted">
+                      voraussichtlich {formatDatum(m.prognose)}
+                    </span>
+                  ) : (
+                    <span className="text-text-muted">nicht absehbar</span>
+                  )}
+                </td>
+              )}
+              {sw.sichtbar('differenz') && (
+                <td className="py-2 pr-3 text-right tabular">
+                  {m.erreicht && m.differenz_tage !== null ? (
+                    m.differenz_tage === 0 ? (
+                      <span className="text-text-muted">{gleichText}</span>
+                    ) : (
+                      <span
+                        className={
+                          m.differenz_tage < 0 ? 'text-success' : 'text-danger'
+                        }
+                      >
+                        {m.differenz_tage < 0
+                          ? `${-m.differenz_tage} Tage früher`
+                          : `${m.differenz_tage} Tage später`}
+                      </span>
+                    )
+                  ) : (
+                    '—'
+                  )}
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
   );
 }
 
@@ -241,6 +267,11 @@ export default function LangfristSeite({
   const [defizit, setDefizit] = useState<DefizitReport | null>(null);
   const [abnehmen, setAbnehmen] = useState<AbnehmFortschritt | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
+  const swLetzte = useSpaltenWahl('letzte-tage', [
+    { key: 'tag', label: 'Tag' },
+    { key: 'kcal', label: 'kcal' },
+    { key: 'eiweiss', label: 'Eiweiß' },
+  ]);
 
   function ladeVerlauf() {
     setFehler(null);
@@ -484,6 +515,7 @@ export default function LangfristSeite({
           </p>
 
           <MeilensteinTabelle
+            id="meilensteine-trend"
             meilensteine={abnehmen.meilensteine}
             gleichText="wie im Trend"
           />
@@ -522,6 +554,7 @@ export default function LangfristSeite({
           </p>
 
           <MeilensteinTabelle
+            id="meilensteine-median"
             meilensteine={abnehmen.meilensteine_defizit_median}
             gleichText="wie prognostiziert"
           />
@@ -756,25 +789,38 @@ export default function LangfristSeite({
 
       {/* Letzte 7 Tage */}
       <Card title="Letzte 7 Tage">
+        {swLetzte.auswahl}
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-text-muted">
-              <th className="py-2 pr-3 font-normal">Tag</th>
-              <th className="py-2 pr-3 text-right font-normal">kcal</th>
-              <th className="py-2 pr-3 text-right font-normal">Eiweiß</th>
+              {swLetzte.sichtbar('tag') && (
+                <th className="py-2 pr-3 font-normal">Tag</th>
+              )}
+              {swLetzte.sichtbar('kcal') && (
+                <th className="py-2 pr-3 text-right font-normal">kcal</th>
+              )}
+              {swLetzte.sichtbar('eiweiss') && (
+                <th className="py-2 pr-3 text-right font-normal">Eiweiß</th>
+              )}
               <th className="py-2 font-normal"></th>
             </tr>
           </thead>
           <tbody>
             {letzte.map((t) => (
               <tr key={t.datum} className="border-b border-border/50">
-                <td className="py-2 pr-3">{formatDatum(t.datum)}</td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {t.hat_daten ? formatKcal(t.kcal) : '—'}
-                </td>
-                <td className="py-2 pr-3 text-right tabular">
-                  {t.hat_daten ? `${formatGramm(t.eiweiss_dg)} g` : '—'}
-                </td>
+                {swLetzte.sichtbar('tag') && (
+                  <td className="py-2 pr-3">{formatDatum(t.datum)}</td>
+                )}
+                {swLetzte.sichtbar('kcal') && (
+                  <td className="py-2 pr-3 text-right tabular">
+                    {t.hat_daten ? formatKcal(t.kcal) : '—'}
+                  </td>
+                )}
+                {swLetzte.sichtbar('eiweiss') && (
+                  <td className="py-2 pr-3 text-right tabular">
+                    {t.hat_daten ? `${formatGramm(t.eiweiss_dg)} g` : '—'}
+                  </td>
+                )}
                 <td className="py-2 text-right">
                   <Button onClick={() => oeffneTag(t.datum)}>Öffnen</Button>
                 </td>

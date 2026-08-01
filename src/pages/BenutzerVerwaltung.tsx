@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { AuthUser, User } from '../../shared/types.ts';
 import { Banner, Button, Card, Field, TextInput } from '../components/ui.tsx';
 import { usersApi } from '../lib/auth.ts';
+import { useSpaltenWahl } from '../components/SpaltenWahl.tsx';
 
 function meldung(e: unknown): string {
   return e instanceof Error ? e.message : 'Unbekannter Fehler';
@@ -12,6 +13,11 @@ export default function BenutzerVerwaltung({ aktiver }: { aktiver: AuthUser }) {
   const [liste, setListe] = useState<User[]>([]);
   const [fehler, setFehler] = useState<string | null>(null);
   const [hinweis, setHinweis] = useState<string | null>(null);
+  const sw = useSpaltenWahl('benutzer', [
+    { key: 'username', label: 'Benutzername' },
+    { key: 'mandant', label: 'Mandant' },
+    { key: 'angelegt', label: 'Angelegt' },
+  ]);
 
   // Anlege-Formular
   const [username, setUsername] = useState('');
@@ -126,25 +132,38 @@ export default function BenutzerVerwaltung({ aktiver }: { aktiver: AuthUser }) {
       </Card>
 
       <Card title="Nutzer">
+        {sw.auswahl}
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-text-muted">
-              <th className="py-2 pr-3 font-normal">Benutzername</th>
-              <th className="py-2 pr-3 font-normal">Mandant</th>
-              <th className="py-2 pr-3 font-normal">Angelegt</th>
+              {sw.sichtbar('username') && (
+                <th className="py-2 pr-3 font-normal">Benutzername</th>
+              )}
+              {sw.sichtbar('mandant') && (
+                <th className="py-2 pr-3 font-normal">Mandant</th>
+              )}
+              {sw.sichtbar('angelegt') && (
+                <th className="py-2 pr-3 font-normal">Angelegt</th>
+              )}
               <th className="py-2 font-normal"></th>
             </tr>
           </thead>
           <tbody>
             {liste.map((u) => (
               <tr key={u.id} className="border-b border-border/50">
-                <td className="py-2 pr-3">{u.username}</td>
-                <td className="py-2 pr-3 tabular">
-                  {u.mandant_id === 0 ? '0 (Admin)' : u.mandant_id}
-                </td>
-                <td className="py-2 pr-3 text-text-muted">
-                  {u.erstellt_am.slice(0, 10)}
-                </td>
+                {sw.sichtbar('username') && (
+                  <td className="py-2 pr-3">{u.username}</td>
+                )}
+                {sw.sichtbar('mandant') && (
+                  <td className="py-2 pr-3 tabular">
+                    {u.mandant_id === 0 ? '0 (Admin)' : u.mandant_id}
+                  </td>
+                )}
+                {sw.sichtbar('angelegt') && (
+                  <td className="py-2 pr-3 text-text-muted">
+                    {u.erstellt_am.slice(0, 10)}
+                  </td>
+                )}
                 <td className="py-2">
                   <div className="flex justify-end gap-2">
                     <Button onClick={() => passwortSetzen(u)}>

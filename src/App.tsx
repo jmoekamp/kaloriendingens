@@ -89,7 +89,7 @@ function AngemeldeteApp({
     <div className="min-h-screen">
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex w-full flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3">
-          <span className="font-bold">cal-o-matic</span>
+          <span className="font-bold">Kaloriendingens</span>
           <nav className="flex gap-1">
             {navi.map((n) => (
               <button

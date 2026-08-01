@@ -1,6 +1,6 @@
 # Betrieb im Docker-Container
 
-Diese Anleitung beschreibt, wie cal-o-matic in einem eigenen
+Diese Anleitung beschreibt, wie Kaloriendingens in einem eigenen
 Docker-Container installiert und **ohne Datenverlust** aktualisiert wird. Der
 App-Code wird dabei bei jeder Installation und jedem Update **frisch aus dem
 Git-Repository** geholt.

@@ -31,7 +31,7 @@ export default function LoginSeite({
 
   return (
     <div className="mx-auto mt-24 max-w-sm px-6">
-      <h1 className="mb-6 text-center text-xl font-bold">cal-o-matic</h1>
+      <h1 className="mb-6 text-center text-xl font-bold">Kaloriendingens</h1>
       <Card title="Anmelden">
         <form onSubmit={anmelden} className="flex flex-col gap-4">
           {fehler && <Banner kind="error">{fehler}</Banner>}

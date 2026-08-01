@@ -28,7 +28,7 @@ export interface BackupErgebnis {
 
 /** Dateiname fuer ein Vollbackup, mit Datum. */
 export function vollBackupDateiname(datum = new Date()): string {
-  return `cal-o-matic_komplett_${datum.toISOString().slice(0, 10)}.sqlite`;
+  return `kaloriendingens_komplett_${datum.toISOString().slice(0, 10)}.sqlite`;
 }
 
 /** Dateiname fuer ein Mandant-Backup, mit Mandant und Datum. */
@@ -36,7 +36,7 @@ export function mandantBackupDateiname(
   mandantId: number,
   datum = new Date(),
 ): string {
-  return `cal-o-matic_mandant${mandantId}_${datum
+  return `kaloriendingens_mandant${mandantId}_${datum
     .toISOString()
     .slice(0, 10)}.sqlite`;
 }

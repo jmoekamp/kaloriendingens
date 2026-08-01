@@ -6,7 +6,9 @@
 
 ## Projektüberblick
 
-**Name:** cal-o-matic
+**Name:** Kaloriendingens (Anzeigename in UI und Dokumenten; technische
+Bezeichner wie Repo, Docker-Image/-Container, package.json, Session-Cookie
+`cal_session` und der OFF-User-Agent bleiben `cal-o-matic`)
 **Zweck:** Eine selbst gehostete Webanwendung zum Abnehmen: Ich pflege Lebensmittel
 mit Nährwerten, erfasse tagesweise, was und wann ich gegessen habe, setze Ziele
 für Kalorien und Eiweiß und werte kurz- wie langfristig aus (inkl. Kaloriendefizit).

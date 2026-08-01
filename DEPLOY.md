@@ -210,13 +210,13 @@ Alles über Umgebungsvariablen bzw. Build-Args steuerbar:
 | `compose.yaml` → `ports`       | –          | `3010:3010`                 | Host-Port (links) frei wählbar, z. B. `8080:3010`.                   |
 | `compose.yaml` → `environment` | `PORT`     | `3010`                      | Port **im** Container. Bei Änderung auch rechte Port-Seite anpassen. |
 | `compose.yaml` → `environment` | `DB_FILE`  | `/app/data/kalorien.sqlite` | Pfad der DB-Datei (im Volume belassen).                              |
-| `compose.yaml` → `build.args`  | `GIT_REPO` | LAN-Gitea-URL               | Quelle des Codes.                                                    |
+| `compose.yaml` → `build.args`  | `GIT_REPO` | GitHub-URL               | Quelle des Codes.                                                    |
 | `compose.yaml` → `build.args`  | `GIT_REF`  | `main`                      | Branch, Tag oder Commit.                                             |
 
 ### Privates Git-Repository
 
 Verlangt das Repository eine Anmeldung, die Zugangsdaten in `GIT_REPO`
-mitgeben (am besten ein **lesendes** Gitea-Token):
+mitgeben (am besten ein **lesendes** GitHub-Token (Fine-grained PAT, Contents: Read)):
 
 ```yaml
 GIT_REPO: https://<benutzer>:<token>@github.com/jmoekamp/kaloriendingens.git

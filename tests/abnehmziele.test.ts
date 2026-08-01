@@ -9,6 +9,7 @@ import {
   upsertAbnehmziel,
 } from '../server/repos/abnehmziele.ts';
 import { upsertVorgabe } from '../server/repos/vorgaben.ts';
+import { updateKoerperdaten } from '../server/repos/koerperdaten.ts';
 import { upsertGewicht } from '../server/repos/gewicht.ts';
 import { createLebensmittel } from '../server/repos/lebensmittel.ts';
 import { createEintrag } from '../server/repos/eintraege.ts';
@@ -321,6 +322,33 @@ describe('Abnehmfortschritt', () => {
     expect(m85.prognose).toBe(verschiebeDatum('2026-07-15', 40)); // (5000−1000)/100
     // Zielgewicht 80 kg: (10000−1000)/100 = 90 Tage.
     expect(f.prognose_defizit_median).toBe(verschiebeDatum('2026-07-15', 90));
+  });
+
+  it('fuegt das BMI-25-Gewicht als markierten Zusatz-Meilenstein ein', () => {
+    updateKoerperdaten(db, { groesse_cm: 180 }); // BMI 25 -> 25 × 1,8² = 81 kg
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 15000 }); // 90 -> 75 kg
+    upsertGewicht(db, { datum: '2026-06-01', gramm: 90000, aus_trend: false });
+    upsertGewicht(db, { datum: '2026-06-15', gramm: 89000, aus_trend: false });
+    const f = getAbnehmFortschritt(db, '2026-06-20');
+    // Absteigend einsortiert zwischen 85 und 80 kg; in BEIDEN Karten gleich.
+    expect(f.meilensteine.map((m) => m.gramm)).toEqual([
+      85000, 81000, 80000, 75000,
+    ]);
+    expect(f.meilensteine_defizit_median.map((m) => m.gramm)).toEqual([
+      85000, 81000, 80000, 75000,
+    ]);
+    const bmi = f.meilensteine.find((m) => m.gramm === 81000);
+    expect(bmi?.ist_bmi25).toBe(true);
+    expect(bmi?.prognose).not.toBeNull(); // Trend faellt -> Prognose vorhanden
+    expect(f.meilensteine.filter((m) => m.ist_bmi25)).toHaveLength(1);
+  });
+
+  it('laesst den BMI-Meilenstein ohne Groesse weg', () => {
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 10000 });
+    upsertGewicht(db, { datum: '2026-06-01', gramm: 90000, aus_trend: false });
+    const f = getAbnehmFortschritt(db, '2026-06-20');
+    expect(f.meilensteine.every((m) => !m.ist_bmi25)).toBe(true);
+    expect(f.meilensteine.map((m) => m.gramm)).toEqual([85000, 80000]);
   });
 
   it('friert Prognosen ein und aktualisiert sie erst beim Zwischenziel', () => {

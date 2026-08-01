@@ -145,7 +145,11 @@ beim selben Zielgewicht 100 % erreichen.
 **Meilenstein-Karten:** Der Gewichtstrend steht in einer eigenen Karte samt
 **5-kg-Meilenstein-Übersicht** (`meilensteine`): je durch 5 teilbarem ganzen
 Kilo bis zum Ziel die Prognose bzw. – wenn erreicht – das tatsächliche Datum
-plus „X Tage früher/später". Eine **zweite Karte „Defizit-Median (gleitend,
+plus „X Tage früher/später". Zusätzlich enthält die Liste das **Gewicht bei
+BMI 25** (Obergrenze Normalgewicht, 25 × Größe² aus den Körperdaten) als
+markierten Meilenstein („(BMI 25)", Feld `ist_bmi25`) – absteigend
+einsortiert, sofern die Größe gesetzt ist und der Wert unter dem Startgewicht
+liegt; er kann auch hinter dem Zielgewicht liegen. Eine **zweite Karte „Defizit-Median (gleitend,
 7 Tage)"** zeigt dieselbe Tabelle (gemeinsame Komponente
 `MeilensteinTabelle`), aber die Prognose stammt aus dem **gleitenden
 7-Tage-Median des Tagesdefizits**: Abnahmerate = Median_kcal / 7
@@ -189,18 +193,18 @@ echten Datum, an Tagen ohne Daten wird nichts gezeichnet:
 
 1. **Kalorien pro Tag** und 2. **Eiweiß pro Tag** – Linie bricht an Lücken ab
    (nur aufeinanderfolgende Kalendertage verbunden).
-3. **Gewicht (kg)** – durchgehende Linie über die Messpunkte (`verbinden`),
+2. **Gewicht (kg)** – durchgehende Linie über die Messpunkte (`verbinden`),
    gestrichelte **lineare Ausgleichsgerade** (Regression) mit Trendrate
    kg/Woche, kleines Label je Messpunkt mit der **Gewichtsreduktion in kg**
    gegenüber der vorherigen Messung (`punktLabel`), plus blaue Linie mit dem
    **auf Defizitbasis prognostizierten Gewichtsverlust** (ab dem ersten nicht
    ausgeschlossenen Punkt je Tag Tagesdefizit / 7 als Gramm abgezogen).
-4. **Umsatz & Aufnahme** – drei Linien (Gesamtumsatz, Gesamtumsatz + Bewegung
+3. **Umsatz & Aufnahme** – drei Linien (Gesamtumsatz, Gesamtumsatz + Bewegung
    = Verbrauch, Aufnahme); die Fläche zwischen Verbrauch und Aufnahme ist als
    Tagesdefizit grün/rot geschattet (`differenz`-Prop des LinienChart).
-5. **Tagesdefizit** – (Gesamtumsatz + Bewegung − Aufnahme) gegen eine
+4. **Tagesdefizit** – (Gesamtumsatz + Bewegung − Aufnahme) gegen eine
    Null-Linie, grün/rot geschattet (`/api/auswertung/defizit-verlauf`).
-6. **Kumulierter Gewichtsverlust** – erwarteter Verlust aus dem kumulierten
+5. **Kumulierter Gewichtsverlust** – erwarteter Verlust aus dem kumulierten
    Defizit (÷ 7000 kcal/kg) vs. gemessener Verlust (Anker − Messung), beide
    als Abnahme ab der ersten nicht ausgeschlossenen Messung
    (`kumulierteAbnahme` in `shared/naehrwerte.ts`).

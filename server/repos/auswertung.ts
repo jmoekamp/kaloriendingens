@@ -743,6 +743,23 @@ export function getAbnehmFortschritt(
       meilensteinGramms.push(m);
     }
   }
+  // Zusatz-Meilenstein: Gewicht bei BMI 25 (Obergrenze Normalgewicht),
+  // 25 × Groesse² – sofern die Groesse in den Koerperdaten gesetzt ist und der
+  // Wert unter dem Startgewicht liegt. Er wird unabhaengig vom Zielgewicht
+  // einsortiert (kann also auch hinter dem Ziel liegen) und laeuft wie alle
+  // Meilensteine durch die Prognose-Einfrierung.
+  const groesseCm = getKoerperdaten(db).groesse_cm;
+  const bmi25_gramm =
+    groesseCm > 0 ? Math.round(25 * (groesseCm / 100) ** 2 * 1000) : null;
+  if (
+    bmi25_gramm !== null &&
+    start_gewicht_gramm !== null &&
+    bmi25_gramm < start_gewicht_gramm &&
+    !meilensteinGramms.includes(bmi25_gramm)
+  ) {
+    meilensteinGramms.push(bmi25_gramm);
+    meilensteinGramms.sort((a, b) => b - a); // absteigend halten
+  }
   // Erste (nicht ausgeschlossene) Messung <= m gilt als erreicht.
   const erreichtAm = (m: number): string | null =>
     trendW.find((w) => w.gramm <= m)?.datum ?? null;
@@ -754,6 +771,7 @@ export function getAbnehmFortschritt(
       const prognose = fest.get(m) ?? null;
       return {
         gramm: m,
+        ist_bmi25: m === bmi25_gramm,
         erreicht: erreicht_am !== null,
         erreicht_am,
         prognose,

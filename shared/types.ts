@@ -439,12 +439,15 @@ export interface DetailTag {
   bewegungen: DetailBewegung[];
 }
 
-/** Ein Meilenstein auf dem Weg zum Abnehmziel (5-kg-Schritt oder BMI 25). */
+/** Ein Meilenstein auf dem Weg zum Abnehmziel (5-kg-Schritt oder BMI-Grenze). */
 export interface GewichtsMeilenstein {
-  /** Meilensteingewicht in Gramm (Vielfaches von 5000 bzw. BMI-25-Gewicht). */
+  /** Meilensteingewicht in Gramm (Vielfaches von 5000 bzw. BMI-Grenzgewicht). */
   gramm: number;
-  /** true = das Gewicht, bei dem ein BMI von 25 erreicht ist (25 × Groesse²). */
-  ist_bmi25: boolean;
+  /**
+   * Gesetzt, wenn der Meilenstein eine BMI-Grenze markiert: 30 (Adipositas-
+   * Grenze) oder 25 (Obergrenze Normalgewicht); null = normaler 5-kg-Schritt.
+   */
+  bmi: number | null;
   /** true, wenn schon eine Messung ≤ diesem Gewicht vorliegt. */
   erreicht: boolean;
   /** Tatsaechliches Datum (erste Messung ≤ gramm) oder null. */

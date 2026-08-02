@@ -338,9 +338,23 @@ describe('Abnehmfortschritt', () => {
       85000, 81000, 80000, 75000,
     ]);
     const bmi = f.meilensteine.find((m) => m.gramm === 81000);
-    expect(bmi?.ist_bmi25).toBe(true);
+    expect(bmi?.bmi).toBe(25);
     expect(bmi?.prognose).not.toBeNull(); // Trend faellt -> Prognose vorhanden
-    expect(f.meilensteine.filter((m) => m.ist_bmi25)).toHaveLength(1);
+    expect(f.meilensteine.filter((m) => m.bmi !== null)).toHaveLength(1);
+    // BMI 30 (30 × 1,8² = 97,2 kg) liegt UEBER dem Start -> nicht enthalten.
+    expect(f.meilensteine.some((m) => m.bmi === 30)).toBe(false);
+  });
+
+  it('fuegt die BMI-30-Grenze ein, wenn der Start darueber liegt', () => {
+    updateKoerperdaten(db, { groesse_cm: 170 }); // BMI 30 -> 86,7 kg; BMI 25 -> 72,25 kg
+    upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 20000 }); // 90 -> 70 kg
+    upsertGewicht(db, { datum: '2026-06-01', gramm: 90000, aus_trend: false });
+    const f = getAbnehmFortschritt(db, '2026-06-20');
+    expect(f.meilensteine.map((m) => m.gramm)).toEqual([
+      86700, 85000, 80000, 75000, 72250, 70000,
+    ]);
+    expect(f.meilensteine.find((m) => m.gramm === 86700)?.bmi).toBe(30);
+    expect(f.meilensteine.find((m) => m.gramm === 72250)?.bmi).toBe(25);
   });
 
   it('nutzt fuer den BMI-Meilenstein die gewaehlte Trefethen-Formel', () => {
@@ -349,18 +363,18 @@ describe('Abnehmfortschritt', () => {
     upsertGewicht(db, { datum: '2026-06-01', gramm: 90000, aus_trend: false });
     const f = getAbnehmFortschritt(db, '2026-06-20');
     // Trefethen: 25 × 1,8^2,5 / 1,3 = 83,595 kg (statt 81,0 kg Standard).
-    const bmi = f.meilensteine.find((m) => m.ist_bmi25);
+    const bmi = f.meilensteine.find((m) => m.bmi === 25);
     expect(bmi?.gramm).toBe(83595);
     expect(f.meilensteine.map((m) => m.gramm)).toEqual([
       85000, 83595, 80000, 75000,
     ]);
   });
 
-  it('laesst den BMI-Meilenstein ohne Groesse weg', () => {
+  it('laesst die BMI-Meilensteine ohne Groesse weg', () => {
     upsertAbnehmziel(db, { gueltig_ab: '2026-06-01', ziel_gramm: 10000 });
     upsertGewicht(db, { datum: '2026-06-01', gramm: 90000, aus_trend: false });
     const f = getAbnehmFortschritt(db, '2026-06-20');
-    expect(f.meilensteine.every((m) => !m.ist_bmi25)).toBe(true);
+    expect(f.meilensteine.every((m) => m.bmi === null)).toBe(true);
     expect(f.meilensteine.map((m) => m.gramm)).toEqual([85000, 80000]);
   });
 

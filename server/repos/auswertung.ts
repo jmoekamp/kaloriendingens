@@ -744,24 +744,23 @@ export function getAbnehmFortschritt(
       meilensteinGramms.push(m);
     }
   }
-  // Zusatz-Meilenstein: Gewicht bei BMI 25 (Obergrenze Normalgewicht) nach
-  // der in den Koerperdaten gewaehlten BMI-Formel (Standard kg/m² oder
-  // Trefethen 1,3·kg/m^2,5) – sofern die Groesse gesetzt ist und der Wert
-  // unter dem Startgewicht liegt. Er wird unabhaengig vom Zielgewicht
-  // einsortiert (kann also auch hinter dem Ziel liegen) und laeuft wie alle
-  // Meilensteine durch die Prognose-Einfrierung.
+  // Zusatz-Meilensteine: Gewichte an den BMI-Grenzen 30 (Adipositas-Grenze)
+  // und 25 (Obergrenze Normalgewicht) nach der in den Koerperdaten gewaehlten
+  // BMI-Formel (Standard kg/m² oder Trefethen 1,3·kg/m^2,5) – sofern die
+  // Groesse gesetzt ist und der Wert unter dem Startgewicht liegt. Sie werden
+  // unabhaengig vom Zielgewicht einsortiert (koennen also auch hinter dem Ziel
+  // liegen) und laufen wie alle Meilensteine durch die Prognose-Einfrierung.
+  // Faellt eine BMI-Grenze exakt auf einen 5-kg-Schritt, wird dieser markiert.
   const koerper = getKoerperdaten(db);
-  const bmi25_gramm =
-    koerper.groesse_cm > 0
-      ? gewichtBeiBmi(25, koerper.groesse_cm, koerper.bmi_formel)
-      : null;
-  if (
-    bmi25_gramm !== null &&
-    start_gewicht_gramm !== null &&
-    bmi25_gramm < start_gewicht_gramm &&
-    !meilensteinGramms.includes(bmi25_gramm)
-  ) {
-    meilensteinGramms.push(bmi25_gramm);
+  const bmiVon = new Map<number, number>(); // gramm -> BMI-Grenze
+  if (koerper.groesse_cm > 0 && start_gewicht_gramm !== null) {
+    for (const bmi of [30, 25]) {
+      const g = gewichtBeiBmi(bmi, koerper.groesse_cm, koerper.bmi_formel);
+      if (g < start_gewicht_gramm) {
+        bmiVon.set(g, bmi);
+        if (!meilensteinGramms.includes(g)) meilensteinGramms.push(g);
+      }
+    }
     meilensteinGramms.sort((a, b) => b - a); // absteigend halten
   }
   // Erste (nicht ausgeschlossene) Messung <= m gilt als erreicht.
@@ -775,7 +774,7 @@ export function getAbnehmFortschritt(
       const prognose = fest.get(m) ?? null;
       return {
         gramm: m,
-        ist_bmi25: m === bmi25_gramm,
+        bmi: bmiVon.get(m) ?? null,
         erreicht: erreicht_am !== null,
         erreicht_am,
         prognose,

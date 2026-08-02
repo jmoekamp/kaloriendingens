@@ -206,9 +206,9 @@ function MeilensteinTabelle({
               {sw.sichtbar('gewicht') && (
                 <td className="py-2 pr-3 tabular font-bold">
                   {formatKg(m.gramm)} kg
-                  {m.ist_bmi25 && (
+                  {m.bmi !== null && (
                     <span className="ml-1 font-normal text-text-muted">
-                      (BMI 25)
+                      (BMI {m.bmi})
                     </span>
                   )}
                 </td>

@@ -145,11 +145,13 @@ beim selben Zielgewicht 100 % erreichen.
 **Meilenstein-Karten:** Der Gewichtstrend steht in einer eigenen Karte samt
 **5-kg-Meilenstein-Übersicht** (`meilensteine`): je durch 5 teilbarem ganzen
 Kilo bis zum Ziel die Prognose bzw. – wenn erreicht – das tatsächliche Datum
-plus „X Tage früher/später". Zusätzlich enthält die Liste das **Gewicht bei
-BMI 25** (Obergrenze Normalgewicht) als markierten Meilenstein („(BMI 25)",
-Feld `ist_bmi25`) – absteigend einsortiert, sofern die Größe gesetzt ist und
-der Wert unter dem Startgewicht liegt; er kann auch hinter dem Zielgewicht
-liegen. Die **BMI-Formel ist in den Körperdaten wählbar** (`bmi_formel`):
+plus „X Tage früher/später". Zusätzlich enthält die Liste die Gewichte an den
+**BMI-Grenzen 30** (Adipositas-Grenze) und **25** (Obergrenze Normalgewicht)
+als markierte Meilensteine („(BMI 30)"/„(BMI 25)", Feld `bmi`) – absteigend
+einsortiert, sofern die Größe gesetzt ist und der jeweilige Wert unter dem
+Startgewicht liegt; sie können auch hinter dem Zielgewicht liegen. Fällt eine
+BMI-Grenze exakt auf einen 5-kg-Schritt, wird dieser markiert. Die
+**BMI-Formel ist in den Körperdaten wählbar** (`bmi_formel`):
 **Standard** (WHO, kg/m² → Gewicht = 25 × m²) oder **Trefethen-Korrektur**
 (Nick Trefethen, 2013: BMI = 1,3 · kg / m^2,5 → Gewicht = 25 × m^2,5 / 1,3;
 gleicht aus, dass der klassische BMI große Menschen zu dick und kleine zu dünn

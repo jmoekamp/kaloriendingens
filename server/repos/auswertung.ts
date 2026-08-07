@@ -1,6 +1,7 @@
 import type { Database } from 'better-sqlite3';
 import type {
   AbnehmFortschritt,
+  Abnehmkennzahlen,
   AllzeitTag,
   DetailBewegung,
   DetailMahlzeit,
@@ -27,6 +28,7 @@ import {
   gesamtumsatzBerechnet,
   gesamtumsatzKatch,
   gewichtBeiBmi,
+  maxFettverbrennungKcal,
 } from '../../shared/umsatz.ts';
 import { listEintraegeFuerTag } from './eintraege.ts';
 import { bewegungKcalProTag } from './bewegung.ts';
@@ -913,5 +915,60 @@ export function getAbnehmFortschritt(
     meilensteine_defizit_median,
     prognosen_stand_trend,
     prognosen_stand_median,
+  };
+}
+
+/**
+ * Abnehmkennzahlen fuer den letzten Tag mit gegessenen Eintraegen (≤ heute):
+ * u. a. das Tagesdefizit im Verhaeltnis zur maximalen Fettverbrennung nach
+ * Alpert. Die Fettmasse kommt aus dem tagesgueltigen Gewicht und dem
+ * tagesgueltigen Fettanteil (Carry-forward des letzten Werts davor).
+ */
+export function getAbnehmkennzahlen(
+  db: Database,
+  heute: string,
+): Abnehmkennzahlen {
+  const leer: Abnehmkennzahlen = {
+    datum: null,
+    defizit_kcal: null,
+    fett_masse_gramm: null,
+    max_fettverbrennung_kcal: null,
+    defizit_prozent_max_fett: null,
+  };
+  // Letzter Tag mit gegessenen Eintraegen bis heute (Zukunft ausgeschlossen).
+  const row = db
+    .prepare(
+      `SELECT MAX(datum) AS datum FROM eintraege
+        WHERE mandant_id = @mandant AND gegessen = 1 AND datum <= @heute`,
+    )
+    .get({ mandant: aktuellerMandant(), heute }) as { datum: string | null };
+  if (!row.datum) return leer;
+  const datum = row.datum;
+
+  const defizit_kcal = getTagesAuswertung(db, datum).defizit;
+
+  const gewichteAsc = alleGewichteAsc(db);
+  const gramm = gewichtFuerTag(gewichteAsc, datum);
+  const fetteAsc = gewichteAsc.filter(
+    (g): g is { datum: string; gramm: number; fett_promille: number } =>
+      g.fett_promille !== null,
+  );
+  const fettPromille = fettFuerTag(fetteAsc, datum);
+  if (gramm === null || fettPromille === null) {
+    return { ...leer, datum, defizit_kcal };
+  }
+  // Fettmasse (Gramm) = Gewicht × Fettanteil (Promille/1000).
+  const fett_masse_gramm = Math.round((gramm * fettPromille) / 1000);
+  const max_fettverbrennung_kcal = maxFettverbrennungKcal(fett_masse_gramm);
+  const defizit_prozent_max_fett =
+    max_fettverbrennung_kcal > 0
+      ? (defizit_kcal / max_fettverbrennung_kcal) * 100
+      : null;
+  return {
+    datum,
+    defizit_kcal,
+    fett_masse_gramm,
+    max_fettverbrennung_kcal: Math.round(max_fettverbrennung_kcal),
+    defizit_prozent_max_fett,
   };
 }

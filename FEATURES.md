@@ -183,6 +183,21 @@ ihre damals festgehaltene Prognose dauerhaft; „früher/später" rechnet gegen
 sie. Die Raten (kg/Woche, Median kcal/Tag) bleiben live. Felder
 `prognosen_stand_trend`/`_median` zeigen das Festhalte-Datum.
 
+## Abnehmkennzahlen (Auswertungsseite)
+
+Sammel-Karte „Abnehmkennzahlen" mit Sub-Karten (wird erweitert). Erste
+Sub-Karte: **Tagesdefizit in % der maximalen Fettverbrennung** nach der
+**Alpert-Formel** – Alpert (2005) leitet eine Obergrenze von ~290 kJ je kg
+Fettmasse und Tag ab (≈ 69,3 kcal/kg/Tag, `ALPERT_KCAL_PRO_KG_FETT_TAG` in
+`shared/umsatz.ts`). Die Fettmasse ergibt sich aus dem tagesgültigen Gewicht ×
+tagesgültigem Körperfettanteil; fehlt an einem Tag ein Fettwert, gilt der
+letzte davor (Carry-forward). Bezugstag ist der letzte Tag mit gegessenen
+Einträgen ≤ heute. Prozentwert ≤ 100 % = das Defizit ist rein aus Fett
+deckbar (grün), > 100 % = der Überschuss geht zu Lasten der Magermasse (rot).
+Ohne erfassten Fettanteil bzw. ohne Einträge bleibt der Wert leer.
+(`getAbnehmkennzahlen` in `server/repos/auswertung.ts`,
+`GET /api/auswertung/abnehmkennzahlen`.)
+
 ## Tagesauswertung
 
 Lebensmittel eines Tages mit kcal/Eiweiß, Summen und Abweichung vom Ziel.

@@ -97,6 +97,20 @@ export function gewichtBeiBmi(
   return Math.round(kg * 1000);
 }
 
+/**
+ * Alpert-Grenze: maximale Energie (kcal), die je Tag aus dem Koerperfett
+ * mobilisiert werden kann. Alpert (2005) leitet eine spezifische Obergrenze von
+ * ~290 kJ je kg Fettmasse und Tag ab (≈ 69,3 kcal/kg/Tag). Ein Tagesdefizit
+ * oberhalb dieses Werts kann NICHT rein aus Fett gedeckt werden – der Rest geht
+ * zu Lasten der Magermasse.
+ */
+export const ALPERT_KCAL_PRO_KG_FETT_TAG = 290 / 4.184; // ≈ 69,31 kcal/kg/Tag
+
+/** Max. Fett-Energie je Tag (kcal) nach Alpert aus der Fettmasse (Gramm). */
+export function maxFettverbrennungKcal(fettMasseGramm: number): number {
+  return (fettMasseGramm / 1000) * ALPERT_KCAL_PRO_KG_FETT_TAG;
+}
+
 /** Gesamtumsatz (kcal/Tag, gerundet) nach Katch-McArdle × Aktivitaetsfaktor. */
 export function gesamtumsatzKatch(
   gewichtGramm: number,

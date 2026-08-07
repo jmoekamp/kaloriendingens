@@ -9,6 +9,7 @@ import { upsertGewicht } from '../server/repos/gewicht.ts';
 import type { VorgabeInput } from '../shared/types.ts';
 import { createBewegung } from '../server/repos/bewegung.ts';
 import {
+  getAbnehmkennzahlen,
   getAllzeitReport,
   getDetailReport,
   getDefizitReport,
@@ -262,6 +263,63 @@ describe('Allzeitreport', () => {
 
   it('liefert eine leere Liste ohne jegliche Erfassung', () => {
     expect(getAllzeitReport(db, '2026-07-15')).toEqual([]);
+  });
+});
+
+describe('Abnehmkennzahlen (Alpert)', () => {
+  it('rechnet das Tagesdefizit in % der max. Fettverbrennung', () => {
+    vorgabe({ gesamtumsatz: 2400 });
+    // 80 kg, 25 % Fett -> Fettmasse 20 kg -> Alpert max ≈ 1386 kcal/Tag.
+    upsertGewicht(db, {
+      datum: '2026-07-15',
+      gramm: 80000,
+      aus_trend: false,
+      fett_promille: 250,
+    });
+    iss('2026-07-15', 250); // 168 kcal -> Defizit 2400 − 168 = 2232
+    const k = getAbnehmkennzahlen(db, '2026-07-15');
+    expect(k.datum).toBe('2026-07-15');
+    expect(k.defizit_kcal).toBe(2232);
+    expect(k.fett_masse_gramm).toBe(20000);
+    expect(k.max_fettverbrennung_kcal).toBe(1386); // gerundet
+    // 2232 / (20 kg × 290/4,184 kcal) × 100 ≈ 161,0 % (ungerundete Grenze).
+    const maxExakt = 20 * (290 / 4.184);
+    expect(k.defizit_prozent_max_fett).toBeCloseTo((2232 / maxExakt) * 100, 6);
+  });
+
+  it('nutzt den letzten Fettwert davor (Carry-forward) und den letzten Tag', () => {
+    vorgabe({ gesamtumsatz: 2000 });
+    upsertGewicht(db, {
+      datum: '2026-07-10',
+      gramm: 80000,
+      aus_trend: false,
+      fett_promille: 300, // 24 kg Fett
+    });
+    upsertGewicht(db, { datum: '2026-07-14', gramm: 79000, aus_trend: false }); // ohne Fett
+    iss('2026-07-12', 100); // aelter
+    iss('2026-07-14', 100); // letzter Tag mit Aufnahme
+    const k = getAbnehmkennzahlen(db, '2026-07-15');
+    expect(k.datum).toBe('2026-07-14'); // letzter Tag mit gegessenen Eintraegen
+    // Fett: Carry-forward von 300 ‰; Gewicht am 14.: 79000 -> 23,7 kg Fett.
+    expect(k.fett_masse_gramm).toBe(23700);
+    expect(k.defizit_kcal).toBe(2000 - 67);
+  });
+
+  it('liefert null ohne Fettwert bzw. ohne Eintraege', () => {
+    vorgabe({ gesamtumsatz: 2000 });
+    upsertGewicht(db, { datum: '2026-07-15', gramm: 80000, aus_trend: false }); // kein Fett
+    iss('2026-07-15', 100);
+    const k = getAbnehmkennzahlen(db, '2026-07-15');
+    expect(k.datum).toBe('2026-07-15');
+    expect(k.max_fettverbrennung_kcal).toBeNull();
+    expect(k.defizit_prozent_max_fett).toBeNull();
+    // Ganz ohne Eintraege: alles null.
+    const leer = getAbnehmkennzahlen(
+      openDb({ file: ':memory:' }),
+      '2026-07-15',
+    );
+    expect(leer.datum).toBeNull();
+    expect(leer.defizit_prozent_max_fett).toBeNull();
   });
 });
 

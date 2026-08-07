@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
+  ALPERT_KCAL_PRO_KG_FETT_TAG,
   gesamtumsatzBerechnet,
   gesamtumsatzKatch,
   gewichtBeiBmi,
   grundumsatzKatchMcArdle,
   grundumsatzMifflin,
+  maxFettverbrennungKcal,
 } from '../shared/umsatz.ts';
 
 describe('Grundumsatz (Mifflin-St Jeor)', () => {
@@ -53,6 +55,15 @@ describe('Gewicht bei BMI (Standard vs. Trefethen)', () => {
     expect(gewichtBeiBmi(25, 150, 'trefethen')).toBeLessThan(
       gewichtBeiBmi(25, 150, 'standard'),
     );
+  });
+});
+
+describe('Max. Fettverbrennung (Alpert)', () => {
+  it('nutzt ~290 kJ/kg Fett/Tag (≈ 69,3 kcal/kg)', () => {
+    expect(ALPERT_KCAL_PRO_KG_FETT_TAG).toBeCloseTo(69.31, 2);
+    // 20 kg Fettmasse -> 20 × 69,31 = 1386,2 kcal/Tag.
+    expect(maxFettverbrennungKcal(20000)).toBeCloseTo(1386.24, 1);
+    expect(maxFettverbrennungKcal(0)).toBe(0);
   });
 });
 

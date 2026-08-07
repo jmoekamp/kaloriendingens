@@ -443,6 +443,23 @@ export interface DetailTag {
   bewegungen: DetailBewegung[];
 }
 
+/**
+ * Abnehmkennzahlen (Sammel-Karte; wird erweitert). Bezieht sich auf den letzten
+ * Tag mit gegessenen Eintraegen ≤ heute.
+ */
+export interface Abnehmkennzahlen {
+  /** Tag, auf den sich die Kennzahlen beziehen, oder null (keine Eintraege). */
+  datum: string | null;
+  /** Tagesdefizit (kcal) an dem Tag; null ohne Tag. */
+  defizit_kcal: number | null;
+  /** Fettmasse an dem Tag (Gramm) = tagesgueltiges Gewicht × Fettanteil; null ohne Fettwert/Gewicht. */
+  fett_masse_gramm: number | null;
+  /** Max. Fettverbrennung je Tag nach Alpert (kcal); null wenn keine Fettmasse. */
+  max_fettverbrennung_kcal: number | null;
+  /** Tagesdefizit in % der max. Fettverbrennung (Alpert); null wenn nicht berechenbar. */
+  defizit_prozent_max_fett: number | null;
+}
+
 /** Ein Meilenstein auf dem Weg zum Abnehmziel (5-kg-Schritt oder BMI-Grenze). */
 export interface GewichtsMeilenstein {
   /** Meilensteingewicht in Gramm (Vielfaches von 5000 bzw. BMI-Grenzgewicht). */

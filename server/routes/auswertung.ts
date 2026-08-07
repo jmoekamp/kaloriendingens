@@ -3,6 +3,7 @@ import { getDb } from '../db/index.ts';
 import { badRequest } from '../errors.ts';
 import {
   getAbnehmFortschritt,
+  getAbnehmkennzahlen,
   getAllzeitReport,
   getDetailReport,
   getDefizitReport,
@@ -105,6 +106,11 @@ auswertungRouter.get('/defizit', (_req, res) => {
 /** GET /api/auswertung/abnehmfortschritt – Fortschritt des aktiven Abnehmziels. */
 auswertungRouter.get('/abnehmfortschritt', (_req, res) => {
   res.json(getAbnehmFortschritt(getDb(), heuteIso()));
+});
+
+/** GET /api/auswertung/abnehmkennzahlen – Kennzahlen (Alpert etc.). */
+auswertungRouter.get('/abnehmkennzahlen', (_req, res) => {
+  res.json(getAbnehmkennzahlen(getDb(), heuteIso()));
 });
 
 /** GET /api/auswertung/allzeit – alle Tage (erste Erfassung bis heute). */

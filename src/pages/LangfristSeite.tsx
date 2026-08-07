@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type {
   AbnehmFortschritt,
+  Abnehmkennzahlen,
   DefizitFenster,
   DefizitReport,
   DefizitTag,
@@ -159,6 +160,54 @@ function Prognose({
   );
 }
 
+/**
+ * Sammel-Karte „Abnehmkennzahlen" mit Sub-Karten (wird erweitert). Erste
+ * Sub-Karte: Tagesdefizit in % der maximalen Fettverbrennung (Alpert).
+ */
+function AbnehmkennzahlenKarte({ k }: { k: Abnehmkennzahlen }) {
+  const p = k.defizit_prozent_max_fett;
+  // ≤ 100 % gruen (aus Fett deckbar), > 100 % rot (geht an die Magermasse).
+  const farbe =
+    p === null ? 'text-text' : p > 100 ? 'text-danger' : 'text-success';
+  return (
+    <Card title="Abnehmkennzahlen">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rounded-lg border border-border bg-surface-2 p-4">
+          <div className="text-sm text-text-muted">
+            Defizit vs. max. Fettverbrennung (Alpert)
+          </div>
+          <div className={`text-2xl font-bold tabular ${farbe}`}>
+            {p === null ? '—' : `${formatProzent(p)} %`}
+          </div>
+          {k.datum === null ? (
+            <div className="mt-1 text-sm text-text-muted">
+              Noch keine gegessene Mahlzeit erfasst.
+            </div>
+          ) : k.max_fettverbrennung_kcal === null ? (
+            <div className="mt-1 text-sm text-text-muted">
+              Für {formatDatum(k.datum)}: kein Körperfettanteil erfasst (für die
+              Alpert-Berechnung nötig).
+            </div>
+          ) : (
+            <div className="mt-1 text-sm text-text-muted">
+              {formatDatum(k.datum)}: Defizit{' '}
+              <span className="font-bold text-text">
+                {formatKcal(k.defizit_kcal ?? 0)} kcal
+              </span>{' '}
+              von max.{' '}
+              <span className="font-bold text-text">
+                {formatKcal(k.max_fettverbrennung_kcal)} kcal
+              </span>{' '}
+              Fettenergie (Fettmasse {formatKg(k.fett_masse_gramm ?? 0)} kg).
+              {p !== null && p > 100 && ' Über 100 % zehrt an der Magermasse.'}
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 /** Tabelle der 5-kg-Meilensteine (Gewicht · Status · früher/später). */
 function MeilensteinTabelle({
   id,
@@ -273,6 +322,7 @@ export default function LangfristSeite({
   const [letzte, setLetzte] = useState<TagesZusammenfassung[]>([]);
   const [defizit, setDefizit] = useState<DefizitReport | null>(null);
   const [abnehmen, setAbnehmen] = useState<AbnehmFortschritt | null>(null);
+  const [kennzahlen, setKennzahlen] = useState<Abnehmkennzahlen | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const swLetzte = useSpaltenWahl('letzte-tage', [
     { key: 'tag', label: 'Tag' },
@@ -313,6 +363,10 @@ export default function LangfristSeite({
     auswertungApi
       .abnehmfortschritt()
       .then(setAbnehmen)
+      .catch((e) => setFehler(meldung(e)));
+    auswertungApi
+      .abnehmkennzahlen()
+      .then(setKennzahlen)
       .catch((e) => setFehler(meldung(e)));
   }, []);
 
@@ -625,6 +679,8 @@ export default function LangfristSeite({
           </div>
         </Card>
       )}
+
+      {kennzahlen && <AbnehmkennzahlenKarte k={kennzahlen} />}
 
       {/* Zeitraum-Auswahl */}
       <Card title="Verlauf">

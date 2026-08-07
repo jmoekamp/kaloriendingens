@@ -56,7 +56,9 @@ Je Eintrag Uhrzeit, Lebensmittel (Auswahl), Menge in g und ein
 Lebensmittel und der Menge berechnet, nicht gespeichert (ändert man die
 Nährwerte, ändern sich vergangene Auswertungen entsprechend mit). Hat das
 gewählte Lebensmittel eine Packungsgröße, füllt ein Button „ganze Packung" die
-Menge. Mahlzeiten lassen sich inline bearbeiten (Uhrzeit + Menge).
+Menge. Unter dem Uhrzeit-Feld gibt es Schnellwahl-Knöpfe **Morgens** (07:00),
+**Mittags** (12:00) und **Abends** (18:00), die die Uhrzeit direkt setzen.
+Mahlzeiten lassen sich inline bearbeiten (Uhrzeit + Menge).
 
 **Nur als „gegessen" markierte Einträge zählen in die Statistik** (Tages-
 Summen, Ziele, Zusammenfassung/Defizit, alle Verläufe und Langfrist-

@@ -311,13 +311,33 @@ export default function TagSeite({
           className="grid grid-cols-1 items-end gap-3 sm:grid-cols-4"
         >
           <Field label="Uhrzeit">
-            <TextInput
-              type="time"
-              value={uhrzeit}
-              onChange={(e) => setUhrzeit(e.target.value)}
-              className="tabular"
-              required
-            />
+            <div className="flex flex-col gap-1">
+              <TextInput
+                type="time"
+                value={uhrzeit}
+                onChange={(e) => setUhrzeit(e.target.value)}
+                className="tabular"
+                required
+              />
+              <div className="flex flex-wrap gap-x-3 text-xs text-accent">
+                {(
+                  [
+                    ['Morgens', '07:00'],
+                    ['Mittags', '12:00'],
+                    ['Abends', '18:00'],
+                  ] as const
+                ).map(([label, zeit]) => (
+                  <button
+                    key={zeit}
+                    type="button"
+                    onClick={() => setUhrzeit(zeit)}
+                    className="hover:underline"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </Field>
           <Field label="Lebensmittel">
             <Select value={lmId} onChange={(e) => setLmId(e.target.value)}>

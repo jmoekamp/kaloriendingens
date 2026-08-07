@@ -22,7 +22,44 @@ function fmtOderStrich(n: number | null): string {
   return n === null ? '—' : formatDezimal(n);
 }
 import { lebensmittelApi } from '../lib/lebensmittel.ts';
+import { ladeTextDatei } from '../lib/download.ts';
 import { useSpaltenWahl } from '../components/SpaltenWahl.tsx';
+
+/** Alle Lebensmittel als TSV (sämtliche Felder) fuer den Datei-Export. */
+function baueLebensmittelTsv(liste: Lebensmittel[]): string {
+  const kopf = [
+    'Name',
+    'kcal / 100 g',
+    'Eiweiß / 100 g (g)',
+    'Fett / 100 g (g)',
+    'Kohlenhydrate / 100 g (g)',
+    'Ballaststoffe / 100 g (g)',
+    'Packungsgröße (g)',
+    'Bestand (g)',
+    'Verwendet (Einträge)',
+    'Angelegt',
+    'Geändert',
+  ];
+  const dg = (v: number | null) => (v === null ? '' : formatGramm(v));
+  const zeilen = [...liste]
+    .sort((a, b) => a.name.localeCompare(b.name, 'de'))
+    .map((l) =>
+      [
+        l.name,
+        String(l.kcal_pro_100g),
+        formatGramm(l.eiweiss_dg_pro_100g),
+        dg(l.fett_dg_pro_100g),
+        dg(l.kohlenhydrate_dg_pro_100g),
+        dg(l.ballaststoffe_dg_pro_100g),
+        l.packung_gramm == null ? '' : String(l.packung_gramm),
+        l.bestand_gramm == null ? '' : String(l.bestand_gramm),
+        String(l.eintrag_anzahl ?? 0),
+        l.erstellt_am.slice(0, 10),
+        l.geaendert_am.slice(0, 10),
+      ].join('\t'),
+    );
+  return [kopf.join('\t'), ...zeilen].join('\n');
+}
 
 function meldung(e: unknown): string {
   return e instanceof Error ? e.message : 'Unbekannter Fehler';
@@ -751,7 +788,21 @@ export default function LebensmittelVerwaltung() {
           <p className="text-text-muted">Noch keine Lebensmittel angelegt.</p>
         ) : (
           <>
-            {sw.auswahl}
+            <div className="mb-2 flex flex-wrap items-center gap-3">
+              <div className="flex-1">{sw.auswahl}</div>
+              <Button
+                onClick={() => {
+                  const heute = new Date().toISOString().slice(0, 10);
+                  ladeTextDatei(
+                    `kaloriendingens_lebensmittel_${heute}.tsv`,
+                    baueLebensmittelTsv(liste),
+                  );
+                }}
+                title="Alle Lebensmittel mit sämtlichen Feldern als TSV-Datei herunterladen"
+              >
+                Alle als TSV exportieren
+              </Button>
+            </div>
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-text-muted">

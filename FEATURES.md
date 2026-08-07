@@ -17,7 +17,12 @@ auf die Spaltenköpfe sortierbar (erneuter Klick dreht die Richtung; leere
 Werte ans Ende). „Bearbeiten" öffnet die Eingabefelder **inline direkt unter
 der Tabellenzeile** (kein Hochscrollen); das obere Formular dient nur dem
 Anlegen. Ein Lebensmittel, das noch in Einträgen verwendet wird, kann NICHT
-gelöscht werden (strikter Löschschutz).
+gelöscht werden (strikter Löschschutz). Über der Liste gibt es einen Button
+**„Alle als TSV exportieren"**, der alle Lebensmittel mit **sämtlichen Feldern**
+(Name, kcal, Eiweiß/Fett/KH/Ballaststoffe je 100 g, Packungsgröße, Bestand,
+Verwendungs-Anzahl, Angelegt/Geändert) als TSV-Datei herunterlädt
+(`kaloriendingens_lebensmittel_<datum>.tsv`, unabhängig von Sortierung und
+ein-/ausgeblendeten Spalten; `ladeTextDatei` in `src/lib/download.ts`).
 
 ## Bestand (Vorrat)
 

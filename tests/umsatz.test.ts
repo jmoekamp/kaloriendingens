@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   ALPERT_KCAL_PRO_KG_FETT_TAG,
+  bmiWert,
   gesamtumsatzBerechnet,
   gesamtumsatzKatch,
   gewichtBeiBmi,
@@ -55,6 +56,20 @@ describe('Gewicht bei BMI (Standard vs. Trefethen)', () => {
     expect(gewichtBeiBmi(25, 150, 'trefethen')).toBeLessThan(
       gewichtBeiBmi(25, 150, 'standard'),
     );
+  });
+});
+
+describe('BMI (Standard vs. Trefethen, Umkehrung von gewichtBeiBmi)', () => {
+  it('rechnet Standard kg/m²', () => {
+    // 81 kg, 180 cm -> 81 / 1,8² = 25,0
+    expect(bmiWert(81000, 180, 'standard')).toBeCloseTo(25, 6);
+    expect(bmiWert(90000, 180, 'standard')).toBeCloseTo(27.78, 2);
+    expect(bmiWert(80000, 0, 'standard')).toBeNull();
+  });
+
+  it('rechnet Trefethen 1,3·kg/m^2,5 und ist invers zu gewichtBeiBmi', () => {
+    // gewichtBeiBmi(25, 180, trefethen) = 83595 g -> bmiWert davon = 25.
+    expect(bmiWert(83595, 180, 'trefethen')).toBeCloseTo(25, 3);
   });
 });
 

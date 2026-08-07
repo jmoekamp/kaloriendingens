@@ -458,6 +458,10 @@ export interface Abnehmkennzahlen {
   max_fettverbrennung_kcal: number | null;
   /** Tagesdefizit in % der max. Fettverbrennung (Alpert); null wenn nicht berechenbar. */
   defizit_prozent_max_fett: number | null;
+  /** BMI am Bezugstag nach der gewaehlten Formel; null ohne Groesse/Gewicht. */
+  bmi: number | null;
+  /** Verwendete BMI-Formel (fuer die Beschriftung „korrigiert"/„nicht"). */
+  bmi_formel: BmiFormel;
 }
 
 /** Ein Meilenstein auf dem Weg zum Abnehmziel (5-kg-Schritt oder BMI-Grenze). */

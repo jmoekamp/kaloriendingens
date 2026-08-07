@@ -25,6 +25,7 @@ import {
   lineareRegression,
 } from '../../shared/naehrwerte.ts';
 import {
+  bmiWert,
   gesamtumsatzBerechnet,
   gesamtumsatzKatch,
   gewichtBeiBmi,
@@ -928,12 +929,15 @@ export function getAbnehmkennzahlen(
   db: Database,
   heute: string,
 ): Abnehmkennzahlen {
+  const koerper = getKoerperdaten(db);
   const leer: Abnehmkennzahlen = {
     datum: null,
     defizit_kcal: null,
     fett_masse_gramm: null,
     max_fettverbrennung_kcal: null,
     defizit_prozent_max_fett: null,
+    bmi: null,
+    bmi_formel: koerper.bmi_formel,
   };
   // Letzter Tag mit gegessenen Eintraegen bis heute (Zukunft ausgeschlossen).
   const row = db
@@ -949,13 +953,19 @@ export function getAbnehmkennzahlen(
 
   const gewichteAsc = alleGewichteAsc(db);
   const gramm = gewichtFuerTag(gewichteAsc, datum);
+  // BMI aus dem tagesgueltigen Gewicht und der Groesse (gewaehlte Formel).
+  const bmi =
+    gramm !== null
+      ? bmiWert(gramm, koerper.groesse_cm, koerper.bmi_formel)
+      : null;
+
   const fetteAsc = gewichteAsc.filter(
     (g): g is { datum: string; gramm: number; fett_promille: number } =>
       g.fett_promille !== null,
   );
   const fettPromille = fettFuerTag(fetteAsc, datum);
   if (gramm === null || fettPromille === null) {
-    return { ...leer, datum, defizit_kcal };
+    return { ...leer, datum, defizit_kcal, bmi };
   }
   // Fettmasse (Gramm) = Gewicht × Fettanteil (Promille/1000).
   const fett_masse_gramm = Math.round((gramm * fettPromille) / 1000);
@@ -970,5 +980,7 @@ export function getAbnehmkennzahlen(
     fett_masse_gramm,
     max_fettverbrennung_kcal: Math.round(max_fettverbrennung_kcal),
     defizit_prozent_max_fett,
+    bmi,
+    bmi_formel: koerper.bmi_formel,
   };
 }

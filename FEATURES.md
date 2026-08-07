@@ -194,8 +194,12 @@ tagesgültigem Körperfettanteil; fehlt an einem Tag ein Fettwert, gilt der
 letzte davor (Carry-forward). Bezugstag ist der letzte Tag mit gegessenen
 Einträgen ≤ heute. Prozentwert ≤ 100 % = das Defizit ist rein aus Fett
 deckbar (grün), > 100 % = der Überschuss geht zu Lasten der Magermasse (rot).
-Ohne erfassten Fettanteil bzw. ohne Einträge bleibt der Wert leer.
-(`getAbnehmkennzahlen` in `server/repos/auswertung.ts`,
+Ohne erfassten Fettanteil bzw. ohne Einträge bleibt der Wert leer. Eine zweite
+Sub-Karte zeigt den **BMI** am Bezugstag (tagesgültiges Gewicht ÷ Größe²) nach
+der in den Einstellungen gewählten Formel – **Standard/WHO** (kg/m²) oder
+**Trefethen-korrigiert** (1,3·kg/m^2,5); die Beschriftung nennt die verwendete
+Formel (`bmiWert` in `shared/umsatz.ts`, Feld `bmi`/`bmi_formel`). Ohne Größe
+bleibt er leer. (`getAbnehmkennzahlen` in `server/repos/auswertung.ts`,
 `GET /api/auswertung/abnehmkennzahlen`.)
 
 ## Tagesauswertung

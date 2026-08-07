@@ -269,6 +269,7 @@ describe('Allzeitreport', () => {
 describe('Abnehmkennzahlen (Alpert)', () => {
   it('rechnet das Tagesdefizit in % der max. Fettverbrennung', () => {
     vorgabe({ gesamtumsatz: 2400 });
+    updateKoerperdaten(db, { groesse_cm: 180 }); // Modus bleibt manuell
     // 80 kg, 25 % Fett -> Fettmasse 20 kg -> Alpert max ≈ 1386 kcal/Tag.
     upsertGewicht(db, {
       datum: '2026-07-15',
@@ -282,6 +283,9 @@ describe('Abnehmkennzahlen (Alpert)', () => {
     expect(k.defizit_kcal).toBe(2232);
     expect(k.fett_masse_gramm).toBe(20000);
     expect(k.max_fettverbrennung_kcal).toBe(1386); // gerundet
+    // BMI Standard: 80 kg / 1,8² = 24,69; Formel-Kennung mitgeliefert.
+    expect(k.bmi_formel).toBe('standard');
+    expect(k.bmi).toBeCloseTo(24.69, 2);
     // 2232 / (20 kg × 290/4,184 kcal) × 100 ≈ 161,0 % (ungerundete Grenze).
     const maxExakt = 20 * (290 / 4.184);
     expect(k.defizit_prozent_max_fett).toBeCloseTo((2232 / maxExakt) * 100, 6);

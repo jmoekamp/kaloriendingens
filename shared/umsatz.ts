@@ -111,6 +111,24 @@ export function maxFettverbrennungKcal(fettMasseGramm: number): number {
   return (fettMasseGramm / 1000) * ALPERT_KCAL_PRO_KG_FETT_TAG;
 }
 
+/**
+ * BMI aus Gewicht (Gramm) und Groesse (cm) nach der gewaehlten Formel –
+ * Umkehrung von `gewichtBeiBmi`:
+ * - 'standard' (WHO): BMI = kg / m²
+ * - 'trefethen' (2013): BMI = 1,3 × kg / m^2,5
+ * null, wenn keine Groesse vorliegt.
+ */
+export function bmiWert(
+  gewichtGramm: number,
+  groesseCm: number,
+  formel: BmiFormel,
+): number | null {
+  if (groesseCm <= 0) return null;
+  const m = groesseCm / 100;
+  const kg = gewichtGramm / 1000;
+  return formel === 'trefethen' ? (1.3 * kg) / Math.pow(m, 2.5) : kg / (m * m);
+}
+
 /** Gesamtumsatz (kcal/Tag, gerundet) nach Katch-McArdle × Aktivitaetsfaktor. */
 export function gesamtumsatzKatch(
   gewichtGramm: number,

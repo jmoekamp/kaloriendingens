@@ -21,6 +21,7 @@ import {
 } from '../components/ui.tsx';
 import { LinienChart, type ChartPunkt } from '../components/LinienChart.tsx';
 import {
+  formatDezimal,
   formatGramm,
   formatKcal,
   formatKg,
@@ -202,6 +203,25 @@ function AbnehmkennzahlenKarte({ k }: { k: Abnehmkennzahlen }) {
               {p !== null && p > 100 && ' Über 100 % zehrt an der Magermasse.'}
             </div>
           )}
+        </div>
+
+        <div className="rounded-lg border border-border bg-surface-2 p-4">
+          <div className="text-sm text-text-muted">
+            BMI (
+            {k.bmi_formel === 'trefethen'
+              ? 'Trefethen-korrigiert'
+              : 'Standard/WHO'}
+            )
+          </div>
+          <div className="text-2xl font-bold tabular text-text">
+            {k.bmi === null ? '—' : formatDezimal(k.bmi, 1)}
+          </div>
+          <div className="mt-1 text-sm text-text-muted">
+            {k.bmi === null
+              ? 'Größe (Körperdaten) und ein Gewicht nötig.'
+              : k.datum !== null &&
+                `Stand ${formatDatum(k.datum)}. Formel in den Einstellungen wählbar.`}
+          </div>
         </div>
       </div>
     </Card>

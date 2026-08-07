@@ -5,6 +5,7 @@ import { formatGramm, formatKcal, formatKg } from '../../shared/naehrwerte.ts';
 import { formatDatum } from '../lib/format.ts';
 import { auswertungApi } from '../lib/auswertung.ts';
 import { kopiereText } from '../lib/zwischenablage.ts';
+import { ladeTextDatei } from '../lib/download.ts';
 import { useSpaltenWahl } from '../components/SpaltenWahl.tsx';
 
 function meldung(e: unknown): string {
@@ -158,6 +159,147 @@ function baueDetailTsv(tage: DetailTag[]): string {
     DETAIL_KOPF.join('\t'),
     ...baueDetailZeilen(tage, true).map((z) => z.zellen.join('\t')),
   ].join('\n');
+}
+
+/**
+ * Volle Download-Variante des Detailreports als TSV: wie die Detailansicht,
+ * zusaetzlich Fett, Kohlenhydrate und Ballaststoffe – je Tageszeile (summiert)
+ * UND je Mahlzeit. Zahlen ohne Tausenderpunkte, dg als Gramm mit Komma, leere
+ * Zellen fuer nicht Vorhandenes.
+ */
+function baueDownloadTsv(tage: DetailTag[]): string {
+  const kopf = [
+    ...DETAIL_KOPF,
+    'Fett (g)',
+    'Kohlenhydrate (g)',
+    'Ballaststoffe (g)',
+  ];
+  const dg = (v: number | null) => (v === null ? '' : formatGramm(v));
+  const zeilen: string[] = [];
+  for (const t of tage) {
+    const z = t.tag;
+    zeilen.push(
+      [
+        formatDatum(z.datum),
+        '',
+        '',
+        '',
+        z.gewicht_gramm === null ? '' : formatKg(z.gewicht_gramm),
+        String(z.gesamtumsatz),
+        z.bewegung === 0 ? '' : String(z.bewegung),
+        String(z.verbrauch),
+        z.aufnahme_kcal === null ? '' : String(z.aufnahme_kcal),
+        z.defizit_kcal === null ? '' : String(z.defizit_kcal),
+        dg(z.eiweiss_dg),
+        dg(z.fett_dg),
+        dg(z.kohlenhydrate_dg),
+        dg(z.ballaststoffe_dg),
+      ].join('\t'),
+    );
+    const details = [
+      ...t.mahlzeiten.map((m) => ({
+        uhrzeit: m.uhrzeit,
+        zellen: [
+          '',
+          m.uhrzeit,
+          m.gegessen ? m.lebensmittel_name : `${m.lebensmittel_name} (geplant)`,
+          String(m.menge_gramm),
+          '',
+          '',
+          '',
+          '',
+          String(m.kcal),
+          '',
+          dg(m.eiweiss_dg),
+          dg(m.fett_dg),
+          dg(m.kohlenhydrate_dg),
+          dg(m.ballaststoffe_dg),
+        ],
+      })),
+      ...t.bewegungen.map((b) => ({
+        uhrzeit: b.uhrzeit,
+        zellen: [
+          '',
+          b.uhrzeit,
+          b.beschreibung,
+          '',
+          '',
+          '',
+          String(b.kcal),
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+        ],
+      })),
+    ].sort((a, b) => a.uhrzeit.localeCompare(b.uhrzeit));
+    for (const d of details) zeilen.push(d.zellen.join('\t'));
+  }
+  return [kopf.join('\t'), ...zeilen].join('\n');
+}
+
+/**
+ * Reine Download-Karte: baut die volle Detailtabelle (inkl. Fett, KH,
+ * Ballaststoffe) und laedt sie als TSV-Datei herunter. Zeigt bewusst KEINE
+ * Tabelle an – sie ist nur fuer den Export gedacht.
+ */
+function DetailDownloadKarte() {
+  const [tage, setTage] = useState<DetailTag[]>([]);
+  const [geladen, setGeladen] = useState(false);
+  const [fehler, setFehler] = useState<string | null>(null);
+
+  useEffect(() => {
+    auswertungApi
+      .detail()
+      .then(setTage)
+      .catch((e) => setFehler(meldung(e)))
+      .finally(() => setGeladen(true));
+  }, []);
+
+  function herunterladen() {
+    setFehler(null);
+    try {
+      const heute = new Date().toISOString().slice(0, 10);
+      ladeTextDatei(
+        `kaloriendingens_detailreport_${heute}.tsv`,
+        baueDownloadTsv(tage),
+      );
+    } catch (e) {
+      setFehler(meldung(e));
+    }
+  }
+
+  return (
+    <Card title="Detailreport – Download (mit Fett, KH, Ballaststoffen)">
+      {fehler && (
+        <div className="mb-3">
+          <Banner kind="error" onClose={() => setFehler(null)}>
+            {fehler}
+          </Banner>
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-sm text-text-muted">
+          Lädt den kompletten Detailreport als TSV-Datei herunter – wie die
+          Detailansicht oben, zusätzlich mit Fett, Kohlenhydraten und
+          Ballaststoffen je Tag und je Mahlzeit. Öffnet sich direkt in
+          Tabellenkalkulationen.
+        </p>
+        <div className="ml-auto">
+          <Button
+            variant="primary"
+            onClick={herunterladen}
+            disabled={!geladen || tage.length === 0}
+          >
+            {geladen ? 'Als TSV herunterladen' : 'Lade …'}
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 /** Detailreport: Tageszeilen plus Mahlzeiten/Bewegung, Copy & Paste. */
@@ -446,6 +588,8 @@ export default function AllzeitSeite() {
       </Card>
 
       <DetailReportKarte />
+
+      <DetailDownloadKarte />
     </div>
   );
 }

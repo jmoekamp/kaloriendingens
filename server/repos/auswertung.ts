@@ -146,11 +146,19 @@ export function gesamtumsatzFuerTag(db: Database, datum: string): number {
  * dann Summe).
  */
 
-// kcal/Eiweiss je Eintragszeile, kaufmaennisch gerundet (wie portionKcal/-EiweissDg).
+// kcal/Naehrwerte je Eintragszeile, kaufmaennisch gerundet (wie portionKcal/-EiweissDg).
 const TAG_KCAL =
   'CAST(ROUND(l.kcal_pro_100g * e.menge_gramm / 100.0) AS INTEGER)';
 const TAG_EIW =
   'CAST(ROUND(l.eiweiss_dg_pro_100g * e.menge_gramm / 100.0) AS INTEGER)';
+// Fett/KH/Ballaststoffe je Zeile in Dezigramm (NULL, wenn beim Lebensmittel
+// nicht hinterlegt – NULL faellt aus SQL-Summen heraus).
+const TAG_FETT =
+  'CAST(ROUND(l.fett_dg_pro_100g * e.menge_gramm / 100.0) AS INTEGER)';
+const TAG_KH =
+  'CAST(ROUND(l.kohlenhydrate_dg_pro_100g * e.menge_gramm / 100.0) AS INTEGER)';
+const TAG_BALLAST =
+  'CAST(ROUND(l.ballaststoffe_dg_pro_100g * e.menge_gramm / 100.0) AS INTEGER)';
 
 interface TagAggRow {
   datum: string;
@@ -477,13 +485,7 @@ export function getAllzeitReport(db: Database, heute: string): AllzeitTag[] {
   );
   // Fett/KH/Ballaststoffe wie Eiweiss summieren; NULL-Werte (Naehrwert beim
   // Lebensmittel nicht erfasst) fallen aus der Summe, ein Tag ganz ohne Werte
-  // liefert NULL (SQLite-SUM ueber lauter NULLs).
-  const TAG_FETT =
-    'CAST(ROUND(l.fett_dg_pro_100g * e.menge_gramm / 100.0) AS INTEGER)';
-  const TAG_KH =
-    'CAST(ROUND(l.kohlenhydrate_dg_pro_100g * e.menge_gramm / 100.0) AS INTEGER)';
-  const TAG_BALLAST =
-    'CAST(ROUND(l.ballaststoffe_dg_pro_100g * e.menge_gramm / 100.0) AS INTEGER)';
+  // liefert NULL (SQLite-SUM ueber lauter NULLs). SQL-Ausdruecke: TAG_FETT etc.
   const aufnahmeRows = db
     .prepare(
       `SELECT e.datum AS datum, SUM(${TAG_KCAL}) AS kcal,
@@ -546,7 +548,9 @@ export function getDetailReport(db: Database, heute: string): DetailTag[] {
       `SELECT e.datum AS datum, e.uhrzeit AS uhrzeit,
               l.name AS lebensmittel_name, e.menge_gramm AS menge_gramm,
               e.gegessen AS gegessen,
-              ${TAG_KCAL} AS kcal, ${TAG_EIW} AS eiweiss_dg
+              ${TAG_KCAL} AS kcal, ${TAG_EIW} AS eiweiss_dg,
+              ${TAG_FETT} AS fett_dg, ${TAG_KH} AS kohlenhydrate_dg,
+              ${TAG_BALLAST} AS ballaststoffe_dg
          FROM eintraege e
          JOIN lebensmittel l ON l.id = e.lebensmittel_id
         WHERE e.mandant_id = @mandant AND e.datum BETWEEN @von AND @bis
@@ -560,6 +564,9 @@ export function getDetailReport(db: Database, heute: string): DetailTag[] {
     gegessen: number;
     kcal: number;
     eiweiss_dg: number;
+    fett_dg: number | null;
+    kohlenhydrate_dg: number | null;
+    ballaststoffe_dg: number | null;
   }[];
   const bewegungRows = db
     .prepare(
@@ -580,6 +587,9 @@ export function getDetailReport(db: Database, heute: string): DetailTag[] {
       menge_gramm: r.menge_gramm,
       kcal: r.kcal,
       eiweiss_dg: r.eiweiss_dg,
+      fett_dg: r.fett_dg,
+      kohlenhydrate_dg: r.kohlenhydrate_dg,
+      ballaststoffe_dg: r.ballaststoffe_dg,
       gegessen: r.gegessen === 1,
     });
     mahlzeitenJeTag.set(r.datum, liste);

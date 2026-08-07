@@ -419,6 +419,10 @@ export interface DetailMahlzeit {
   menge_gramm: number;
   kcal: number;
   eiweiss_dg: number;
+  /** Fett/KH/Ballaststoffe der Portion in Dezigramm; null = nicht erfasst. */
+  fett_dg: number | null;
+  kohlenhydrate_dg: number | null;
+  ballaststoffe_dg: number | null;
   gegessen: boolean;
 }
 

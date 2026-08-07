@@ -261,6 +261,15 @@ Aufnahme-, Bewegungs-kcal in der Bewegungs-Spalte. Eigener
 „Tabelle kopieren"-Button (TSV). `getDetailReport`,
 `GET /api/auswertung/detail`.
 
+**Detailreport – Download:** Eine reine Download-Karte (zeigt bewusst KEINE
+Tabelle). Sie lädt den kompletten Detailreport als **TSV-Datei**
+(`kaloriendingens_detailreport_<datum>.tsv`, mit UTF-8-BOM für Excel/
+LibreOffice; `ladeTextDatei` in `src/lib/download.ts`) herunter – wie die
+Detailansicht, **zusätzlich mit Fett, Kohlenhydraten und Ballaststoffen** je
+Tageszeile (summiert) UND je Mahlzeit. Der Detailreport liefert diese
+Nährwerte dafür je Mahlzeit mit (`DetailMahlzeit.fett_dg` /
+`kohlenhydrate_dg` / `ballaststoffe_dg`).
+
 ## Tabellen: Spalten ein-/ausblenden
 
 Über jeder Tabelle sitzt ein per Default EINGEKLAPPTES

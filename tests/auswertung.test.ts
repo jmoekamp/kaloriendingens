@@ -293,6 +293,9 @@ describe('Detailreport', () => {
         menge_gramm: 250,
         kcal: 168,
         eiweiss_dg: 300,
+        fett_dg: null, // Quark ohne Fett/KH/Ballast-Werte
+        kohlenhydrate_dg: null,
+        ballaststoffe_dg: null,
         gegessen: true,
       },
       {
@@ -301,6 +304,9 @@ describe('Detailreport', () => {
         menge_gramm: 100,
         kcal: 67,
         eiweiss_dg: 120,
+        fett_dg: null,
+        kohlenhydrate_dg: null,
+        ballaststoffe_dg: null,
         gegessen: false,
       },
     ]);
@@ -313,6 +319,28 @@ describe('Detailreport', () => {
     // Tag 15.: keine Bewegung, eine Mahlzeit.
     expect(r[1].mahlzeiten).toHaveLength(1);
     expect(r[1].bewegungen).toEqual([]);
+  });
+
+  it('liefert Fett/KH/Ballaststoffe je Mahlzeit (fuer den Download)', () => {
+    const haferId = createLebensmittel(db, {
+      name: 'Haferflocken',
+      kcal_pro_100g: 372,
+      eiweiss_dg_pro_100g: 135,
+      fett_dg_pro_100g: 70, // 7,0 g / 100 g
+      kohlenhydrate_dg_pro_100g: 589,
+      ballaststoffe_dg_pro_100g: 100,
+      packung_gramm: null,
+    }).id;
+    createEintrag(db, {
+      datum: '2026-07-15',
+      uhrzeit: '08:00',
+      lebensmittel_id: haferId,
+      menge_gramm: 50, // halbe Werte
+    });
+    const m = getDetailReport(db, '2026-07-15')[0].mahlzeiten[0];
+    expect(m.fett_dg).toBe(35); // 3,5 g
+    expect(m.kohlenhydrate_dg).toBe(295); // ROUND(294,5)
+    expect(m.ballaststoffe_dg).toBe(50);
   });
 
   it('liefert eine leere Liste ohne jegliche Erfassung', () => {

@@ -24,6 +24,7 @@ import {
   formatKcal,
   formatKg,
   formatProzent,
+  gleitenderTagesdurchschnitt,
   kumulierteAbnahme,
   lineareRegression,
   steigungsAbweichung,
@@ -324,6 +325,12 @@ export default function LangfristSeite({
     wert: p.gramm,
     imTrend: !p.aus_trend,
   }));
+  // Gleitender 7-Tage-Durchschnitt des Gewichts (glaettet Wasserschwankungen);
+  // ausgeschlossene Wasser-Tage bleiben aussen vor.
+  const gewichtSchnittPunkte: ChartPunkt[] = gleitenderTagesdurchschnitt(
+    gewicht.filter((p) => !p.aus_trend),
+    7,
+  ).map((p) => ({ datum: p.datum, wert: p.gramm }));
   // Kalorien-Diagramm: Gesamtumsatz, Gesamtumsatz+Bewegung (Verbrauch), Aufnahme.
   const umsatzPunkte: ChartPunkt[] = kalorien.map((k) => ({
     datum: k.datum,
@@ -678,6 +685,7 @@ export default function LangfristSeite({
           </span>
           <span className="text-xs text-text-muted">
             <span className="text-[#d0a35a]">gemessen</span> ·{' '}
+            <span className="text-[#63b784]">Ø 7 Tage</span> ·{' '}
             <span className="text-text">gestrichelt: Trend</span>
             {trendProWoche !== null && (
               <> ({formatKg(trendProWoche)} kg/Woche)</>
@@ -699,6 +707,9 @@ export default function LangfristSeite({
           regression
           prognose={prognosePunkte}
           prognoseFarbe="#5aa0d8"
+          serien={[
+            { punkte: gewichtSchnittPunkte, farbe: '#63b784', verbinden: true },
+          ]}
         />
 
         {gewicht.length > 0 && (

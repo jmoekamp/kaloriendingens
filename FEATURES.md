@@ -203,9 +203,12 @@ echten Datum, an Tagen ohne Daten wird nichts gezeichnet:
 2. **Gewicht (kg)** – durchgehende Linie über die Messpunkte (`verbinden`),
    gestrichelte **lineare Ausgleichsgerade** (Regression) mit Trendrate
    kg/Woche, kleines Label je Messpunkt mit der **Gewichtsreduktion in kg**
-   gegenüber der vorherigen Messung (`punktLabel`), plus blaue Linie mit dem
-   **auf Defizitbasis prognostizierten Gewichtsverlust** (ab dem ersten nicht
-   ausgeschlossenen Punkt je Tag Tagesdefizit / 7 als Gramm abgezogen).
+   gegenüber der vorherigen Messung (`punktLabel`), grüne Linie mit dem
+   **gleitenden 7-Tage-Durchschnitt** (kalendarisches Fenster, glättet
+   Wasserschwankungen; ausgeschlossene Wasser-Tage bleiben außen vor;
+   `gleitenderTagesdurchschnitt` in `shared/naehrwerte.ts`), plus blaue Linie
+   mit dem **auf Defizitbasis prognostizierten Gewichtsverlust** (ab dem ersten
+   nicht ausgeschlossenen Punkt je Tag Tagesdefizit / 7 als Gramm abgezogen).
 3. **Umsatz & Aufnahme** – drei Linien (Gesamtumsatz, Gesamtumsatz + Bewegung
    = Verbrauch, Aufnahme); die Fläche zwischen Verbrauch und Aufnahme ist als
    Tagesdefizit grün/rot geschattet (`differenz`-Prop des LinienChart).

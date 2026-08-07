@@ -139,6 +139,32 @@ function tagesNummer(iso: string): number {
   return Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
 }
 
+/**
+ * Gleitender (nachlaufender) Durchschnitt einer Gewichtsreihe ueber ein
+ * KALENDER-Fenster: je Messpunkt der Mittelwert aller Messungen der letzten
+ * `fensterTage` Kalendertage (inkl. des Tages selbst). So werden Luecken korrekt
+ * behandelt – ein fehlender Tag zaehlt nicht als 0, sondern faellt aus dem
+ * Mittel. Es werden nur echte Messtage als Stuetzstellen ausgegeben.
+ */
+export function gleitenderTagesdurchschnitt(
+  punkte: { datum: string; gramm: number }[],
+  fensterTage = 7,
+): { datum: string; gramm: number }[] {
+  const sortiert = [...punkte].sort((a, b) =>
+    a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0,
+  );
+  return sortiert.map((p) => {
+    const bis = tagesNummer(p.datum);
+    const von = bis - fensterTage + 1;
+    const fenster = sortiert.filter((q) => {
+      const t = tagesNummer(q.datum);
+      return t >= von && t <= bis;
+    });
+    const summe = fenster.reduce((s, q) => s + q.gramm, 0);
+    return { datum: p.datum, gramm: summe / fenster.length };
+  });
+}
+
 /** Ein Punkt der Steigungs-Abweichung (gemessen vs. Defizit-Erwartung). */
 export interface SteigungsAbweichungPunkt {
   datum: string;

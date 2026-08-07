@@ -9,6 +9,7 @@ import {
   formatKg,
   formatProzent,
   gleitenderMedian,
+  gleitenderTagesdurchschnitt,
   grammProGrammEiweiss,
   grammProKcal,
   kumulierteAbnahme,
@@ -177,6 +178,41 @@ describe('Gleitender Median', () => {
   it('begrenzt das Fenster auf mindestens 1 und behandelt Leereingabe', () => {
     expect(gleitenderMedian([5, 7, 9], 0)).toEqual([5, 7, 9]);
     expect(gleitenderMedian([], 5)).toEqual([]);
+  });
+});
+
+describe('Gleitender 7-Tage-Durchschnitt (Gewicht)', () => {
+  it('mittelt ueber das nachlaufende Kalenderfenster (Luecken zaehlen nicht)', () => {
+    const p = gleitenderTagesdurchschnitt(
+      [
+        { datum: '2026-07-01', gramm: 80000 },
+        { datum: '2026-07-02', gramm: 82000 }, // Ø (80+82)/2 = 81000
+        // Luecke 03.–07.
+        { datum: '2026-07-08', gramm: 79000 }, // Fenster 02.–08.: (82+79)/2 = 80500
+        { datum: '2026-07-09', gramm: 79000 }, // Fenster 03.–09.: nur 08.+09. = 79000
+      ],
+      7,
+    );
+    expect(p.map((x) => x.gramm)).toEqual([80000, 81000, 80500, 79000]);
+    expect(p.map((x) => x.datum)).toEqual([
+      '2026-07-01',
+      '2026-07-02',
+      '2026-07-08',
+      '2026-07-09',
+    ]);
+  });
+
+  it('sortiert unsortierte Eingaben und liefert [] fuer leere', () => {
+    const p = gleitenderTagesdurchschnitt(
+      [
+        { datum: '2026-07-03', gramm: 79000 },
+        { datum: '2026-07-01', gramm: 81000 },
+      ],
+      7,
+    );
+    expect(p.map((x) => x.datum)).toEqual(['2026-07-01', '2026-07-03']);
+    expect(p[1].gramm).toBe(80000); // (81+79)/2
+    expect(gleitenderTagesdurchschnitt([], 7)).toEqual([]);
   });
 });
 

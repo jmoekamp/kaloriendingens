@@ -199,7 +199,15 @@ Sub-Karte zeigt den **BMI** am Bezugstag (tagesgültiges Gewicht ÷ Größe²) n
 der in den Einstellungen gewählten Formel – **Standard/WHO** (kg/m²) oder
 **Trefethen-korrigiert** (1,3·kg/m^2,5); die Beschriftung nennt die verwendete
 Formel (`bmiWert` in `shared/umsatz.ts`, Feld `bmi`/`bmi_formel`). Ohne Größe
-bleibt er leer. (`getAbnehmkennzahlen` in `server/repos/auswertung.ts`,
+bleibt er leer. Eine dritte Sub-Karte zeigt die **Abnahme der letzten Woche in
+% des Körpergewichts**, bewusst geglättet: verglichen wird der **gleitende
+7-Tage-Durchschnitt des Gewichts** an beiden Zeitpunkten (heute und vor
+7 Tagen), sodass Wassereinlagerungen weitgehend herausfallen. Prozent =
+(Ø vor 7 Tagen − Ø heute) / Ø vor 7 Tagen × 100; nur nicht ausgeschlossene
+Messungen fließen ein; ohne Messungen in beiden Fenstern bleibt der Wert leer
+(`durchschnittImFenster` in `shared/naehrwerte.ts`, Felder
+`woche_abnahme_prozent`/`_gramm`, `gewicht_avg_jetzt_gramm`/`_vor7_gramm`).
+(`getAbnehmkennzahlen` in `server/repos/auswertung.ts`,
 `GET /api/auswertung/abnehmkennzahlen`.)
 
 ## Tagesauswertung

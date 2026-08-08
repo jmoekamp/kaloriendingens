@@ -309,6 +309,30 @@ describe('Abnehmkennzahlen (Alpert)', () => {
     expect(k.defizit_kcal).toBe(2000 - 67);
   });
 
+  it('rechnet die Wochen-Abnahme gegen den 7-Tage-Durchschnitt beider Zeitpunkte', () => {
+    // Fenster vor 7 Tagen (2026-07-01 .. 07-08 = heute−7): 08. gilt als bis-Tag.
+    // Damit beide Fenster gefuellt sind, je zwei Messungen setzen.
+    upsertGewicht(db, { datum: '2026-07-02', gramm: 90000, aus_trend: false });
+    upsertGewicht(db, { datum: '2026-07-08', gramm: 89000, aus_trend: false }); // vor7-Fenster (02.-08.): Ø 89500
+    upsertGewicht(db, { datum: '2026-07-10', gramm: 88000, aus_trend: false });
+    upsertGewicht(db, { datum: '2026-07-15', gramm: 87000, aus_trend: false }); // jetzt-Fenster (09.-15.): Ø 87500
+    const k = getAbnehmkennzahlen(db, '2026-07-15');
+    expect(k.gewicht_avg_vor7_gramm).toBe(89500);
+    expect(k.gewicht_avg_jetzt_gramm).toBe(87500);
+    expect(k.woche_abnahme_gramm).toBe(2000);
+    expect(k.woche_abnahme_prozent).toBeCloseTo((2000 / 89500) * 100, 6);
+  });
+
+  it('ignoriert ausgeschlossene (aus_trend) Messungen beim Wochenvergleich', () => {
+    upsertGewicht(db, { datum: '2026-07-08', gramm: 89000, aus_trend: false });
+    upsertGewicht(db, { datum: '2026-07-14', gramm: 95000, aus_trend: true }); // Wasser -> ignoriert
+    upsertGewicht(db, { datum: '2026-07-15', gramm: 87000, aus_trend: false });
+    const k = getAbnehmkennzahlen(db, '2026-07-15');
+    expect(k.gewicht_avg_jetzt_gramm).toBe(87000); // nur der 15.
+    expect(k.gewicht_avg_vor7_gramm).toBe(89000);
+    expect(k.woche_abnahme_gramm).toBe(2000);
+  });
+
   it('liefert null ohne Fettwert bzw. ohne Eintraege', () => {
     vorgabe({ gesamtumsatz: 2000 });
     upsertGewicht(db, { datum: '2026-07-15', gramm: 80000, aus_trend: false }); // kein Fett

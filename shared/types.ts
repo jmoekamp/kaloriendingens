@@ -462,6 +462,14 @@ export interface Abnehmkennzahlen {
   bmi: number | null;
   /** Verwendete BMI-Formel (fuer die Beschriftung „korrigiert"/„nicht"). */
   bmi_formel: BmiFormel;
+  /** Gleitender 7-Tage-Durchschnitt des Gewichts bis heute (Gramm); null wenn keine Messung im Fenster. */
+  gewicht_avg_jetzt_gramm: number | null;
+  /** Gleitender 7-Tage-Durchschnitt bis vor 7 Tagen (Gramm); null wenn keine Messung im Fenster. */
+  gewicht_avg_vor7_gramm: number | null;
+  /** Abnahme der letzten Woche (Gramm) = Durchschnitt vor 7 Tagen − aktuell; null wenn nicht berechenbar. */
+  woche_abnahme_gramm: number | null;
+  /** Abnahme der letzten Woche in % des (geglaetteten) Gewichts vor 7 Tagen; null wenn nicht berechenbar. */
+  woche_abnahme_prozent: number | null;
 }
 
 /** Ein Meilenstein auf dem Weg zum Abnehmziel (5-kg-Schritt oder BMI-Grenze). */

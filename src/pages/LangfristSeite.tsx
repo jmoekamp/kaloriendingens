@@ -223,6 +223,45 @@ function AbnehmkennzahlenKarte({ k }: { k: Abnehmkennzahlen }) {
                 `Stand ${formatDatum(k.datum)}. Formel in den Einstellungen wählbar.`}
           </div>
         </div>
+
+        <div className="rounded-lg border border-border bg-surface-2 p-4">
+          <div className="text-sm text-text-muted">
+            Abnahme letzte Woche (geglättet)
+          </div>
+          <div
+            className={`text-2xl font-bold tabular ${
+              k.woche_abnahme_prozent === null
+                ? 'text-text'
+                : k.woche_abnahme_prozent >= 0
+                  ? 'text-success'
+                  : 'text-danger'
+            }`}
+          >
+            {k.woche_abnahme_prozent === null
+              ? '—'
+              : `${formatProzent(k.woche_abnahme_prozent)} %`}
+          </div>
+          <div className="mt-1 text-sm text-text-muted">
+            {k.woche_abnahme_prozent === null ||
+            k.gewicht_avg_vor7_gramm === null ||
+            k.gewicht_avg_jetzt_gramm === null ? (
+              'Braucht Gewichtsmessungen aus dieser und der Vorwoche.'
+            ) : (
+              <>
+                7-Tage-Ø{' '}
+                <span className="font-bold text-text">
+                  {formatKg(k.gewicht_avg_vor7_gramm)} kg
+                </span>{' '}
+                →{' '}
+                <span className="font-bold text-text">
+                  {formatKg(k.gewicht_avg_jetzt_gramm)} kg
+                </span>{' '}
+                ({formatKg(k.woche_abnahme_gramm ?? 0)} kg). Gegen den
+                gleitenden 7-Tage-Durchschnitt beider Zeitpunkte gerechnet.
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </Card>
   );

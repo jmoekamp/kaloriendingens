@@ -20,6 +20,7 @@ import { aktuellerMandant } from '../db/index.ts';
 import {
   benoetigtesDefizitKcal,
   bewerteZiel,
+  durchschnittImFenster,
   eiweissProKgKoerper,
   gleitenderMedian,
   lineareRegression,
@@ -930,6 +931,27 @@ export function getAbnehmkennzahlen(
   heute: string,
 ): Abnehmkennzahlen {
   const koerper = getKoerperdaten(db);
+
+  // Wochen-Abnahme geglaettet: gleitender 7-Tage-Durchschnitt des Gewichts an
+  // BEIDEN Zeitpunkten (heute und heute − 7) gegeneinander, damit
+  // Wassereinlagerungen weitgehend herausfallen. Nur nicht ausgeschlossene
+  // Messungen (aus_trend) fliessen ein.
+  const trendW = gewichteImTrendBis(db, heute);
+  const avgJetzt = durchschnittImFenster(trendW, heute, 7);
+  const avgVor7 = durchschnittImFenster(trendW, verschiebeDatum(heute, -7), 7);
+  const woche = {
+    gewicht_avg_jetzt_gramm: avgJetzt === null ? null : Math.round(avgJetzt),
+    gewicht_avg_vor7_gramm: avgVor7 === null ? null : Math.round(avgVor7),
+    woche_abnahme_gramm:
+      avgJetzt !== null && avgVor7 !== null
+        ? Math.round(avgVor7 - avgJetzt)
+        : null,
+    woche_abnahme_prozent:
+      avgJetzt !== null && avgVor7 !== null && avgVor7 > 0
+        ? ((avgVor7 - avgJetzt) / avgVor7) * 100
+        : null,
+  };
+
   const leer: Abnehmkennzahlen = {
     datum: null,
     defizit_kcal: null,
@@ -938,6 +960,7 @@ export function getAbnehmkennzahlen(
     defizit_prozent_max_fett: null,
     bmi: null,
     bmi_formel: koerper.bmi_formel,
+    ...woche,
   };
   // Letzter Tag mit gegessenen Eintraegen bis heute (Zukunft ausgeschlossen).
   const row = db
@@ -982,5 +1005,6 @@ export function getAbnehmkennzahlen(
     defizit_prozent_max_fett,
     bmi,
     bmi_formel: koerper.bmi_formel,
+    ...woche,
   };
 }

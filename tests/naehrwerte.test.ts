@@ -8,6 +8,7 @@ import {
   formatKcal,
   formatKg,
   formatProzent,
+  durchschnittImFenster,
   gleitenderMedian,
   gleitenderTagesdurchschnitt,
   grammProGrammEiweiss,
@@ -213,6 +214,25 @@ describe('Gleitender 7-Tage-Durchschnitt (Gewicht)', () => {
     expect(p.map((x) => x.datum)).toEqual(['2026-07-01', '2026-07-03']);
     expect(p[1].gramm).toBe(80000); // (81+79)/2
     expect(gleitenderTagesdurchschnitt([], 7)).toEqual([]);
+  });
+});
+
+describe('Durchschnitt im nachlaufenden Fenster', () => {
+  const reihe = [
+    { datum: '2026-07-01', gramm: 90000 },
+    { datum: '2026-07-05', gramm: 89000 },
+    { datum: '2026-07-08', gramm: 88000 },
+    { datum: '2026-07-14', gramm: 87000 },
+  ];
+  it('mittelt die Messungen im 7-Tage-Fenster bis zum Datum', () => {
+    // Fenster 08.–14.: nur 08. und 14. -> (88+87)/2 = 87500
+    expect(durchschnittImFenster(reihe, '2026-07-14', 7)).toBe(87500);
+    // Fenster 01.–07.: 01. und 05. -> (90+89)/2 = 89500
+    expect(durchschnittImFenster(reihe, '2026-07-07', 7)).toBe(89500);
+  });
+  it('liefert null ohne Messung im Fenster', () => {
+    expect(durchschnittImFenster(reihe, '2026-06-20', 7)).toBeNull();
+    expect(durchschnittImFenster([], '2026-07-14', 7)).toBeNull();
   });
 });
 

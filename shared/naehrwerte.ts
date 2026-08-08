@@ -165,6 +165,27 @@ export function gleitenderTagesdurchschnitt(
   });
 }
 
+/**
+ * Mittelwert der Werte im nachlaufenden Kalenderfenster
+ * [bisDatum − fensterTage + 1 .. bisDatum] (Gramm). null, wenn keine Messung im
+ * Fenster liegt. Dient dem geglaetteten Wochenvergleich (Wassereinlagerungen
+ * daempfen).
+ */
+export function durchschnittImFenster(
+  punkte: { datum: string; gramm: number }[],
+  bisDatum: string,
+  fensterTage = 7,
+): number | null {
+  const bis = tagesNummer(bisDatum);
+  const von = bis - fensterTage + 1;
+  const im = punkte.filter((p) => {
+    const t = tagesNummer(p.datum);
+    return t >= von && t <= bis;
+  });
+  if (im.length === 0) return null;
+  return im.reduce((s, p) => s + p.gramm, 0) / im.length;
+}
+
 /** Ein Punkt der Steigungs-Abweichung (gemessen vs. Defizit-Erwartung). */
 export interface SteigungsAbweichungPunkt {
   datum: string;
